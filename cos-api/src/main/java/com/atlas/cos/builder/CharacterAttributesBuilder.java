@@ -89,7 +89,7 @@ public class CharacterAttributesBuilder extends Builder<CharacterAttributes, Cha
       return add(attr -> attr.setSkinColor(skinColor));
    }
 
-   public CharacterAttributesBuilder setGender(Integer gender) {
+   public CharacterAttributesBuilder setGender(Byte gender) {
       return add(attr -> attr.setGender(gender));
    }
 

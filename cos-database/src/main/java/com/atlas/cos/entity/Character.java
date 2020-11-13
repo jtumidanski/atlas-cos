@@ -79,7 +79,7 @@ public class Character implements Serializable {
    private Integer skinColor = 0;
 
    @Column(nullable = false)
-   private Integer gender = 0;
+   private Byte gender = 0;
 
    @Column(nullable = false)
    private Integer fame = 0;
@@ -264,11 +264,11 @@ public class Character implements Serializable {
       this.skinColor = skinColor;
    }
 
-   public Integer getGender() {
+   public Byte getGender() {
       return gender;
    }
 
-   public void setGender(Integer gender) {
+   public void setGender(Byte gender) {
       this.gender = gender;
    }
 
