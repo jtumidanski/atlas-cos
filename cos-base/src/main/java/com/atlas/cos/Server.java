@@ -24,7 +24,7 @@ public class Server {
             "AsiaSoft", "henesys");
       BlockedNameProcessor.getInstance().bulkAddBlockedNames(blockedNameList);
 
-      URI uri = UriBuilder.host(RestService.CHANNEL).uri();
+      URI uri = UriBuilder.host(RestService.CHARACTER).uri();
       final HttpServer server = RestServerFactory.create(uri, "com.atlas.cos.rest");
 
 
