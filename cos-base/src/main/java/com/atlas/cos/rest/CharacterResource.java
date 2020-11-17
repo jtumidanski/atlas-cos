@@ -18,9 +18,13 @@ public class CharacterResource {
    @Path("characters")
    @Consumes(MediaType.APPLICATION_JSON)
    @Produces(MediaType.APPLICATION_JSON)
-   public Response getCharacters(@QueryParam("accountId") Integer accountId, @QueryParam("worldId") Integer worldId) {
+   public Response getCharacters(@QueryParam("accountId") Integer accountId,
+                                 @QueryParam("worldId") Integer worldId,
+                                 @QueryParam("name") String name) {
       if (accountId != null && worldId != null) {
          return CharacterResultProcessor.getInstance().getForAccountAndWorld(accountId, worldId).build();
+      } else if (name != null) {
+         return CharacterResultProcessor.getInstance().getByName(name).build();
       }
       return new ResultBuilder().build();
    }

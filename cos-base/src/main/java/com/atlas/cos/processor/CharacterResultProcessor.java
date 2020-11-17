@@ -3,6 +3,7 @@ package com.atlas.cos.processor;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.builder.CharacterAttributesBuilder;
 import com.atlas.cos.database.provider.CharacterProvider;
+import com.sun.xml.bind.v2.runtime.JAXBContextImpl;
 
 import builder.ResultBuilder;
 import builder.ResultObjectBuilder;
@@ -29,13 +30,11 @@ public class CharacterResultProcessor {
 
    public ResultBuilder getForAccountAndWorld(int accountId, int worldId) {
       ResultBuilder resultBuilder = new ResultBuilder();
-
       DatabaseConnection.getInstance().withConnection(entityManager ->
             CharacterProvider.getInstance().getForAccountAndWorld(entityManager, accountId, worldId)
                   .stream()
                   .map(this::produceResultObjectForCharacter)
                   .forEach(resultBuilder::addData));
-
       return resultBuilder;
    }
 
@@ -70,5 +69,15 @@ public class CharacterResultProcessor {
                   .setSpawnPoint(data.spawnPoint())
                   .setGm(data.gm())
             );
+   }
+
+   public ResultBuilder getByName(String name) {
+      ResultBuilder resultBuilder = new ResultBuilder();
+      DatabaseConnection.getInstance().withConnection(entityManager ->
+            CharacterProvider.getInstance().getForName(entityManager, name)
+                  .stream()
+                  .map(this::produceResultObjectForCharacter)
+                  .forEach(resultBuilder::addData));
+      return resultBuilder;
    }
 }

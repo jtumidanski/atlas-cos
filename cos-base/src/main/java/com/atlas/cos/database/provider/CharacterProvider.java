@@ -1,5 +1,6 @@
 package com.atlas.cos.database.provider;
 
+import java.util.Arrays;
 import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
@@ -34,6 +35,12 @@ public class CharacterProvider extends AbstractQueryExecutor {
             + ".world = :worldId", Character.class);
       query.setParameter("accountId", accountId);
       query.setParameter("worldId", worldId);
+      return getResultList(query, new CharacterDataTransformer());
+   }
+
+   public List<CharacterData> getForName(EntityManager entityManager, String name) {
+      TypedQuery<Character> query = entityManager.createQuery("SELECT c FROM Character c WHERE c.name = :name", Character.class);
+      query.setParameter("name", name);
       return getResultList(query, new CharacterDataTransformer());
    }
 }
