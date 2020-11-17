@@ -31,4 +31,12 @@ public class CharacterResource {
       }
       return new ResultBuilder().build();
    }
+
+   @POST
+   @Path("")
+   @Consumes(MediaType.APPLICATION_JSON)
+   @Produces(MediaType.APPLICATION_JSON)
+   public Response createCharacter(InputBody<CharacterAttributes> inputBody) {
+      return CharacterResultProcessor.getInstance().createCharacter(inputBody.attributes()).build();
+   }
 }
