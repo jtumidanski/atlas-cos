@@ -4,6 +4,7 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 
+import com.atlas.cos.database.transformer.BlockedNameDataTransformer;
 import com.atlas.cos.entity.BlockedName;
 import com.atlas.cos.model.BlockedNameData;
 
@@ -30,6 +31,6 @@ public class BlockedNameProvider extends AbstractQueryExecutor {
 
    public List<BlockedNameData> getNames(EntityManager entityManager) {
       TypedQuery<BlockedName> query = entityManager.createQuery("SELECT b FROM BlockedName b", BlockedName.class);
-      return getResultList(query, blockedName -> new BlockedNameData(blockedName.getName()));
+      return getResultList(query, new BlockedNameDataTransformer());
    }
 }

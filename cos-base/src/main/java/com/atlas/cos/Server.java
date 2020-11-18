@@ -25,8 +25,6 @@ public class Server {
       BlockedNameProcessor.getInstance().bulkAddBlockedNames(blockedNameList);
 
       URI uri = UriBuilder.host(RestService.CHARACTER).uri();
-      final HttpServer server = RestServerFactory.create(uri, "com.atlas.cos.rest");
-
-
+      RestServerFactory.create(uri, "com.atlas.cos.rest");
    }
 }

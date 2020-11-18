@@ -1,13 +1,13 @@
 package com.atlas.cos.processor;
 
-import com.atlas.cos.attribute.CharacterAttributes;
-import com.atlas.cos.builder.CharacterAttributesBuilder;
+import java.util.Collections;
+
+import com.app.rest.util.stream.Collectors;
 import com.atlas.cos.database.provider.CharacterProvider;
-import com.sun.xml.bind.v2.runtime.JAXBContextImpl;
+import com.atlas.cos.rest.ResultObjectFactory;
 
 import builder.ResultBuilder;
-import builder.ResultObjectBuilder;
-import database.DatabaseConnection;
+import database.Connection;
 
 public class CharacterResultProcessor {
    private static final Object lock = new Object();
@@ -29,55 +29,20 @@ public class CharacterResultProcessor {
    }
 
    public ResultBuilder getForAccountAndWorld(int accountId, int worldId) {
-      ResultBuilder resultBuilder = new ResultBuilder();
-      DatabaseConnection.getInstance().withConnection(entityManager ->
-            CharacterProvider.getInstance().getForAccountAndWorld(entityManager, accountId, worldId)
-                  .stream()
-                  .map(this::produceResultObjectForCharacter)
-                  .forEach(resultBuilder::addData));
-      return resultBuilder;
-   }
-
-   private ResultObjectBuilder produceResultObjectForCharacter(com.atlas.cos.model.CharacterData data) {
-      return new ResultObjectBuilder(CharacterAttributes.class, data.id())
-            .setAttribute(new CharacterAttributesBuilder()
-                  .setAccountId(data.accountId())
-                  .setWorldId(data.worldId())
-                  .setName(data.name())
-                  .setLevel(data.level())
-                  .setExperience(data.experience())
-                  .setGachaponExperience(data.gachaponExperience())
-                  .setStrength(data.strength())
-                  .setDexterity(data.dexterity())
-                  .setLuck(data.luck())
-                  .setIntelligence(data.intelligence())
-                  .setHp(data.hp())
-                  .setMp(data.mp())
-                  .setMaxHp(data.maxHp())
-                  .setMaxMp(data.maxMp())
-                  .setMeso(data.meso())
-                  .setHpMpUsed(data.hpMpUsed())
-                  .setJobId(data.jobId())
-                  .setSkinColor(data.skinColor())
-                  .setGender(data.gender())
-                  .setFame(data.fame())
-                  .setHair(data.hair())
-                  .setFace(data.face())
-                  .setAp(data.ap())
-                  .setSp(data.sp())
-                  .setMapId(data.mapId())
-                  .setSpawnPoint(data.spawnPoint())
-                  .setGm(data.gm())
-            );
+      return Connection.getInstance()
+            .withResult(entityManager -> CharacterProvider.getInstance().getForAccountAndWorld(entityManager,
+                  accountId, worldId))
+            .orElse(Collections.emptyList())
+            .stream()
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
    }
 
    public ResultBuilder getByName(String name) {
-      ResultBuilder resultBuilder = new ResultBuilder();
-      DatabaseConnection.getInstance().withConnection(entityManager ->
-            CharacterProvider.getInstance().getForName(entityManager, name)
-                  .stream()
-                  .map(this::produceResultObjectForCharacter)
-                  .forEach(resultBuilder::addData));
-      return resultBuilder;
+      return Connection.getInstance().withResult(entityManager -> CharacterProvider.getInstance().getForName(entityManager, name))
+            .orElse(Collections.emptyList())
+            .stream()
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
    }
 }

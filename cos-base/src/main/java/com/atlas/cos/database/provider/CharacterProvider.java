@@ -1,6 +1,5 @@
 package com.atlas.cos.database.provider;
 
-import java.util.Arrays;
 import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
