@@ -1,68 +1,71 @@
 package com.atlas.cos.builder;
 
-import builder.RecordBuilder;
+import com.app.common.builder.RecordBuilder;
 import com.atlas.cos.attribute.CharacterAttributes;
 
 import builder.AttributeResultBuilder;
 
-public class CharacterAttributesBuilder extends RecordBuilder<CharacterAttributes, CharacterAttributesBuilder> implements AttributeResultBuilder {
-   private static final String ACCOUNT_ID = "ACCOUNT_ID";
+public class CharacterAttributesBuilder extends RecordBuilder<CharacterAttributes, CharacterAttributesBuilder>
+      implements AttributeResultBuilder {
+   private Integer accountId;
 
-   private static final String WORLD_ID = "WORLD_ID";
+   private Integer worldId;
 
-   private static final String NAME = "NAME";
+   private String name;
 
-   private static final String LEVEL = "LEVEL";
+   private Integer level;
 
-   private static final String EXPERIENCE = "EXPERIENCE";
+   private Integer experience;
 
-   private static final String GACHAPON_EXPERIENCE = "GACHAPON_EXPERIENCE";
+   private Integer gachaponExperience;
 
-   private static final String STRENGTH = "STRENGTH";
+   private Integer strength;
 
-   private static final String DEXTERITY = "DEXTERITY";
+   private Integer dexterity;
 
-   private static final String LUCK = "LUCK";
+   private Integer luck;
 
-   private static final String INTELLIGENCE = "INTELLIGENCE";
+   private Integer intelligence;
 
-   private static final String HP = "HP";
+   private Integer hp;
 
-   private static final String MP = "MP";
+   private Integer mp;
 
-   private static final String MAX_HP = "MAX_HP";
+   private Integer maxHp;
 
-   private static final String MAX_MP = "MAX_MP";
+   private Integer maxMp;
 
-   private static final String MESO = "MESO";
+   private Integer meso;
 
-   private static final String HP_MP_USED = "HP_MP_USED";
+   private Integer hpMpUsed;
 
-   private static final String JOB_ID = "JOB_ID";
+   private Integer jobId;
 
-   private static final String SKIN_COLOR = "SKIN_COLOR";
+   private Integer skinColor;
 
-   private static final String GENDER = "GENDER";
+   private Byte gender;
 
-   private static final String FAME = "FAME";
+   private Integer fame;
 
-   private static final String HAIR = "HAIR";
+   private Integer hair;
 
-   private static final String FACE = "FACE";
+   private Integer face;
 
-   private static final String AP = "AP";
+   private Integer ap;
 
-   private static final String SP = "SP";
+   private String sp;
 
-   private static final String MAP_ID = "MAP_ID";
+   private Integer mapId;
 
-   private static final String SPAWN_POINT = "SPAWN_POINT";
+   private Integer spawnPoint;
 
-   private static final String GM = "GM";
+   private Integer gm;
 
    @Override
    public CharacterAttributes construct() {
-      return new CharacterAttributes(get(ACCOUNT_ID), get(WORLD_ID), get(NAME), get(LEVEL), get(EXPERIENCE), get(GACHAPON_EXPERIENCE), get(STRENGTH), get(DEXTERITY), get(LUCK), get(INTELLIGENCE), get(HP), get(MP), get(MAX_HP), get(MAX_MP), get(MESO), get(HP_MP_USED), get(JOB_ID), get(SKIN_COLOR), get(GENDER), get(FAME), get(HAIR), get(FACE), get(AP), get(SP), get(MAP_ID), get(SPAWN_POINT), get(GM));
+      return new CharacterAttributes(accountId, worldId, name, level, experience, gachaponExperience, strength, dexterity, luck,
+            intelligence, hp, mp, maxHp, maxMp, meso, hpMpUsed, jobId, skinColor, gender, fame, hair, face, ap, sp, mapId,
+            spawnPoint, gm);
    }
 
    @Override
@@ -70,111 +73,138 @@ public class CharacterAttributesBuilder extends RecordBuilder<CharacterAttribute
       return this;
    }
 
-   public CharacterAttributesBuilder setAccountId(int accountId) {
-      return set(ACCOUNT_ID, accountId);
+   public CharacterAttributesBuilder setAccountId(Integer accountId) {
+      this.accountId = accountId;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setWorldId(int worldId) {
-      return set(WORLD_ID, worldId);
+   public CharacterAttributesBuilder setWorldId(Integer worldId) {
+      this.worldId = worldId;
+      return getThis();
    }
 
    public CharacterAttributesBuilder setName(String name) {
-      return set(NAME, name);
+      this.name = name;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setLevel(int level) {
-      return set(LEVEL, level);
+   public CharacterAttributesBuilder setLevel(Integer level) {
+      this.level = level;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setExperience(int experience) {
-      return set(EXPERIENCE, experience);
+   public CharacterAttributesBuilder setExperience(Integer experience) {
+      this.experience = experience;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setGachaponExperience(int gachaponExperience) {
-      return set(GACHAPON_EXPERIENCE, gachaponExperience);
+   public CharacterAttributesBuilder setGachaponExperience(Integer gachaponExperience) {
+      this.gachaponExperience = gachaponExperience;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setStrength(int strength) {
-      return set(STRENGTH, strength);
+   public CharacterAttributesBuilder setStrength(Integer strength) {
+      this.strength = strength;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setDexterity(int dexterity) {
-      return set(DEXTERITY, dexterity);
+   public CharacterAttributesBuilder setDexterity(Integer dexterity) {
+      this.dexterity = dexterity;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setLuck(int luck) {
-      return set(LUCK, luck);
+   public CharacterAttributesBuilder setLuck(Integer luck) {
+      this.luck = luck;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setIntelligence(int intelligence) {
-      return set(INTELLIGENCE, intelligence);
+   public CharacterAttributesBuilder setIntelligence(Integer intelligence) {
+      this.intelligence = intelligence;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setHp(int hp) {
-      return set(HP, hp);
+   public CharacterAttributesBuilder setHp(Integer hp) {
+      this.hp = hp;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setMp(int mp) {
-      return set(MP, mp);
+   public CharacterAttributesBuilder setMp(Integer mp) {
+      this.mp = mp;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setMaxHp(int maxHp) {
-      return set(MAX_HP, maxHp);
+   public CharacterAttributesBuilder setMaxHp(Integer maxHp) {
+      this.maxHp = maxHp;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setMaxMp(int maxMp) {
-      return set(MAX_MP, maxMp);
+   public CharacterAttributesBuilder setMaxMp(Integer maxMp) {
+      this.maxMp = maxMp;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setMeso(int meso) {
-      return set(MESO, meso);
+   public CharacterAttributesBuilder setMeso(Integer meso) {
+      this.meso = meso;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setHpMpUsed(int hpMpUsed) {
-      return set(HP_MP_USED, hpMpUsed);
+   public CharacterAttributesBuilder setHpMpUsed(Integer hpMpUsed) {
+      this.hpMpUsed = hpMpUsed;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setJobId(int jobId) {
-      return set(JOB_ID, jobId);
+   public CharacterAttributesBuilder setJobId(Integer jobId) {
+      this.jobId = jobId;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setSkinColor(int skinColor) {
-      return set(SKIN_COLOR, skinColor);
+   public CharacterAttributesBuilder setSkinColor(Integer skinColor) {
+      this.skinColor = skinColor;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setGender(byte gender) {
-      return set(GENDER, gender);
+   public CharacterAttributesBuilder setGender(Byte gender) {
+      this.gender = gender;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setFame(int fame) {
-      return set(FAME, fame);
+   public CharacterAttributesBuilder setFame(Integer fame) {
+      this.fame = fame;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setHair(int hair) {
-      return set(HAIR, hair);
+   public CharacterAttributesBuilder setHair(Integer hair) {
+      this.hair = hair;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setFace(int face) {
-      return set(FACE, face);
+   public CharacterAttributesBuilder setFace(Integer face) {
+      this.face = face;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setAp(int ap) {
-      return set(AP, ap);
+   public CharacterAttributesBuilder setAp(Integer ap) {
+      this.ap = ap;
+      return getThis();
    }
 
    public CharacterAttributesBuilder setSp(String sp) {
-      return set(SP, sp);
+      this.sp = sp;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setMapId(int mapId) {
-      return set(MAP_ID, mapId);
+   public CharacterAttributesBuilder setMapId(Integer mapId) {
+      this.mapId = mapId;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setSpawnPoint(int spawnPoint) {
-      return set(SPAWN_POINT, spawnPoint);
+   public CharacterAttributesBuilder setSpawnPoint(Integer spawnPoint) {
+      this.spawnPoint = spawnPoint;
+      return getThis();
    }
 
-   public CharacterAttributesBuilder setGm(int gm) {
-      return set(GM, gm);
+   public CharacterAttributesBuilder setGm(Integer gm) {
+      this.gm = gm;
+      return getThis();
    }
 }

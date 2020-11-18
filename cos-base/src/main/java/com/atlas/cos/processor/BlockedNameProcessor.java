@@ -2,14 +2,13 @@ package com.atlas.cos.processor;
 
 import java.util.List;
 
-import com.atlas.cos.attribute.BlockedNameAttributes;
-import com.atlas.cos.builder.BlockedNameAttributesBuilder;
+import com.app.rest.util.stream.Collectors;
 import com.atlas.cos.database.administrator.BlockedNameAdministrator;
 import com.atlas.cos.database.provider.BlockedNameProvider;
+import com.atlas.cos.rest.ResultObjectFactory;
 
 import builder.ResultBuilder;
-import builder.ResultObjectBuilder;
-import database.DatabaseConnection;
+import database.Connection;
 
 public class BlockedNameProcessor {
    private static final Object lock = new Object();
@@ -31,29 +30,24 @@ public class BlockedNameProcessor {
    }
 
    public ResultBuilder getNames() {
-      ResultBuilder resultBuilder = new ResultBuilder();
-      DatabaseConnection.getInstance().withConnection(entityManager ->
-            BlockedNameProvider.getInstance().getNames(entityManager).forEach(blockedNameData ->
-                  resultBuilder.addData(new ResultObjectBuilder(BlockedNameAttributes.class, blockedNameData.name())
-                        .setAttribute(new BlockedNameAttributesBuilder().setName(blockedNameData.name()))
-                  )));
-      return resultBuilder;
-   }
-
-   public void bulkAddBlockedNames(List<String> names) {
-      DatabaseConnection.getInstance().withConnection(entityManager ->
-            names.forEach(name -> BlockedNameAdministrator.getInstance().createBlockedName(entityManager, name)));
+      return Connection.instance()
+            .list(BlockedNameProvider::getNames)
+            .stream()
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
    }
 
    public ResultBuilder getName(String name) {
-      ResultBuilder resultBuilder = new ResultBuilder();
-      DatabaseConnection.getInstance().withConnection(entityManager ->
-            BlockedNameProvider.getInstance().getNames(entityManager).stream()
-                  .filter(blockedName -> blockedName.name().equalsIgnoreCase(name))
-                  .forEach(blockedNameData ->
-                        resultBuilder.addData(new ResultObjectBuilder(BlockedNameAttributes.class, blockedNameData.name())
-                              .setAttribute(new BlockedNameAttributesBuilder().setName(blockedNameData.name()))
-                        )));
-      return resultBuilder;
+      return Connection.instance()
+            .list(BlockedNameProvider::getNames)
+            .stream()
+            .filter(blockedName -> blockedName.name().equalsIgnoreCase(name))
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
+   }
+
+   public void bulkAddBlockedNames(List<String> names) {
+      Connection.instance()
+            .with(entityManager -> BlockedNameAdministrator.create(entityManager, names));
    }
 }

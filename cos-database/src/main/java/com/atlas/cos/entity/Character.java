@@ -9,9 +9,17 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Index;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 
 @Entity
+@NamedQueries({
+      @NamedQuery(name = Character.GET_BY_ACCOUNT_AND_WORLD,
+            query = "SELECT c FROM Character c WHERE c.accountId = :accountId AND c.world = :worldId"),
+      @NamedQuery(name = Character.GET_BY_NAME,
+            query = "SELECT c FROM Character c WHERE c.name = :name")
+})
 @Table(name = "characters", indexes = {
       @Index(name = "accountId", columnList = "accountId"),
       @Index(name = "id_accountId_world", columnList = "id,accountId,world"),
@@ -19,6 +27,16 @@ import javax.persistence.Table;
 })
 public class Character implements Serializable {
    private static final long serialVersionUID = 1L;
+
+   public static final String GET_BY_ACCOUNT_AND_WORLD = "Character.GET_BY_ACCOUNT_AND_WORLD";
+
+   public static final String GET_BY_NAME = "Character.GET_BY_NAME";
+
+   public static final String ACCOUNT_ID = "accountId";
+
+   public static final String WORLD_ID = "worldId";
+
+   public static final String NAME = "NAME";
 
    @Id
    @GeneratedValue(strategy = GenerationType.IDENTITY)

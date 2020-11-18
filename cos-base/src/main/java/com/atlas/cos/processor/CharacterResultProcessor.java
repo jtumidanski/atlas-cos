@@ -6,15 +6,15 @@ import java.util.Set;
 import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
 
+import com.app.rest.util.stream.Collectors;
 import com.atlas.cos.attribute.CharacterAttributes;
-import com.atlas.cos.builder.CharacterAttributesBuilder;
 import com.atlas.cos.database.provider.CharacterProvider;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.MapleJob;
+import com.atlas.cos.rest.ResultObjectFactory;
 
 import builder.ResultBuilder;
-import builder.ResultObjectBuilder;
-import database.DatabaseConnection;
+import database.Connection;
 
 public class CharacterResultProcessor {
    private static final Object lock = new Object();
@@ -36,63 +36,29 @@ public class CharacterResultProcessor {
    }
 
    public ResultBuilder getForAccountAndWorld(int accountId, int worldId) {
-      ResultBuilder resultBuilder = new ResultBuilder();
-      DatabaseConnection.getInstance().withConnection(entityManager ->
-            CharacterProvider.getInstance().getForAccountAndWorld(entityManager, accountId, worldId)
-                  .stream()
-                  .map(this::produceResultObjectForCharacter)
-                  .forEach(resultBuilder::addData));
-      return resultBuilder;
-   }
-
-   private ResultObjectBuilder produceResultObjectForCharacter(com.atlas.cos.model.CharacterData data) {
-      return new ResultObjectBuilder(CharacterAttributes.class, data.id())
-            .setAttribute(new CharacterAttributesBuilder()
-                  .setAccountId(data.accountId())
-                  .setWorldId(data.worldId())
-                  .setName(data.name())
-                  .setLevel(data.level())
-                  .setExperience(data.experience())
-                  .setGachaponExperience(data.gachaponExperience())
-                  .setStrength(data.strength())
-                  .setDexterity(data.dexterity())
-                  .setLuck(data.luck())
-                  .setIntelligence(data.intelligence())
-                  .setHp(data.hp())
-                  .setMp(data.mp())
-                  .setMaxHp(data.maxHp())
-                  .setMaxMp(data.maxMp())
-                  .setMeso(data.meso())
-                  .setHpMpUsed(data.hpMpUsed())
-                  .setJobId(data.jobId())
-                  .setSkinColor(data.skinColor())
-                  .setGender(data.gender())
-                  .setFame(data.fame())
-                  .setHair(data.hair())
-                  .setFace(data.face())
-                  .setAp(data.ap())
-                  .setSp(data.sp())
-                  .setMapId(data.mapId())
-                  .setSpawnPoint(data.spawnPoint())
-                  .setGm(data.gm())
-            );
+      return Connection.instance()
+            .list(entityManager -> CharacterProvider.getForAccountAndWorld(entityManager, accountId, worldId))
+            .stream()
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
    }
 
    public ResultBuilder getByName(String name) {
-      ResultBuilder resultBuilder = new ResultBuilder();
-      CharacterProcessor.getInstance().getByName(name)
-            .ifPresent(characterData -> resultBuilder.addData(produceResultObjectForCharacter(characterData)));
-      return resultBuilder;
+      return Connection.instance()
+            .list(entityManager -> CharacterProvider.getForName(entityManager, name))
+            .stream()
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
    }
 
    public ResultBuilder createCharacter(CharacterAttributes attributes) {
-      if (!validFace(attributes.getFace()) || !validHair(attributes.getHair())) {
-         System.out.println("Owner from account '" + attributes.getAccountId() + "' tried to packet edit in char creation.");
+      if (!validFace(attributes.face()) || !validHair(attributes.hair())) {
+         System.out.println("Owner from account '" + attributes.accountId() + "' tried to packet edit in char creation.");
          return new ResultBuilder(Response.Status.UNAUTHORIZED);
       }
 
       CharacterData character = null;
-      MapleJob job = MapleJob.getById(attributes.getJobId());
+      MapleJob job = MapleJob.getById(attributes.jobId());
       if (MapleJob.BEGINNER.equals(job)) {
          character = CharacterProcessor.getInstance().createBeginner(attributes);
       } else if (MapleJob.NOBLESSE.equals(job)) {
@@ -104,7 +70,7 @@ public class CharacterResultProcessor {
       ResultBuilder resultBuilder = new ResultBuilder(Response.Status.FORBIDDEN);
       if (character != null) {
          resultBuilder.setStatus(Response.Status.CREATED);
-         resultBuilder.addData(produceResultObjectForCharacter(character));
+         resultBuilder.addData(ResultObjectFactory.create(character));
       }
       return resultBuilder;
    }
