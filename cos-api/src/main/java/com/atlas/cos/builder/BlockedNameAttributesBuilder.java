@@ -1,15 +1,15 @@
 package com.atlas.cos.builder;
 
+import builder.AttributeResultBuilder;
+import builder.RecordBuilder;
 import com.atlas.cos.attribute.BlockedNameAttributes;
 
-import builder.AttributeResultBuilder;
-import builder.Builder;
+public class BlockedNameAttributesBuilder extends RecordBuilder<BlockedNameAttributes, BlockedNameAttributesBuilder> implements AttributeResultBuilder {
+   private static final String NAME = "NAME";
 
-public class BlockedNameAttributesBuilder extends Builder<BlockedNameAttributes, BlockedNameAttributesBuilder>
-      implements AttributeResultBuilder {
    @Override
    public BlockedNameAttributes construct() {
-      return new BlockedNameAttributes();
+      return new BlockedNameAttributes(get(NAME));
    }
 
    @Override
@@ -18,6 +18,6 @@ public class BlockedNameAttributesBuilder extends Builder<BlockedNameAttributes,
    }
 
    public BlockedNameAttributesBuilder setName(String name) {
-      return add(attr -> attr.setName(name));
+      return set(NAME, name);
    }
 }
