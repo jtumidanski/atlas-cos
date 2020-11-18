@@ -1,17 +1,18 @@
 package com.atlas.cos.builder;
 
-import builder.AttributeResultBuilder;
-import builder.RecordBuilder;
+import com.app.common.builder.RecordBuilder;
 import com.atlas.cos.attribute.JobAttributes;
 
-public class JobAttributesBuilder extends RecordBuilder<JobAttributes, JobAttributesBuilder> implements AttributeResultBuilder {
-   private static final String NAME = "NAME";
+import builder.AttributeResultBuilder;
 
-   private static final String CREATE_INDEX = "CREATE_INDEX";
+public class JobAttributesBuilder extends RecordBuilder<JobAttributes, JobAttributesBuilder> implements AttributeResultBuilder {
+   private String name;
+
+   private int createIndex;
 
    @Override
    public JobAttributes construct() {
-      return new JobAttributes(get(NAME), get(CREATE_INDEX));
+      return new JobAttributes(name, createIndex);
    }
 
    @Override
@@ -20,10 +21,12 @@ public class JobAttributesBuilder extends RecordBuilder<JobAttributes, JobAttrib
    }
 
    public JobAttributesBuilder setName(String name) {
-      return set(NAME, name);
+      this.name = name;
+      return getThis();
    }
 
    public JobAttributesBuilder setCreateIndex(int createIndex) {
-      return set(CREATE_INDEX, createIndex);
+      this.createIndex = createIndex;
+      return getThis();
    }
 }
