@@ -8,7 +8,7 @@ import builder.AttributeResultBuilder;
 public class JobAttributesBuilder extends RecordBuilder<JobAttributes, JobAttributesBuilder> implements AttributeResultBuilder {
    private String name;
 
-   private int createIndex;
+   private Integer createIndex;
 
    @Override
    public JobAttributes construct() {
@@ -25,7 +25,7 @@ public class JobAttributesBuilder extends RecordBuilder<JobAttributes, JobAttrib
       return getThis();
    }
 
-   public JobAttributesBuilder setCreateIndex(int createIndex) {
+   public JobAttributesBuilder setCreateIndex(Integer createIndex) {
       this.createIndex = createIndex;
       return getThis();
    }
