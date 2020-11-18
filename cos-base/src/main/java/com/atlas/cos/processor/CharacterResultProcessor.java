@@ -2,11 +2,14 @@ package com.atlas.cos.processor;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
 
 import com.app.rest.util.stream.Collectors;
+import com.app.rest.util.stream.Mappers;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.database.provider.CharacterProvider;
 import com.atlas.cos.model.CharacterData;
@@ -57,22 +60,22 @@ public class CharacterResultProcessor {
          return new ResultBuilder(Response.Status.UNAUTHORIZED);
       }
 
-      CharacterData character = null;
+      Function<CharacterAttributes, Optional<CharacterData>> creator;
       MapleJob job = MapleJob.getById(attributes.jobId());
       if (MapleJob.BEGINNER.equals(job)) {
-         character = CharacterProcessor.getInstance().createBeginner(attributes);
+         creator = CharacterProcessor.getInstance()::createBeginner;
       } else if (MapleJob.NOBLESSE.equals(job)) {
-         character = CharacterProcessor.getInstance().createNoblesse(attributes);
+         creator = CharacterProcessor.getInstance()::createNoblesse;
       } else if (MapleJob.LEGEND.equals(job)) {
-         character = CharacterProcessor.getInstance().createLegend(attributes);
+         creator = CharacterProcessor.getInstance()::createLegend;
+      } else {
+         return new ResultBuilder(Response.Status.NOT_IMPLEMENTED);
       }
 
-      ResultBuilder resultBuilder = new ResultBuilder(Response.Status.FORBIDDEN);
-      if (character != null) {
-         resultBuilder.setStatus(Response.Status.CREATED);
-         resultBuilder.addData(ResultObjectFactory.create(character));
-      }
-      return resultBuilder;
+      return creator.apply(attributes)
+            .map(ResultObjectFactory::create)
+            .map(Mappers::singleCreatedResult)
+            .orElse(new ResultBuilder(Response.Status.FORBIDDEN));
    }
 
    private final Set<Integer> IDs = new HashSet<>(

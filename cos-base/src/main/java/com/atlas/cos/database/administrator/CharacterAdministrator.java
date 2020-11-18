@@ -1,35 +1,21 @@
 package com.atlas.cos.database.administrator;
 
+import java.util.Optional;
 import javax.persistence.EntityManager;
 
+import com.app.database.util.QueryAdministratorUtil;
 import com.atlas.cos.database.transformer.CharacterDataTransformer;
 import com.atlas.cos.entity.Character;
 import com.atlas.cos.model.CharacterData;
 
-import accessor.AbstractQueryExecutor;
-
-public class CharacterAdministrator extends AbstractQueryExecutor {
-   private static final Object lock = new Object();
-
-   private static volatile CharacterAdministrator instance;
-
-   public static CharacterAdministrator getInstance() {
-      CharacterAdministrator result = instance;
-      if (result == null) {
-         synchronized (lock) {
-            result = instance;
-            if (result == null) {
-               result = new CharacterAdministrator();
-               instance = result;
-            }
-         }
-      }
-      return result;
+public class CharacterAdministrator {
+   private CharacterAdministrator() {
    }
 
-   public CharacterData create(EntityManager entityManager, int accountId, int worldId, String name, int level, int strength,
-                               int dexterity, int luck, int intelligence, int maxHp, int maxMp, int jobId,
-                               byte gender, int hair, int face, int mapId) {
+   public static Optional<CharacterData> create(EntityManager entityManager, int accountId, int worldId, String name, int level,
+                                         int strength,
+                                         int dexterity, int luck, int intelligence, int maxHp, int maxMp, int jobId,
+                                         byte gender, int hair, int face, int mapId) {
       Character character = new Character();
       character.setAccountId(accountId);
       character.setWorld(worldId);
@@ -46,6 +32,6 @@ public class CharacterAdministrator extends AbstractQueryExecutor {
       character.setHair(hair);
       character.setFace(face);
       character.setMap(mapId);
-      return insertAndReturn(entityManager, character, new CharacterDataTransformer());
+      return Optional.of(QueryAdministratorUtil.insertAndReturn(entityManager, character, new CharacterDataTransformer()));
    }
 }

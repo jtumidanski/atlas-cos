@@ -40,17 +40,17 @@ public class CharacterBuilder {
    private int mapId;
 
    public CharacterBuilder(CharacterAttributes attributes, int level, int mapId) {
-      this.accountId = attributes.getAccountId();
-      this.worldId = attributes.getWorldId();
-      this.name = attributes.getName();
-      this.jobId = attributes.getJobId();
+      this.accountId = attributes.accountId();
+      this.worldId = attributes.worldId();
+      this.name = attributes.name();
+      this.jobId = attributes.jobId();
       this.level = level;
       this.mapId = mapId;
 
-      this.skinColor = attributes.getSkinColor();
-      this.gender = attributes.getGender();
-      this.hair = attributes.getHair();
-      this.face = attributes.getFace();
+      this.skinColor = attributes.skinColor();
+      this.gender = attributes.gender();
+      this.hair = attributes.hair();
+      this.face = attributes.face();
 
       Configuration configuration = ConfigurationProcessor.getInstance().getConfiguration();
       if (!configuration.useStarting4Ap) {

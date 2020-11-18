@@ -5,10 +5,9 @@ import java.util.Optional;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.database.administrator.CharacterAdministrator;
 import com.atlas.cos.database.provider.CharacterProvider;
-import com.atlas.cos.entity.Character;
 import com.atlas.cos.model.CharacterData;
 
-import database.DatabaseConnection;
+import database.Connection;
 
 public class CharacterProcessor {
    private static final Object lock = new Object();
@@ -30,41 +29,36 @@ public class CharacterProcessor {
    }
 
    public Optional<CharacterData> getByName(String name) {
-      return DatabaseConnection.getInstance().withConnectionResult(entityManager ->
-            CharacterProvider.getInstance().getForName(entityManager, name)
-                  .stream()
-                  .findFirst()
-                  .orElse(null)
-      );
+      return Connection.instance()
+            .list(entityManager -> CharacterProvider.getForName(entityManager, name))
+            .stream().findFirst();
    }
 
-   public CharacterData createBeginner(CharacterAttributes attributes) {
+   public Optional<CharacterData> createBeginner(CharacterAttributes attributes) {
       CharacterBuilder builder = new CharacterBuilder(attributes, 1, 10000);
       //giveItem(recipe, 4161001, 1, MapleInventoryType.ETC);
       return create(builder);
    }
 
-   protected CharacterData create(CharacterBuilder builder) {
+   protected Optional<CharacterData> create(CharacterBuilder builder) {
       CharacterData original = builder.build();
 
-      CharacterData characterData = DatabaseConnection.getInstance().withConnectionResult(entityManager ->
-            CharacterAdministrator.getInstance().create(entityManager,
+      return Connection.instance().element(entityManager ->
+            CharacterAdministrator.create(entityManager,
                   original.accountId(), original.worldId(), original.name(), original.level(),
                   original.strength(), original.dexterity(), original.luck(), original.intelligence(),
                   original.maxHp(), original.maxMp(), original.jobId(), original.gender(), original.hair(),
                   original.face(), original.mapId())
-      ).orElseThrow();
-      
-      return characterData;
+      );
    }
 
-   public CharacterData createNoblesse(CharacterAttributes attributes) {
+   public Optional<CharacterData> createNoblesse(CharacterAttributes attributes) {
       CharacterBuilder builder = new CharacterBuilder(attributes, 1, 130030000);
       //giveItem(recipe, 4161047, 1, MapleInventoryType.ETC);
       return create(builder);
    }
 
-   public CharacterData createLegend(CharacterAttributes attributes) {
+   public Optional<CharacterData> createLegend(CharacterAttributes attributes) {
       CharacterBuilder builder = new CharacterBuilder(attributes, 1, 914000000);
       //giveItem(recipe, 4161048, 1, MapleInventoryType.ETC);
       return create(builder);
