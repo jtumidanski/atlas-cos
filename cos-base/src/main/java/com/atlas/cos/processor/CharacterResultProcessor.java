@@ -1,7 +1,5 @@
 package com.atlas.cos.processor;
 
-import java.util.Collections;
-
 import com.app.rest.util.stream.Collectors;
 import com.atlas.cos.database.provider.CharacterProvider;
 import com.atlas.cos.rest.ResultObjectFactory;
@@ -29,18 +27,16 @@ public class CharacterResultProcessor {
    }
 
    public ResultBuilder getForAccountAndWorld(int accountId, int worldId) {
-      return Connection.getInstance()
-            .withResult(entityManager -> CharacterProvider.getInstance().getForAccountAndWorld(entityManager,
-                  accountId, worldId))
-            .orElse(Collections.emptyList())
+      return Connection.instance()
+            .list(entityManager -> CharacterProvider.getForAccountAndWorld(entityManager, accountId, worldId))
             .stream()
             .map(ResultObjectFactory::create)
             .collect(Collectors.toResultBuilder());
    }
 
    public ResultBuilder getByName(String name) {
-      return Connection.getInstance().withResult(entityManager -> CharacterProvider.getInstance().getForName(entityManager, name))
-            .orElse(Collections.emptyList())
+      return Connection.instance()
+            .list(entityManager -> CharacterProvider.getForName(entityManager, name))
             .stream()
             .map(ResultObjectFactory::create)
             .collect(Collectors.toResultBuilder());

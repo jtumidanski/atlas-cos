@@ -1,6 +1,5 @@
 package com.atlas.cos.processor;
 
-import java.util.Collections;
 import java.util.List;
 
 import com.app.rest.util.stream.Collectors;
@@ -31,16 +30,16 @@ public class BlockedNameProcessor {
    }
 
    public ResultBuilder getNames() {
-      return Connection.getInstance().withResult(entityManager -> BlockedNameProvider.getInstance().getNames(entityManager))
-            .orElse(Collections.emptyList())
+      return Connection.instance()
+            .list(BlockedNameProvider::getNames)
             .stream()
             .map(ResultObjectFactory::create)
             .collect(Collectors.toResultBuilder());
    }
 
    public ResultBuilder getName(String name) {
-      return Connection.getInstance().withResult(entityManager -> BlockedNameProvider.getInstance().getNames(entityManager))
-            .orElse(Collections.emptyList())
+      return Connection.instance()
+            .list(BlockedNameProvider::getNames)
             .stream()
             .filter(blockedName -> blockedName.name().equalsIgnoreCase(name))
             .map(ResultObjectFactory::create)
@@ -48,6 +47,7 @@ public class BlockedNameProcessor {
    }
 
    public void bulkAddBlockedNames(List<String> names) {
-      Connection.getInstance().with(entityManager -> BlockedNameAdministrator.getInstance().create(entityManager, names));
+      Connection.instance()
+            .with(entityManager -> BlockedNameAdministrator.create(entityManager, names));
    }
 }
