@@ -57,11 +57,17 @@ public class CharacterResource {
    }
 
    @GET
-   @Path("/{characterId}/equipmentSlots")
+   @Path("/{characterId}/inventories/equipment")
    @Consumes(MediaType.APPLICATION_JSON)
    @Produces(MediaType.APPLICATION_JSON)
-   public Response getEquipmentSlots(@PathParam("characterId") Integer characterId) {
-      return EquippedItemResultProcessor.getInstance().getEquippedItemsForCharacter(characterId).build();
+   public Response getEquipment(@PathParam("characterId") Integer characterId,
+                                @DefaultValue("false") @QueryParam("filter[equipped]") Boolean equipped) {
+      if (equipped != null) {
+         return ItemResultProcessor.getInstance().getEquippedItemsForCharacter(characterId)
+               .build();
+      } else {
+         return new ResultBuilder(Response.Status.NOT_IMPLEMENTED).build();
+      }
    }
 
    @POST

@@ -42,6 +42,7 @@ public class EquipmentProvider {
       Set<Short> usedSlots = EquipmentProvider.getForCharacter(entityManager, characterId)
             .stream()
             .map(EquipmentData::slot)
+            .filter(slot -> slot >= 0)
             .collect(Collectors.toSet());
       if (usedSlots.isEmpty()) {
          return Optional.of((short) 0);
@@ -56,6 +57,6 @@ public class EquipmentProvider {
 
       return Optional.of(slots.stream()
             .findFirst()
-            .orElse((short) slots.size()));
+            .orElse((short) usedSlots.size()));
    }
 }

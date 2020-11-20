@@ -5,6 +5,7 @@ import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.attribute.EquipmentAttributes;
 import com.atlas.cos.builder.BlockedNameAttributesBuilder;
 import com.atlas.cos.builder.CharacterAttributesBuilder;
+import com.atlas.cos.builder.EquipmentAttributesBuilder;
 import com.atlas.cos.model.BlockedNameData;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.EquipmentData;
@@ -51,6 +52,26 @@ public class ResultObjectFactory {
    }
 
    public static ResultObjectBuilder create(EquipmentData data) {
-      return new ResultObjectBuilder(EquipmentAttributes.class, data.id());
+      return new ResultObjectBuilder(EquipmentAttributes.class, data.id())
+            .setAttribute(new EquipmentAttributesBuilder()
+                  .setItemId(data.itemId())
+                  .setSlot(data.slot())
+                  .setStrength(data.strength())
+                  .setDexterity(data.dexterity())
+                  .setIntelligence(data.intelligence())
+                  .setLuck(data.luck())
+                  .setHp(data.hp())
+                  .setMp(data.mp())
+                  .setWeaponAttack(data.weaponAttack())
+                  .setWeaponDefense(data.weaponDefense())
+                  .setMagicAttack(data.magicAttack())
+                  .setMagicDefense(data.magicDefense())
+                  .setAccuracy(data.accuracy())
+                  .setAvoidability(data.avoidability())
+                  .setHands(data.hands())
+                  .setSpeed(data.speed())
+                  .setJump(data.jump())
+                  .setSlots(data.slots())
+            );
    }
 }

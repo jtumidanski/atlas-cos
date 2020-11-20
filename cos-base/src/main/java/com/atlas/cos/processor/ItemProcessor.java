@@ -1,6 +1,7 @@
 package com.atlas.cos.processor;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -94,6 +95,7 @@ public class ItemProcessor {
 
       EquipmentData equipment = equipmentBuilder.build();
 
+
       return Connection.instance()
             .element(entityManager -> EquipmentAdministrator.create(entityManager, characterId, equipment));
    }
@@ -133,5 +135,9 @@ public class ItemProcessor {
 
    public Optional<EquipmentData> getEquipmentForCharacter(int characterId, int equipmentId) {
       return Connection.instance().element(entityManager -> EquipmentProvider.getById(entityManager, equipmentId));
+   }
+
+   public List<EquipmentData> getEquipmentForCharacter(int characterId) {
+      return Connection.instance().list(entityManager -> EquipmentProvider.getForCharacter(entityManager, characterId));
    }
 }

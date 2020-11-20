@@ -3,6 +3,7 @@ package com.atlas.cos.processor;
 import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
 
+import com.app.rest.util.stream.Collectors;
 import com.app.rest.util.stream.Mappers;
 import com.atlas.cos.attribute.EquipmentAttributes;
 import com.atlas.cos.database.provider.EquipmentProvider;
@@ -68,5 +69,11 @@ public class ItemResultProcessor {
             .map(ResultObjectFactory::create)
             .map(Mappers::singleOkResult)
             .orElse(new ResultBuilder(Response.Status.NOT_FOUND));
+   }
+
+   public ResultBuilder getEquippedItemsForCharacter(Integer characterId) {
+      return ItemProcessor.getInstance().getEquipmentForCharacter(characterId).stream()
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
    }
 }

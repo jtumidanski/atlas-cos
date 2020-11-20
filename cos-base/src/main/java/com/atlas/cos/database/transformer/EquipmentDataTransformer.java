@@ -10,6 +10,7 @@ public class EquipmentDataTransformer implements SqlTransformer<EquipmentData, E
    @Override
    public EquipmentData transform(Equipment equipment) {
       return new EquipmentDataBuilder()
+            .setId(equipment.getId())
             .setSlot(equipment.getSlot())
             .setItemId(equipment.getItemId())
             .setStrength(equipment.getStrength())
