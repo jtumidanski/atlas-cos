@@ -46,6 +46,14 @@ public class CharacterResource {
       return CharacterResultProcessor.getInstance().createCharacter(inputBody.attributes()).build();
    }
 
+   @GET
+   @Path("/{characterId}")
+   @Consumes(MediaType.APPLICATION_JSON)
+   @Produces(MediaType.APPLICATION_JSON)
+   public Response getCharacter(@PathParam("characterId") Integer characterId) {
+      return CharacterResultProcessor.getInstance().getById(characterId).build();
+   }
+
    @POST
    @Path("/{characterId}/equipmentSlots/relationships/equipment")
    @Consumes(MediaType.APPLICATION_JSON)

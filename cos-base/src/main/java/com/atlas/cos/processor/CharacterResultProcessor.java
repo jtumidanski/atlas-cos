@@ -86,4 +86,12 @@ public class CharacterResultProcessor {
       return Stream.of(30000, 30010, 30020, 30030, 31000, 31040, 31050)
             .anyMatch(id -> Math.floor(id / 10.0) == Math.floor(hair / 10.0));
    }
+
+   public ResultBuilder getById(int characterId) {
+      return Connection.instance()
+            .element(entityManager -> CharacterProvider.getById(entityManager, characterId))
+            .stream()
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
+   }
 }

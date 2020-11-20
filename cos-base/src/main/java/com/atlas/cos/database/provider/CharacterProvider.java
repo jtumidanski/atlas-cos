@@ -1,6 +1,7 @@
 package com.atlas.cos.database.provider;
 
 import java.util.List;
+import java.util.Optional;
 import javax.persistence.EntityManager;
 
 import com.app.database.provider.NamedQueryClient;
@@ -23,5 +24,11 @@ public class CharacterProvider {
       return new NamedQueryClient<>(entityManager, Character.GET_BY_NAME, Character.class)
             .setParameter(Character.NAME, name)
             .list(new CharacterDataTransformer());
+   }
+
+   public static Optional<CharacterData> getById(EntityManager entityManager, int characterId) {
+      return new NamedQueryClient<>(entityManager, Character.GET_BY_ID, Character.class)
+            .setParameter(Character.ID, characterId)
+            .element(new CharacterDataTransformer());
    }
 }
