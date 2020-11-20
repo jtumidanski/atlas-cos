@@ -2,10 +2,12 @@ package com.atlas.cos.rest;
 
 import com.atlas.cos.attribute.BlockedNameAttributes;
 import com.atlas.cos.attribute.CharacterAttributes;
+import com.atlas.cos.attribute.EquipmentAttributes;
 import com.atlas.cos.builder.BlockedNameAttributesBuilder;
 import com.atlas.cos.builder.CharacterAttributesBuilder;
 import com.atlas.cos.model.BlockedNameData;
 import com.atlas.cos.model.CharacterData;
+import com.atlas.cos.model.EquipmentData;
 
 import builder.ResultObjectBuilder;
 
@@ -46,5 +48,9 @@ public class ResultObjectFactory {
                   .setSpawnPoint(data.spawnPoint())
                   .setGm(data.gm())
             );
+   }
+
+   public static ResultObjectBuilder create(EquipmentData data) {
+      return new ResultObjectBuilder(EquipmentAttributes.class, data.id());
    }
 }
