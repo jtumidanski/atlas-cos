@@ -36,7 +36,7 @@ public class Character implements Serializable {
 
    public static final String GET_BY_ID = "Character.GET_BY_ID";
 
-   public static final String ID = "ID";
+   public static final String ID = "id";
 
    public static final String ACCOUNT_ID = "accountId";
 
