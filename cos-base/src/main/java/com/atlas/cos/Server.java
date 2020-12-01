@@ -3,8 +3,13 @@ package com.atlas.cos;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
 
+import com.atlas.cos.command.ChangeMapCommand;
+import com.atlas.cos.constant.EventConstants;
+import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
 import com.atlas.cos.processor.BlockedNameProcessor;
+import com.atlas.kafka.consumer.ConsumerBuilder;
 import com.atlas.shared.rest.RestServerFactory;
 import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
@@ -26,5 +31,13 @@ public class Server {
 
       URI uri = UriBuilder.host(RestService.CHARACTER).uri();
       RestServerFactory.create(uri, "com.atlas.cos.rest");
+
+      Executors.newSingleThreadExecutor().execute(
+            new ConsumerBuilder<>("Character Service", ChangeMapCommand.class)
+                  .setBootstrapServers(System.getenv("BOOTSTRAP_SERVERS"))
+                  .setTopic(System.getenv(EventConstants.TOPIC_CHANGE_MAP_COMMAND))
+                  .setHandler(new ChangeMapCommandConsumer())
+                  .build()
+      );
    }
 }

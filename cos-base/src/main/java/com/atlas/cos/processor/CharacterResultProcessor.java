@@ -1,9 +1,7 @@
 package com.atlas.cos.processor;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
@@ -88,10 +86,10 @@ public class CharacterResultProcessor {
    }
 
    public ResultBuilder getById(int characterId) {
-      return Connection.instance()
-            .element(entityManager -> CharacterProvider.getById(entityManager, characterId))
-            .stream()
+      return CharacterProcessor.getInstance()
+            .getById(characterId)
             .map(ResultObjectFactory::create)
-            .collect(Collectors.toResultBuilder());
+            .map(Mappers::singleOkResult)
+            .orElse(new ResultBuilder(Response.Status.NOT_FOUND));
    }
 }

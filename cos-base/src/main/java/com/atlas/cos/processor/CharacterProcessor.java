@@ -34,6 +34,11 @@ public class CharacterProcessor {
             .stream().findFirst();
    }
 
+   public Optional<CharacterData> getById(int id) {
+      return Connection.instance()
+            .element(entityManager -> CharacterProvider.getById(entityManager, id));
+   }
+
    public Optional<CharacterData> createBeginner(CharacterAttributes attributes) {
       CharacterBuilder builder = new CharacterBuilder(attributes, 1, 10000);
       //giveItem(recipe, 4161001, 1, MapleInventoryType.ETC);
@@ -62,5 +67,10 @@ public class CharacterProcessor {
       CharacterBuilder builder = new CharacterBuilder(attributes, 1, 914000000);
       //giveItem(recipe, 4161048, 1, MapleInventoryType.ETC);
       return create(builder);
+   }
+
+   public void updateMap(int worldId, int channelId, int characterId, int mapId, int portalId) {
+      Connection.instance().with(entityManager -> CharacterAdministrator.updateMap(entityManager, characterId, mapId));
+      MapChangedProcessor.getInstance().notifyChange(worldId, channelId, characterId, mapId, portalId);
    }
 }

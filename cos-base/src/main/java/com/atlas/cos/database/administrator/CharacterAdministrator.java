@@ -13,9 +13,9 @@ public class CharacterAdministrator {
    }
 
    public static Optional<CharacterData> create(EntityManager entityManager, int accountId, int worldId, String name, int level,
-                                         int strength,
-                                         int dexterity, int luck, int intelligence, int maxHp, int maxMp, int jobId,
-                                         byte gender, int hair, int face, int mapId) {
+                                                int strength,
+                                                int dexterity, int luck, int intelligence, int maxHp, int maxMp, int jobId,
+                                                byte gender, int hair, int face, int mapId) {
       Character character = new Character();
       character.setAccountId(accountId);
       character.setWorld(worldId);
@@ -33,5 +33,9 @@ public class CharacterAdministrator {
       character.setFace(face);
       character.setMap(mapId);
       return Optional.of(QueryAdministratorUtil.insertAndReturn(entityManager, character, new CharacterDataTransformer()));
+   }
+
+   public static void updateMap(EntityManager entityManager, int characterId, int mapId) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setMap(mapId));
    }
 }
