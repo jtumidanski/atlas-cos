@@ -75,7 +75,7 @@ public class CharacterProcessor {
    protected void notifyCharacterCreated(CharacterData data) {
       String topic = System.getenv(EventConstants.TOPIC_CHARACTER_CREATED_EVENT);
       long key = data.id();
-      producer.send(new ProducerRecord<>(topic, key, new CharacterCreatedEvent(data.id())));
+      producer.send(new ProducerRecord<>(topic, key, new CharacterCreatedEvent(data.worldId(), data.id(), data.name())));
    }
 
    public Optional<CharacterData> createNoblesse(CharacterAttributes attributes) {
