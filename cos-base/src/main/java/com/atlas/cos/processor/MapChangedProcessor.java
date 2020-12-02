@@ -1,6 +1,5 @@
 package com.atlas.cos.processor;
 
-import com.atlas.cos.command.ChangeMapCommand;
 import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.event.MapChangedEvent;
 import com.atlas.kafka.KafkaProducerFactory;

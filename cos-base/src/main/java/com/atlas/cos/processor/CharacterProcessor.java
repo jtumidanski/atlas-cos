@@ -3,9 +3,15 @@ package com.atlas.cos.processor;
 import java.util.Optional;
 
 import com.atlas.cos.attribute.CharacterAttributes;
+import com.atlas.cos.builder.CharacterBuilder;
+import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.database.administrator.CharacterAdministrator;
 import com.atlas.cos.database.provider.CharacterProvider;
+import com.atlas.cos.event.CharacterCreatedEvent;
 import com.atlas.cos.model.CharacterData;
+import com.atlas.kafka.KafkaProducerFactory;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 
 import database.Connection;
 
@@ -13,6 +19,8 @@ public class CharacterProcessor {
    private static final Object lock = new Object();
 
    private static volatile CharacterProcessor instance;
+
+   private final Producer<Long, CharacterCreatedEvent> producer;
 
    public static CharacterProcessor getInstance() {
       CharacterProcessor result = instance;
@@ -26,6 +34,10 @@ public class CharacterProcessor {
          }
       }
       return result;
+   }
+
+   private CharacterProcessor() {
+      producer = KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS"));
    }
 
    public Optional<CharacterData> getByName(String name) {
@@ -48,13 +60,22 @@ public class CharacterProcessor {
    protected Optional<CharacterData> create(CharacterBuilder builder) {
       CharacterData original = builder.build();
 
-      return Connection.instance().element(entityManager ->
+      Optional<CharacterData> result = Connection.instance().element(entityManager ->
             CharacterAdministrator.create(entityManager,
                   original.accountId(), original.worldId(), original.name(), original.level(),
                   original.strength(), original.dexterity(), original.luck(), original.intelligence(),
                   original.maxHp(), original.maxMp(), original.jobId(), original.gender(), original.hair(),
                   original.face(), original.mapId())
       );
+
+      result.ifPresent(this::notifyCharacterCreated);
+      return result;
+   }
+
+   protected void notifyCharacterCreated(CharacterData data) {
+      String topic = System.getenv(EventConstants.TOPIC_CHARACTER_CREATED_EVENT);
+      long key = data.id();
+      producer.send(new ProducerRecord<>(topic, key, new CharacterCreatedEvent(data.id())));
    }
 
    public Optional<CharacterData> createNoblesse(CharacterAttributes attributes) {

@@ -1,8 +1,9 @@
-package com.atlas.cos.processor;
+package com.atlas.cos.builder;
 
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.configuration.Configuration;
 import com.atlas.cos.model.CharacterData;
+import com.atlas.cos.processor.ConfigurationProcessor;
 
 public class CharacterBuilder {
    private int accountId;

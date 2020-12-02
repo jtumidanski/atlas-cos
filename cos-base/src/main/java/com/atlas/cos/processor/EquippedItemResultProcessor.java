@@ -34,8 +34,4 @@ public class EquippedItemResultProcessor {
 
       return new ResultBuilder();
    }
-
-   public ResultBuilder getEquippedItemsForCharacter(int characterId) {
-      return new ResultBuilder();
-   }
 }
