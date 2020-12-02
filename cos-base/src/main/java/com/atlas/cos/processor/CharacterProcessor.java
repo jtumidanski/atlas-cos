@@ -51,12 +51,6 @@ public class CharacterProcessor {
             .element(entityManager -> CharacterProvider.getById(entityManager, id));
    }
 
-   public Optional<CharacterData> createBeginner(CharacterAttributes attributes) {
-      CharacterBuilder builder = new CharacterBuilder(attributes, 1, 10000);
-      //giveItem(recipe, 4161001, 1, MapleInventoryType.ETC);
-      return create(builder);
-   }
-
    protected Optional<CharacterData> create(CharacterBuilder builder) {
       CharacterData original = builder.build();
 
@@ -78,6 +72,12 @@ public class CharacterProcessor {
       producer.send(new ProducerRecord<>(topic, key, new CharacterCreatedEvent(data.worldId(), data.id(), data.name())));
    }
 
+   public Optional<CharacterData> createBeginner(CharacterAttributes attributes) {
+      CharacterBuilder builder = new CharacterBuilder(attributes, 1, 10000);
+      //giveItem(recipe, 4161001, 1, MapleInventoryType.ETC);
+      return create(builder);
+   }
+
    public Optional<CharacterData> createNoblesse(CharacterAttributes attributes) {
       CharacterBuilder builder = new CharacterBuilder(attributes, 1, 130030000);
       //giveItem(recipe, 4161047, 1, MapleInventoryType.ETC);
@@ -87,6 +87,24 @@ public class CharacterProcessor {
    public Optional<CharacterData> createLegend(CharacterAttributes attributes) {
       CharacterBuilder builder = new CharacterBuilder(attributes, 1, 914000000);
       //giveItem(recipe, 4161048, 1, MapleInventoryType.ETC);
+      return create(builder);
+   }
+
+   public Optional<CharacterData> createBeginner(CharacterBuilder builder) {
+      //giveItem(recipe, 4161001, 1, MapleInventoryType.ETC);
+      builder.setMapId(10000);
+      return create(builder);
+   }
+
+   public Optional<CharacterData> createNoblesse(CharacterBuilder builder) {
+      //giveItem(recipe, 4161047, 1, MapleInventoryType.ETC);
+      builder.setMapId(130030000);
+      return create(builder);
+   }
+
+   public Optional<CharacterData> createLegend(CharacterBuilder builder) {
+      //giveItem(recipe, 4161048, 1, MapleInventoryType.ETC);
+      builder.setMapId(914000000);
       return create(builder);
    }
 

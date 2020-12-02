@@ -13,8 +13,10 @@ import javax.ws.rs.core.Response;
 
 import com.app.rest.RelationshipInputBody;
 import com.atlas.cos.attribute.CharacterAttributes;
+import com.atlas.cos.attribute.CharacterSeedAttributes;
 import com.atlas.cos.attribute.EquipmentAttributes;
 import com.atlas.cos.processor.CharacterResultProcessor;
+import com.atlas.cos.processor.CharacterSeedProcessor;
 import com.atlas.cos.processor.EquippedItemResultProcessor;
 import com.atlas.cos.processor.ItemResultProcessor;
 
@@ -96,5 +98,27 @@ public class CharacterResource {
    public Response createEquipment(@PathParam("characterId") Integer characterId, @PathParam("equipmentId") Integer equipmentId) {
       return ItemResultProcessor.getInstance().getEquipmentForCharacter(characterId, equipmentId)
             .build();
+   }
+
+   @POST
+   @Path("/seeds")
+   @Consumes(MediaType.APPLICATION_JSON)
+   @Produces(MediaType.APPLICATION_JSON)
+   public Response createCharacterFromSeed(InputBody<CharacterSeedAttributes> inputBody) {
+      return CharacterSeedProcessor.getInstance().create(
+            inputBody.attribute(CharacterSeedAttributes::accountId),
+            inputBody.attribute(CharacterSeedAttributes::worldId),
+            inputBody.attribute(CharacterSeedAttributes::name),
+            inputBody.attribute(CharacterSeedAttributes::jobIndex),
+            inputBody.attribute(CharacterSeedAttributes::face),
+            inputBody.attribute(CharacterSeedAttributes::hair),
+            inputBody.attribute(CharacterSeedAttributes::hairColor),
+            inputBody.attribute(CharacterSeedAttributes::skin),
+            inputBody.attribute(CharacterSeedAttributes::gender),
+            inputBody.attribute(CharacterSeedAttributes::top),
+            inputBody.attribute(CharacterSeedAttributes::bottom),
+            inputBody.attribute(CharacterSeedAttributes::shoes),
+            inputBody.attribute(CharacterSeedAttributes::weapon)
+      ).build();
    }
 }

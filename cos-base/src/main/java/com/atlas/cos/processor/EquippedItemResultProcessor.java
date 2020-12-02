@@ -1,10 +1,6 @@
 package com.atlas.cos.processor;
 
-import com.atlas.cos.database.provider.EquipmentProvider;
-import com.atlas.cos.model.EquipmentData;
-
 import builder.ResultBuilder;
-import database.Connection;
 
 public class EquippedItemResultProcessor {
    private static final Object lock = new Object();
@@ -26,12 +22,7 @@ public class EquippedItemResultProcessor {
    }
 
    public ResultBuilder equipForCharacter(int characterId, int id) {
-      Connection.instance()
-            .element(entityManager -> EquipmentProvider.getById(entityManager, id))
-            .map(EquipmentData::itemId)
-            .flatMap(itemId -> ItemProcessor.getInstance().getEquipmentSlotDestination(itemId).findFirst())
-            .ifPresent(destinationSlot -> ItemProcessor.getInstance().equipItemForCharacter(characterId, id, destinationSlot));
-
+      ItemProcessor.getInstance().equipItemForCharacter(characterId, id);
       return new ResultBuilder();
    }
 }

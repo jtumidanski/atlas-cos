@@ -40,18 +40,17 @@ public class CharacterBuilder {
 
    private int mapId;
 
-   public CharacterBuilder(CharacterAttributes attributes, int level, int mapId) {
-      this.accountId = attributes.accountId();
-      this.worldId = attributes.worldId();
-      this.name = attributes.name();
-      this.jobId = attributes.jobId();
-      this.level = level;
-      this.mapId = mapId;
+   public CharacterBuilder(int accountId, int worldId, String name, int jobId, int skinColor, byte gender, int hair, int face) {
+      this.accountId = accountId;
+      this.worldId = worldId;
+      this.name = name;
+      this.jobId = jobId;
+      this.level = 1;
 
-      this.skinColor = attributes.skinColor();
-      this.gender = attributes.gender();
-      this.hair = attributes.hair();
-      this.face = attributes.face();
+      this.skinColor = skinColor;
+      this.gender = gender;
+      this.hair = hair;
+      this.face = face;
 
       Configuration configuration = ConfigurationProcessor.getInstance().getConfiguration();
       if (!configuration.useStarting4Ap) {
@@ -78,6 +77,23 @@ public class CharacterBuilder {
 
       this.maxHp = 50;
       this.maxMp = 5;
+   }
+
+   public CharacterBuilder(int accountId, int worldId, String name, int jobId, int skinColor, byte gender, int hair, int face,
+                           int level, int mapId) {
+      this(accountId, worldId, name, jobId, skinColor, gender, hair, face);
+      this.level = level;
+      this.mapId = mapId;
+   }
+
+   public CharacterBuilder(CharacterAttributes attributes, int level, int mapId) {
+      this(attributes.accountId(), attributes.worldId(), attributes.name(), attributes.jobId(), attributes.skinColor(),
+            attributes.gender(), attributes.hair(), attributes.face(), level, mapId);
+   }
+
+   public CharacterBuilder setMapId(int mapId) {
+      this.mapId = mapId;
+      return this;
    }
 
    public CharacterData build() {

@@ -45,7 +45,33 @@ public class ItemProcessor {
       }
    }
 
-   public Optional<EquipmentData> createEquipment(int characterId, int itemId, Short slot, Integer strength, Integer dexterity,
+   public Optional<EquipmentData> createEquipmentForCharacter(int characterId, int itemId, boolean characterCreation) {
+      return createEquipmentForCharacter(characterId, itemId, null, null, null, null,
+            null, null, null, null, null, null, null,
+            null, null, null, null, characterCreation);
+   }
+
+   public Optional<EquipmentData> createEquipmentForCharacter(int characterId, int itemId, Integer strength, Integer dexterity,
+                                                              Integer intelligence, Integer luck, Integer weaponAttack,
+                                                              Integer weaponDefense, Integer magicAttack, Integer magicDefense,
+                                                              Integer accuracy, Integer avoidability, Integer speed, Integer jump,
+                                                              Integer hp, Integer mp, Integer slots, boolean characterCreation) {
+      if (characterCreation) {
+         boolean valid = validCharacterCreationItem(itemId);
+         if (!valid) {
+            return Optional.empty();
+         }
+      }
+
+      short nextOpenSlot = Connection.instance()
+            .element(entityManager -> EquipmentProvider.getNextFreeEquipmentSlot(entityManager, characterId))
+            .orElse((short) 0);
+      return ItemProcessor.getInstance()
+            .createEquipment(characterId, itemId, nextOpenSlot, strength, dexterity, intelligence, luck, weaponAttack,
+                  weaponDefense, magicAttack, magicDefense, accuracy, avoidability, speed, jump, hp, mp, slots);
+   }
+
+   protected Optional<EquipmentData> createEquipment(int characterId, int itemId, Short slot, Integer strength, Integer dexterity,
                                                   Integer intelligence, Integer luck, Integer weaponAttack, Integer weaponDefense,
                                                   Integer magicAttack, Integer magicDefense, Integer accuracy, Integer avoidability,
                                                   Integer speed, Integer jump, Integer hp, Integer mp, Integer slots) {
@@ -95,12 +121,11 @@ public class ItemProcessor {
 
       EquipmentData equipment = equipmentBuilder.build();
 
-
       return Connection.instance()
             .element(entityManager -> EquipmentAdministrator.create(entityManager, characterId, equipment));
    }
 
-   public Stream<Short> getEquipmentSlotDestination(int itemId) {
+   protected Stream<Short> getEquipmentSlotDestination(int itemId) {
       return UriBuilder.service(RestService.ITEM_INFORMATION)
             .pathParam("equipment", itemId)
             .path("slots")
@@ -113,7 +138,15 @@ public class ItemProcessor {
             .map(EquipmentSlotAttributes::slot);
    }
 
-   public void equipItemForCharacter(int characterId, int id, short destinationSlot) {
+   public void equipItemForCharacter(int characterId, int id) {
+      Connection.instance()
+            .element(entityManager -> EquipmentProvider.getById(entityManager, id))
+            .map(EquipmentData::itemId)
+            .flatMap(itemId -> getEquipmentSlotDestination(itemId).findFirst())
+            .ifPresent(destinationSlot -> equipItemForCharacter(characterId, id, destinationSlot));
+   }
+
+   protected void equipItemForCharacter(int characterId, int id, short destinationSlot) {
       Connection.instance().with(entityManager ->
             QueryAdministratorUtil.inTransaction(entityManager, transactionEm -> {
                short temporarySlot = Short.MIN_VALUE;
@@ -139,5 +172,16 @@ public class ItemProcessor {
 
    public List<EquipmentData> getEquipmentForCharacter(int characterId) {
       return Connection.instance().list(entityManager -> EquipmentProvider.getForCharacter(entityManager, characterId));
+   }
+
+   protected boolean validCharacterCreationItem(int itemId) {
+      return Stream.of(
+            1302000, 1312004, 1322005, 1442079,// weapons
+            1040002, 1040006, 1040010, 1041002, 1041006, 1041010, 1041011, 1042167,// bottom
+            1060002, 1060006, 1061002, 1061008, 1062115, // top
+            1072001, 1072005, 1072037, 1072038, 1072383,// shoes
+            30000, 30010, 30020, 30030, 31000, 31040, 31050,// hair
+            20000, 20001, 20002, 21000, 21001, 21002, 21201, 20401, 20402, 21700, 20100  //face
+      ).anyMatch(id -> id == itemId);
    }
 }

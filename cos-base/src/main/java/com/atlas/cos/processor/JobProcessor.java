@@ -1,5 +1,9 @@
 package com.atlas.cos.processor;
 
+import java.util.Optional;
+import javax.ws.rs.core.Response;
+
+import com.app.rest.util.stream.Mappers;
 import com.atlas.cos.attribute.JobAttributes;
 import com.atlas.cos.builder.JobAttributesBuilder;
 import com.atlas.cos.model.MapleJob;
@@ -27,36 +31,28 @@ public class JobProcessor {
    }
 
    public ResultBuilder getByCreateIndex(int createIndex) {
-      int jobId = -1;
-      if (createIndex == 0) {
-         jobId = 1000;
-      } else if (createIndex == 1) {
-         jobId = 0;
-      } else if (createIndex == 2) {
-         jobId = 2000;
-      }
-
-      return new ResultBuilder().addData(getJob(jobId));
+      return getJobFromIndex(createIndex)
+            .map(job -> getJob(createIndex, job))
+            .map(Mappers::singleOkResult)
+            .orElse(new ResultBuilder(Response.Status.NOT_FOUND));
    }
 
-   protected ResultObjectBuilder getJob(int jobId) {
-      MapleJob mapleJob = MapleJob.getById(jobId);
-      if (mapleJob != null) {
-         int createIndex = -1;
-         if (mapleJob.equals(MapleJob.BEGINNER)) {
-            createIndex = 1;
-         } else if (mapleJob.equals(MapleJob.NOBLESSE)) {
-            createIndex = 0;
-         } else if (mapleJob.equals(MapleJob.LEGEND)) {
-            createIndex = 2;
-         }
-
-         return new ResultObjectBuilder(JobAttributes.class, jobId)
-               .setAttribute(new JobAttributesBuilder()
-                     .setName(mapleJob.name())
-                     .setCreateIndex(createIndex)
-               );
+   public Optional<MapleJob> getJobFromIndex(int createIndex) {
+      if (createIndex == 0) {
+         return Optional.of(MapleJob.NOBLESSE);
+      } else if (createIndex == 1) {
+         return Optional.of(MapleJob.BEGINNER);
+      } else if (createIndex == 2) {
+         return Optional.of(MapleJob.LEGEND);
       }
-      return null;
+      return Optional.empty();
+   }
+
+   protected ResultObjectBuilder getJob(int createIndex, MapleJob job) {
+      return new ResultObjectBuilder(JobAttributes.class, job.getId())
+            .setAttribute(new JobAttributesBuilder()
+                  .setName(job.name())
+                  .setCreateIndex(createIndex)
+            );
    }
 }
