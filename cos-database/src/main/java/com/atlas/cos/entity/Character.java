@@ -20,7 +20,9 @@ import javax.persistence.Table;
       @NamedQuery(name = Character.GET_BY_NAME,
             query = "SELECT c FROM Character c WHERE c.name = :name"),
       @NamedQuery(name = Character.GET_BY_ID,
-            query = "SELECT c FROM Character c WHERE c.id = :id")
+            query = "SELECT c FROM Character c WHERE c.id = :id"),
+      @NamedQuery(name = Character.GET_BY_WORLD_AND_MAP,
+            query = "SELECT c FROM Character c WHERE c.world = :worldId AND c.map = :mapId")
 })
 @Table(name = "characters", indexes = {
       @Index(name = "accountId", columnList = "accountId"),
@@ -36,13 +38,17 @@ public class Character implements Serializable {
 
    public static final String GET_BY_ID = "Character.GET_BY_ID";
 
+   public static final String GET_BY_WORLD_AND_MAP = "Character.GET_BY_WORLD_AND_MAP";
+
    public static final String ID = "id";
 
    public static final String ACCOUNT_ID = "accountId";
 
    public static final String WORLD_ID = "worldId";
 
-   public static final String NAME = "NAME";
+   public static final String NAME = "name";
+
+   public static final String MAP_ID = "mapId";
 
    @Id
    @GeneratedValue(strategy = GenerationType.IDENTITY)

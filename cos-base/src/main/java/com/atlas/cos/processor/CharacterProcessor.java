@@ -110,6 +110,12 @@ public class CharacterProcessor {
 
    public void updateMap(int worldId, int channelId, int characterId, int mapId, int portalId) {
       Connection.instance().with(entityManager -> CharacterAdministrator.updateMap(entityManager, characterId, mapId));
+
+      PortalProcessor.getInstance()
+            .getMapPortalById(mapId, portalId)
+            .ifPresent(portal -> CharacterTemporalRegistry.getInstance()
+                  .updatePosition(characterId, portal.x(), portal.y()));
+
       MapChangedProcessor.getInstance().notifyChange(worldId, channelId, characterId, mapId, portalId);
    }
 }

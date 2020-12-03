@@ -31,11 +31,14 @@ public class CharacterResource {
    @Produces(MediaType.APPLICATION_JSON)
    public Response getCharacters(@QueryParam("accountId") Integer accountId,
                                  @QueryParam("worldId") Integer worldId,
+                                 @QueryParam("mapId") Integer mapId,
                                  @QueryParam("name") String name) {
       if (accountId != null && worldId != null) {
          return CharacterResultProcessor.getInstance().getForAccountAndWorld(accountId, worldId).build();
       } else if (name != null) {
          return CharacterResultProcessor.getInstance().getByName(name).build();
+      } else if (worldId != null && mapId != null) {
+         return CharacterResultProcessor.getInstance().getForWorldInMap(worldId, mapId).build();
       }
       return new ResultBuilder().build();
    }

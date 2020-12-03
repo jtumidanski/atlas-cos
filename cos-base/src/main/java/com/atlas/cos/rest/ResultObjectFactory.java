@@ -8,7 +8,9 @@ import com.atlas.cos.builder.CharacterAttributesBuilder;
 import com.atlas.cos.builder.EquipmentAttributesBuilder;
 import com.atlas.cos.model.BlockedNameData;
 import com.atlas.cos.model.CharacterData;
+import com.atlas.cos.model.CharacterTemporalData;
 import com.atlas.cos.model.EquipmentData;
+import com.atlas.cos.processor.CharacterTemporalRegistry;
 
 import builder.ResultObjectBuilder;
 
@@ -19,6 +21,10 @@ public class ResultObjectFactory {
    }
 
    public static ResultObjectBuilder create(CharacterData data) {
+
+      CharacterTemporalData temporalData = CharacterTemporalRegistry.getInstance()
+            .getTemporalData(data.id());
+
       return new ResultObjectBuilder(CharacterAttributes.class, data.id())
             .setAttribute(new CharacterAttributesBuilder()
                   .setAccountId(data.accountId())
@@ -48,6 +54,9 @@ public class ResultObjectFactory {
                   .setMapId(data.mapId())
                   .setSpawnPoint(data.spawnPoint())
                   .setGm(data.gm())
+                  .setX(temporalData.x())
+                  .setY(temporalData.y())
+                  .setStance(temporalData.stance())
             );
    }
 

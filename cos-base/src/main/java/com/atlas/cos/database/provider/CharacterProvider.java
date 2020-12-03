@@ -31,4 +31,11 @@ public class CharacterProvider {
             .setParameter(Character.ID, characterId)
             .element(new CharacterDataTransformer());
    }
+
+   public static List<CharacterData> getForWorldInMap(EntityManager entityManager, int worldId, int mapId) {
+      return new NamedQueryClient<>(entityManager, Character.GET_BY_WORLD_AND_MAP, Character.class)
+            .setParameter(Character.WORLD_ID, worldId)
+            .setParameter(Character.MAP_ID, mapId)
+            .list(new CharacterDataTransformer());
+   }
 }

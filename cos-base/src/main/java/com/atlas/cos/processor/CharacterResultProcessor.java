@@ -92,4 +92,12 @@ public class CharacterResultProcessor {
             .map(Mappers::singleOkResult)
             .orElse(new ResultBuilder(Response.Status.NOT_FOUND));
    }
+
+   public ResultBuilder getForWorldInMap(int worldId, int mapId) {
+      return Connection.instance()
+            .list(entityManager -> CharacterProvider.getForWorldInMap(entityManager, worldId, mapId))
+            .stream()
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
+   }
 }

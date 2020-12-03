@@ -61,11 +61,17 @@ public class CharacterAttributesBuilder extends RecordBuilder<CharacterAttribute
 
    private Integer gm;
 
+   private Integer x;
+
+   private Integer y;
+
+   private Integer stance;
+
    @Override
    public CharacterAttributes construct() {
       return new CharacterAttributes(accountId, worldId, name, level, experience, gachaponExperience, strength, dexterity, luck,
             intelligence, hp, mp, maxHp, maxMp, meso, hpMpUsed, jobId, skinColor, gender, fame, hair, face, ap, sp, mapId,
-            spawnPoint, gm);
+            spawnPoint, gm, x, y, stance);
    }
 
    @Override
@@ -205,6 +211,21 @@ public class CharacterAttributesBuilder extends RecordBuilder<CharacterAttribute
 
    public CharacterAttributesBuilder setGm(Integer gm) {
       this.gm = gm;
+      return getThis();
+   }
+
+   public CharacterAttributesBuilder setX(Integer x) {
+      this.x = x;
+      return getThis();
+   }
+
+   public CharacterAttributesBuilder setY(Integer y) {
+      this.y = y;
+      return getThis();
+   }
+
+   public CharacterAttributesBuilder setStance(Integer stance) {
+      this.stance = stance;
       return getThis();
    }
 }
