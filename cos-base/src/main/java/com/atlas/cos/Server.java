@@ -8,12 +8,13 @@ import java.util.concurrent.Executors;
 import com.atlas.cos.command.ChangeMapCommand;
 import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
+import com.atlas.cos.event.consumer.CharacterLoggedInConsumer;
 import com.atlas.cos.processor.BlockedNameProcessor;
+import com.atlas.csrv.event.CharacterLoggedInEvent;
 import com.atlas.kafka.consumer.ConsumerBuilder;
 import com.atlas.shared.rest.RestServerFactory;
 import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
-import org.glassfish.grizzly.http.server.HttpServer;
 
 import database.PersistenceManager;
 
@@ -37,6 +38,14 @@ public class Server {
                   .setBootstrapServers(System.getenv("BOOTSTRAP_SERVERS"))
                   .setTopic(System.getenv(EventConstants.TOPIC_CHANGE_MAP_COMMAND))
                   .setHandler(new ChangeMapCommandConsumer())
+                  .build()
+      );
+
+      Executors.newSingleThreadExecutor().execute(
+            new ConsumerBuilder<>("Character Service", CharacterLoggedInEvent.class)
+                  .setBootstrapServers(System.getenv("BOOTSTRAP_SERVERS"))
+                  .setTopic(System.getenv(com.atlas.csrv.constant.EventConstants.TOPIC_CHARACTER_LOGIN))
+                  .setHandler(new CharacterLoggedInConsumer())
                   .build()
       );
    }
