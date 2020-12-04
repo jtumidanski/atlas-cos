@@ -65,7 +65,7 @@ public class CharacterAttributesBuilder extends RecordBuilder<CharacterAttribute
 
    private Integer y;
 
-   private Integer stance;
+   private Byte stance;
 
    @Override
    public CharacterAttributes construct() {
@@ -224,7 +224,7 @@ public class CharacterAttributesBuilder extends RecordBuilder<CharacterAttribute
       return getThis();
    }
 
-   public CharacterAttributesBuilder setStance(Integer stance) {
+   public CharacterAttributesBuilder setStance(Byte stance) {
       this.stance = stance;
       return getThis();
    }
