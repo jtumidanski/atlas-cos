@@ -1,6 +1,9 @@
 package com.atlas.cos.processor;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.atlas.cos.model.Portal;
 import com.atlas.mis.attribute.PortalAttributes;
@@ -37,5 +40,19 @@ public class PortalProcessor {
             .result()
             .map(DataContainer::getData)
             .map(ModelFactory::createPortal);
+   }
+
+   public List<Portal> getMapPortals(int mapId) {
+      return UriBuilder.service(RestService.MAP_INFORMATION)
+            .pathParam("maps", mapId)
+            .path("portals")
+            .getRestClient(PortalAttributes.class)
+            .getWithResponse()
+            .result()
+            .map(DataContainer::getDataAsList)
+            .orElse(Collections.emptyList())
+            .stream()
+            .map(ModelFactory::createPortal)
+            .collect(Collectors.toList());
    }
 }

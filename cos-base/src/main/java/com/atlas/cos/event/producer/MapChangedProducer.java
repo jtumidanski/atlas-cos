@@ -1,4 +1,4 @@
-package com.atlas.cos.processor;
+package com.atlas.cos.event.producer;
 
 import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.event.MapChangedEvent;
@@ -6,20 +6,20 @@ import com.atlas.kafka.KafkaProducerFactory;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
-public class MapChangedProcessor {
+public class MapChangedProducer {
    private static final Object lock = new Object();
 
-   private static volatile MapChangedProcessor instance;
+   private static volatile MapChangedProducer instance;
 
    private final Producer<Long, MapChangedEvent> producer;
 
-   public static MapChangedProcessor getInstance() {
-      MapChangedProcessor result = instance;
+   public static MapChangedProducer getInstance() {
+      MapChangedProducer result = instance;
       if (result == null) {
          synchronized (lock) {
             result = instance;
             if (result == null) {
-               result = new MapChangedProcessor();
+               result = new MapChangedProducer();
                instance = result;
             }
          }
@@ -27,7 +27,7 @@ public class MapChangedProcessor {
       return result;
    }
 
-   private MapChangedProcessor() {
+   private MapChangedProducer() {
       producer = KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS"));
    }
 

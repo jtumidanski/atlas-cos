@@ -59,7 +59,25 @@ public class CharacterTemporalRegistry {
       }
    }
 
+   public void update(int characterId, int x, int y, byte stance) {
+      synchronized (getLock(characterId)) {
+         CharacterTemporalData data = temporalDataMap
+               .getOrDefault(characterId, getDefaultData())
+               .update(x, y, stance);
+         temporalDataMap.put(characterId, data);
+      }
+   }
+
+   public void updateStance(int characterId, byte stance) {
+      synchronized (getLock(characterId)) {
+         CharacterTemporalData data = temporalDataMap
+               .getOrDefault(characterId, getDefaultData())
+               .updateStance(stance);
+         temporalDataMap.put(characterId, data);
+      }
+   }
+
    protected CharacterTemporalData getDefaultData() {
-      return new CharacterTemporalData(0, 0, 0);
+      return new CharacterTemporalData(0, 0, (byte) 0);
    }
 }

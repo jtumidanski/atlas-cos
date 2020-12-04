@@ -8,6 +8,7 @@ import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.database.administrator.CharacterAdministrator;
 import com.atlas.cos.database.provider.CharacterProvider;
 import com.atlas.cos.event.CharacterCreatedEvent;
+import com.atlas.cos.event.producer.MapChangedProducer;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.kafka.KafkaProducerFactory;
 import org.apache.kafka.clients.producer.Producer;
@@ -116,6 +117,10 @@ public class CharacterProcessor {
             .ifPresent(portal -> CharacterTemporalRegistry.getInstance()
                   .updatePosition(characterId, portal.x(), portal.y()));
 
-      MapChangedProcessor.getInstance().notifyChange(worldId, channelId, characterId, mapId, portalId);
+      MapChangedProducer.getInstance().notifyChange(worldId, channelId, characterId, mapId, portalId);
+   }
+
+   public void updateSpawnPoint(int characterId, int newSpawnPoint) {
+      Connection.instance().with(entityManager -> CharacterAdministrator.updateSpawnPoint(entityManager, characterId, newSpawnPoint));
    }
 }

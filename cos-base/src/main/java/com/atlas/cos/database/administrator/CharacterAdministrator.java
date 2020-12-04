@@ -36,6 +36,12 @@ public class CharacterAdministrator {
    }
 
    public static void updateMap(EntityManager entityManager, int characterId, int mapId) {
-      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setMap(mapId));
+      QueryAdministratorUtil
+            .update(entityManager, Character.class, characterId, character -> character.setMap(mapId));
+   }
+
+   public static void updateSpawnPoint(EntityManager entityManager, int characterId, int newSpawnPoint) {
+      QueryAdministratorUtil
+            .update(entityManager, Character.class, characterId, character -> character.setSpawnPoint(newSpawnPoint));
    }
 }
