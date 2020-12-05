@@ -1,4 +1,4 @@
-package com.atlas.cos.processor;
+package com.atlas.cos;
 
 import java.util.HashMap;
 import java.util.Map;

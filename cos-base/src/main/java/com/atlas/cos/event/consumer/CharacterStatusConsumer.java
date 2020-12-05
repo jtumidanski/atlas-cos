@@ -2,7 +2,7 @@ package com.atlas.cos.event.consumer;
 
 import com.atlas.cos.model.Portal;
 import com.atlas.cos.processor.CharacterProcessor;
-import com.atlas.cos.processor.CharacterTemporalRegistry;
+import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.processor.PortalProcessor;
 import com.atlas.csrv.constant.EventConstants;
 import com.atlas.csrv.event.CharacterStatusEvent;
@@ -13,11 +13,10 @@ public class CharacterStatusConsumer implements SimpleEventHandler<CharacterStat
    @Override
    public void handle(Long aLong, CharacterStatusEvent event) {
       if (event.type().equals(CharacterStatusEventType.LOGIN)) {
-         CharacterProcessor.getInstance().getById(event.characterId())
+         CharacterProcessor.getById(event.characterId())
                .ifPresent(characterData -> {
-                  Portal portal = PortalProcessor.getInstance()
-                        .getMapPortalById(characterData.mapId(), characterData.spawnPoint())
-                        .orElse(PortalProcessor.getInstance().getMapPortalById(characterData.mapId(), 0).orElseThrow());
+                  Portal portal = PortalProcessor.getMapPortalById(characterData.mapId(), characterData.spawnPoint())
+                        .orElse(PortalProcessor.getMapPortalById(characterData.mapId(), 0).orElseThrow());
                   CharacterTemporalRegistry.getInstance().updatePosition(event.characterId(), portal.x(), portal.y());
                });
       }

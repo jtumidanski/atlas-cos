@@ -10,7 +10,7 @@ import com.atlas.cos.model.BlockedNameData;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.CharacterTemporalData;
 import com.atlas.cos.model.EquipmentData;
-import com.atlas.cos.processor.CharacterTemporalRegistry;
+import com.atlas.cos.CharacterTemporalRegistry;
 
 import builder.ResultObjectBuilder;
 

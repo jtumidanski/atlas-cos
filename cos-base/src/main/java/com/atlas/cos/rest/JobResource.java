@@ -8,7 +8,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.atlas.cos.processor.JobProcessor;
+import com.atlas.cos.rest.processor.JobRequestProcessor;
 
 import builder.ResultBuilder;
 
@@ -20,7 +20,7 @@ public class JobResource {
    @Produces(MediaType.APPLICATION_JSON)
    public Response getJobs(@QueryParam("createIndex") Integer createIndex) {
       if (createIndex != null) {
-         return JobProcessor.getInstance().getByCreateIndex(createIndex).build();
+         return JobRequestProcessor.getByCreateIndex(createIndex).build();
       }
       return new ResultBuilder(Response.Status.NOT_FOUND).build();
    }

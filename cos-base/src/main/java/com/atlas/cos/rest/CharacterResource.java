@@ -1,27 +1,19 @@
 package com.atlas.cos.rest;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
+import builder.ResultBuilder;
 import com.app.rest.RelationshipInputBody;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.attribute.CharacterSeedAttributes;
 import com.atlas.cos.attribute.EquipmentAttributes;
-import com.atlas.cos.processor.CharacterResultProcessor;
-import com.atlas.cos.processor.CharacterSeedProcessor;
-import com.atlas.cos.processor.EquippedItemResultProcessor;
-import com.atlas.cos.processor.ItemResultProcessor;
-
-import builder.ResultBuilder;
+import com.atlas.cos.rest.processor.CharacterSeedRequestProcessor;
+import com.atlas.cos.rest.processor.EquippedItemRequestProcessor;
+import com.atlas.cos.rest.processor.ItemRequestProcessor;
+import com.atlas.cos.rest.processor.CharacterRequestProcessor;
 import rest.InputBody;
+
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 @Path("characters")
 public class CharacterResource {
@@ -34,11 +26,11 @@ public class CharacterResource {
                                  @QueryParam("mapId") Integer mapId,
                                  @QueryParam("name") String name) {
       if (accountId != null && worldId != null) {
-         return CharacterResultProcessor.getInstance().getForAccountAndWorld(accountId, worldId).build();
+         return CharacterRequestProcessor.getForAccountAndWorld(accountId, worldId).build();
       } else if (name != null) {
-         return CharacterResultProcessor.getInstance().getByName(name).build();
+         return CharacterRequestProcessor.getByName(name).build();
       } else if (worldId != null && mapId != null) {
-         return CharacterResultProcessor.getInstance().getForWorldInMap(worldId, mapId).build();
+         return CharacterRequestProcessor.getForWorldInMap(worldId, mapId).build();
       }
       return new ResultBuilder().build();
    }
@@ -48,7 +40,7 @@ public class CharacterResource {
    @Consumes(MediaType.APPLICATION_JSON)
    @Produces(MediaType.APPLICATION_JSON)
    public Response createCharacter(InputBody<CharacterAttributes> inputBody) {
-      return CharacterResultProcessor.getInstance().createCharacter(inputBody.attributes()).build();
+      return CharacterRequestProcessor.createCharacter(inputBody.attributes()).build();
    }
 
    @GET
@@ -56,7 +48,7 @@ public class CharacterResource {
    @Consumes(MediaType.APPLICATION_JSON)
    @Produces(MediaType.APPLICATION_JSON)
    public Response getCharacter(@PathParam("characterId") Integer characterId) {
-      return CharacterResultProcessor.getInstance().getById(characterId).build();
+      return CharacterRequestProcessor.getById(characterId).build();
    }
 
    @POST
@@ -66,7 +58,7 @@ public class CharacterResource {
    public Response equipEquipment(@PathParam("characterId") Integer characterId,
                                   RelationshipInputBody relationshipInputBody) {
       int itemId = Integer.parseInt(relationshipInputBody.getData().getId());
-      return EquippedItemResultProcessor.getInstance().equipForCharacter(characterId, itemId).build();
+      return EquippedItemRequestProcessor.equipForCharacter(characterId, itemId).build();
    }
 
    @GET
@@ -76,7 +68,7 @@ public class CharacterResource {
    public Response getEquipment(@PathParam("characterId") Integer characterId,
                                 @DefaultValue("false") @QueryParam("filter[equipped]") Boolean equipped) {
       if (equipped != null) {
-         return ItemResultProcessor.getInstance().getEquippedItemsForCharacter(characterId)
+         return ItemRequestProcessor.getEquippedItemsForCharacter(characterId)
                .build();
       } else {
          return new ResultBuilder(Response.Status.NOT_IMPLEMENTED).build();
@@ -90,7 +82,7 @@ public class CharacterResource {
    public Response createEquipment(@PathParam("characterId") Integer characterId,
                                    @DefaultValue("false") @QueryParam("characterCreation") Boolean characterCreation,
                                    InputBody<EquipmentAttributes> inputBody) {
-      return ItemResultProcessor.getInstance().createEquipmentForCharacter(characterId, inputBody.attributes(), characterCreation)
+      return ItemRequestProcessor.createEquipmentForCharacter(characterId, inputBody.attributes(), characterCreation)
             .build();
    }
 
@@ -99,7 +91,7 @@ public class CharacterResource {
    @Consumes(MediaType.APPLICATION_JSON)
    @Produces(MediaType.APPLICATION_JSON)
    public Response createEquipment(@PathParam("characterId") Integer characterId, @PathParam("equipmentId") Integer equipmentId) {
-      return ItemResultProcessor.getInstance().getEquipmentForCharacter(characterId, equipmentId)
+      return ItemRequestProcessor.getEquipmentForCharacter(characterId, equipmentId)
             .build();
    }
 
@@ -108,7 +100,7 @@ public class CharacterResource {
    @Consumes(MediaType.APPLICATION_JSON)
    @Produces(MediaType.APPLICATION_JSON)
    public Response createCharacterFromSeed(InputBody<CharacterSeedAttributes> inputBody) {
-      return CharacterSeedProcessor.getInstance().create(
+      return CharacterSeedRequestProcessor.create(
             inputBody.attribute(CharacterSeedAttributes::accountId),
             inputBody.attribute(CharacterSeedAttributes::worldId),
             inputBody.attribute(CharacterSeedAttributes::name),

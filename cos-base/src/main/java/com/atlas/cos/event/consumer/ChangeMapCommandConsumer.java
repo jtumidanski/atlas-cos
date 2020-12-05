@@ -8,7 +8,7 @@ import com.atlas.kafka.consumer.SimpleEventHandler;
 public class ChangeMapCommandConsumer implements SimpleEventHandler<ChangeMapCommand> {
    @Override
    public void handle(Long key, ChangeMapCommand changeMapCommand) {
-      CharacterProcessor.getInstance().updateMap(changeMapCommand.worldId(), changeMapCommand.channelId(),
+      CharacterProcessor.updateMap(changeMapCommand.worldId(), changeMapCommand.channelId(),
             changeMapCommand.characterId(), changeMapCommand.mapId(), changeMapCommand.portalId());
    }
 

@@ -1,9 +1,5 @@
 package com.atlas.cos;
 
-import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
-
 import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
 import com.atlas.cos.event.consumer.CharacterMovementConsumer;
 import com.atlas.cos.event.consumer.CharacterStatusConsumer;
@@ -12,8 +8,11 @@ import com.atlas.kafka.consumer.SimpleEventConsumerFactory;
 import com.atlas.shared.rest.RestServerFactory;
 import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
-
 import database.PersistenceManager;
+
+import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
 
 public class Server {
    public static void main(String[] args) {
@@ -29,7 +28,7 @@ public class Server {
             "sex", "tit", "boner", "orgy", "clit", "asshole", "fatass", "bitch", "support", "gamemaster", "cock", "gaay", "gm",
             "operate", "master", "sysop", "party", "GameMaster", "community", "message", "event", "test", "meso", "Scania", "yata",
             "AsiaSoft", "henesys");
-      BlockedNameProcessor.getInstance().bulkAddBlockedNames(blockedNameList);
+      BlockedNameProcessor.bulkAddBlockedNames(blockedNameList);
 
       URI uri = UriBuilder.host(RestService.CHARACTER).uri();
       RestServerFactory.create(uri, "com.atlas.cos.rest");

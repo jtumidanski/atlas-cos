@@ -12,26 +12,11 @@ import com.atlas.shared.rest.UriBuilder;
 
 import rest.DataContainer;
 
-public class PortalProcessor {
-   private static final Object lock = new Object();
-
-   private static volatile PortalProcessor instance;
-
-   public static PortalProcessor getInstance() {
-      PortalProcessor result = instance;
-      if (result == null) {
-         synchronized (lock) {
-            result = instance;
-            if (result == null) {
-               result = new PortalProcessor();
-               instance = result;
-            }
-         }
-      }
-      return result;
+public final class PortalProcessor {
+   private PortalProcessor() {
    }
 
-   public Optional<Portal> getMapPortalById(int mapId, int id) {
+   public static Optional<Portal> getMapPortalById(int mapId, int id) {
       return UriBuilder.service(RestService.MAP_INFORMATION)
             .pathParam("maps", mapId)
             .pathParam("portals", id)
@@ -42,7 +27,7 @@ public class PortalProcessor {
             .map(ModelFactory::createPortal);
    }
 
-   public List<Portal> getMapPortals(int mapId) {
+   public static List<Portal> getMapPortals(int mapId) {
       return UriBuilder.service(RestService.MAP_INFORMATION)
             .pathParam("maps", mapId)
             .path("portals")

@@ -1,11 +1,5 @@
 package com.atlas.cos.processor;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
-
 import com.app.database.util.QueryAdministratorUtil;
 import com.atlas.cos.builder.EquipmentDataBuilder;
 import com.atlas.cos.database.administrator.EquipmentAdministrator;
@@ -15,47 +9,37 @@ import com.atlas.iis.attribute.EquipmentAttributes;
 import com.atlas.iis.attribute.EquipmentSlotAttributes;
 import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
-
 import database.Connection;
 import rest.DataBody;
 import rest.DataContainer;
 
-public class ItemProcessor {
-   private static final Object lock = new Object();
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
-   private static volatile ItemProcessor instance;
-
-   public static ItemProcessor getInstance() {
-      ItemProcessor result = instance;
-      if (result == null) {
-         synchronized (lock) {
-            result = instance;
-            if (result == null) {
-               result = new ItemProcessor();
-               instance = result;
-            }
-         }
-      }
-      return result;
+public final class ItemProcessor {
+   private ItemProcessor() {
    }
 
-   protected <T> void setIfNotNull(Consumer<T> setter, T value) {
+   protected static <T> void setIfNotNull(Consumer<T> setter, T value) {
       if (value != null) {
          setter.accept(value);
       }
    }
 
-   public Optional<EquipmentData> createEquipmentForCharacter(int characterId, int itemId, boolean characterCreation) {
+   public static Optional<EquipmentData> createEquipmentForCharacter(int characterId, int itemId, boolean characterCreation) {
       return createEquipmentForCharacter(characterId, itemId, null, null, null, null,
             null, null, null, null, null, null, null,
             null, null, null, null, characterCreation);
    }
 
-   public Optional<EquipmentData> createEquipmentForCharacter(int characterId, int itemId, Integer strength, Integer dexterity,
-                                                              Integer intelligence, Integer luck, Integer weaponAttack,
-                                                              Integer weaponDefense, Integer magicAttack, Integer magicDefense,
-                                                              Integer accuracy, Integer avoidability, Integer speed, Integer jump,
-                                                              Integer hp, Integer mp, Integer slots, boolean characterCreation) {
+   public static Optional<EquipmentData> createEquipmentForCharacter(int characterId, int itemId, Integer strength, Integer dexterity,
+                                                                     Integer intelligence, Integer luck, Integer weaponAttack,
+                                                                     Integer weaponDefense, Integer magicAttack, Integer magicDefense,
+                                                                     Integer accuracy, Integer avoidability, Integer speed, Integer jump,
+                                                                     Integer hp, Integer mp, Integer slots, boolean characterCreation) {
       if (characterCreation) {
          boolean valid = validCharacterCreationItem(itemId);
          if (!valid) {
@@ -66,15 +50,14 @@ public class ItemProcessor {
       short nextOpenSlot = Connection.instance()
             .element(entityManager -> EquipmentProvider.getNextFreeEquipmentSlot(entityManager, characterId))
             .orElse((short) 0);
-      return ItemProcessor.getInstance()
-            .createEquipment(characterId, itemId, nextOpenSlot, strength, dexterity, intelligence, luck, weaponAttack,
-                  weaponDefense, magicAttack, magicDefense, accuracy, avoidability, speed, jump, hp, mp, slots);
+      return ItemProcessor.createEquipment(characterId, itemId, nextOpenSlot, strength, dexterity, intelligence, luck,
+            weaponAttack, weaponDefense, magicAttack, magicDefense, accuracy, avoidability, speed, jump, hp, mp, slots);
    }
 
-   protected Optional<EquipmentData> createEquipment(int characterId, int itemId, Short slot, Integer strength, Integer dexterity,
-                                                  Integer intelligence, Integer luck, Integer weaponAttack, Integer weaponDefense,
-                                                  Integer magicAttack, Integer magicDefense, Integer accuracy, Integer avoidability,
-                                                  Integer speed, Integer jump, Integer hp, Integer mp, Integer slots) {
+   protected static Optional<EquipmentData> createEquipment(int characterId, int itemId, Short slot, Integer strength, Integer dexterity,
+                                                            Integer intelligence, Integer luck, Integer weaponAttack, Integer weaponDefense,
+                                                            Integer magicAttack, Integer magicDefense, Integer accuracy, Integer avoidability,
+                                                            Integer speed, Integer jump, Integer hp, Integer mp, Integer slots) {
       EquipmentDataBuilder equipmentBuilder = new EquipmentDataBuilder()
             .setItemId(itemId)
             .setSlot(slot);
@@ -125,7 +108,7 @@ public class ItemProcessor {
             .element(entityManager -> EquipmentAdministrator.create(entityManager, characterId, equipment));
    }
 
-   protected Stream<Short> getEquipmentSlotDestination(int itemId) {
+   protected static Stream<Short> getEquipmentSlotDestination(int itemId) {
       return UriBuilder.service(RestService.ITEM_INFORMATION)
             .pathParam("equipment", itemId)
             .path("slots")
@@ -138,7 +121,7 @@ public class ItemProcessor {
             .map(EquipmentSlotAttributes::slot);
    }
 
-   public void equipItemForCharacter(int characterId, int id) {
+   public static void equipItemForCharacter(int characterId, int id) {
       Connection.instance()
             .element(entityManager -> EquipmentProvider.getById(entityManager, id))
             .map(EquipmentData::itemId)
@@ -146,7 +129,7 @@ public class ItemProcessor {
             .ifPresent(destinationSlot -> equipItemForCharacter(characterId, id, destinationSlot));
    }
 
-   protected void equipItemForCharacter(int characterId, int id, short destinationSlot) {
+   protected static void equipItemForCharacter(int characterId, int id, short destinationSlot) {
       Connection.instance().with(entityManager ->
             QueryAdministratorUtil.inTransaction(entityManager, transactionEm -> {
                short temporarySlot = Short.MIN_VALUE;
@@ -166,15 +149,15 @@ public class ItemProcessor {
             }));
    }
 
-   public Optional<EquipmentData> getEquipmentForCharacter(int characterId, int equipmentId) {
+   public static Optional<EquipmentData> getEquipmentForCharacter(int characterId, int equipmentId) {
       return Connection.instance().element(entityManager -> EquipmentProvider.getById(entityManager, equipmentId));
    }
 
-   public List<EquipmentData> getEquipmentForCharacter(int characterId) {
+   public static List<EquipmentData> getEquipmentForCharacter(int characterId) {
       return Connection.instance().list(entityManager -> EquipmentProvider.getForCharacter(entityManager, characterId));
    }
 
-   protected boolean validCharacterCreationItem(int itemId) {
+   protected static boolean validCharacterCreationItem(int itemId) {
       return Stream.of(
             1302000, 1312004, 1322005, 1442079,// weapons
             1040002, 1040006, 1040010, 1041002, 1041006, 1041010, 1041011, 1042167,// bottom

@@ -2,7 +2,7 @@ package com.atlas.cos.event.consumer;
 
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.processor.CharacterProcessor;
-import com.atlas.cos.processor.CharacterTemporalRegistry;
+import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.processor.MapProcessor;
 import com.atlas.csrv.constant.EventConstants;
 import com.atlas.csrv.event.CharacterMovementEvent;
@@ -20,10 +20,10 @@ public class CharacterMovementConsumer implements SimpleEventHandler<CharacterMo
 
       // Update spawn point.
       if (event.x() != null && event.y() != null) {
-         CharacterProcessor.getInstance().getById(event.characterId())
+         CharacterProcessor.getById(event.characterId())
                .map(CharacterData::mapId)
-               .flatMap(mapId -> MapProcessor.getInstance().findClosestSpawnPoint(mapId, event.x(), event.y()))
-               .ifPresent(spawnPoint -> CharacterProcessor.getInstance().updateSpawnPoint(event.characterId(), spawnPoint));
+               .flatMap(mapId -> MapProcessor.findClosestSpawnPoint(mapId, event.x(), event.y()))
+               .ifPresent(spawnPoint -> CharacterProcessor.updateSpawnPoint(event.characterId(), spawnPoint));
       }
    }
 

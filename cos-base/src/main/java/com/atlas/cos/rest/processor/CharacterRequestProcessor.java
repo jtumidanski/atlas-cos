@@ -1,4 +1,4 @@
-package com.atlas.cos.processor;
+package com.atlas.cos.rest.processor;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -12,31 +12,17 @@ import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.database.provider.CharacterProvider;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.MapleJob;
+import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.rest.ResultObjectFactory;
 
 import builder.ResultBuilder;
 import database.Connection;
 
-public class CharacterResultProcessor {
-   private static final Object lock = new Object();
-
-   private static volatile CharacterResultProcessor instance;
-
-   public static CharacterResultProcessor getInstance() {
-      CharacterResultProcessor result = instance;
-      if (result == null) {
-         synchronized (lock) {
-            result = instance;
-            if (result == null) {
-               result = new CharacterResultProcessor();
-               instance = result;
-            }
-         }
-      }
-      return result;
+public final class CharacterRequestProcessor {
+   private CharacterRequestProcessor() {
    }
 
-   public ResultBuilder getForAccountAndWorld(int accountId, int worldId) {
+   public static ResultBuilder getForAccountAndWorld(int accountId, int worldId) {
       return Connection.instance()
             .list(entityManager -> CharacterProvider.getForAccountAndWorld(entityManager, accountId, worldId))
             .stream()
@@ -44,7 +30,7 @@ public class CharacterResultProcessor {
             .collect(Collectors.toResultBuilder());
    }
 
-   public ResultBuilder getByName(String name) {
+   public static ResultBuilder getByName(String name) {
       return Connection.instance()
             .list(entityManager -> CharacterProvider.getForName(entityManager, name))
             .stream()
@@ -52,7 +38,7 @@ public class CharacterResultProcessor {
             .collect(Collectors.toResultBuilder());
    }
 
-   public ResultBuilder createCharacter(CharacterAttributes attributes) {
+   public static ResultBuilder createCharacter(CharacterAttributes attributes) {
       if (!validFace(attributes.face()) || !validHair(attributes.hair())) {
          System.out.println("Owner from account '" + attributes.accountId() + "' tried to packet edit in char creation.");
          return new ResultBuilder(Response.Status.UNAUTHORIZED);
@@ -61,11 +47,11 @@ public class CharacterResultProcessor {
       Function<CharacterAttributes, Optional<CharacterData>> creator;
       MapleJob job = MapleJob.getById(attributes.jobId());
       if (MapleJob.BEGINNER.equals(job)) {
-         creator = CharacterProcessor.getInstance()::createBeginner;
+         creator = CharacterProcessor::createBeginner;
       } else if (MapleJob.NOBLESSE.equals(job)) {
-         creator = CharacterProcessor.getInstance()::createNoblesse;
+         creator = CharacterProcessor::createNoblesse;
       } else if (MapleJob.LEGEND.equals(job)) {
-         creator = CharacterProcessor.getInstance()::createLegend;
+         creator = CharacterProcessor::createLegend;
       } else {
          return new ResultBuilder(Response.Status.NOT_IMPLEMENTED);
       }
@@ -76,24 +62,23 @@ public class CharacterResultProcessor {
             .orElse(new ResultBuilder(Response.Status.FORBIDDEN));
    }
 
-   protected boolean validFace(int face) {
+   protected static boolean validFace(int face) {
       return Arrays.asList(20000, 20001, 20002, 21000, 21001, 21002, 21201, 20401, 20402, 21700, 20100).contains(face);
    }
 
-   protected boolean validHair(int hair) {
+   protected static boolean validHair(int hair) {
       return Stream.of(30000, 30010, 30020, 30030, 31000, 31040, 31050)
             .anyMatch(id -> Math.floor(id / 10.0) == Math.floor(hair / 10.0));
    }
 
-   public ResultBuilder getById(int characterId) {
-      return CharacterProcessor.getInstance()
-            .getById(characterId)
+   public static ResultBuilder getById(int characterId) {
+      return CharacterProcessor.getById(characterId)
             .map(ResultObjectFactory::create)
             .map(Mappers::singleOkResult)
             .orElse(new ResultBuilder(Response.Status.NOT_FOUND));
    }
 
-   public ResultBuilder getForWorldInMap(int worldId, int mapId) {
+   public static ResultBuilder getForWorldInMap(int worldId, int mapId) {
       return Connection.instance()
             .list(entityManager -> CharacterProvider.getForWorldInMap(entityManager, worldId, mapId))
             .stream()

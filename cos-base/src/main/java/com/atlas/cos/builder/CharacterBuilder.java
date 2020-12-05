@@ -3,7 +3,7 @@ package com.atlas.cos.builder;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.configuration.Configuration;
 import com.atlas.cos.model.CharacterData;
-import com.atlas.cos.processor.ConfigurationProcessor;
+import com.atlas.cos.ConfigurationRegistry;
 
 public class CharacterBuilder {
    private int accountId;
@@ -52,7 +52,7 @@ public class CharacterBuilder {
       this.hair = hair;
       this.face = face;
 
-      Configuration configuration = ConfigurationProcessor.getInstance().getConfiguration();
+      Configuration configuration = ConfigurationRegistry.getInstance().getConfiguration();
       if (!configuration.useStarting4Ap) {
          if (configuration.useAutoAssignStartersAp) {
             this.strength = 12;
