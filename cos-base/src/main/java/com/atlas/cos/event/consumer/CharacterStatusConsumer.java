@@ -4,11 +4,12 @@ import com.atlas.cos.model.Portal;
 import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.processor.CharacterTemporalRegistry;
 import com.atlas.cos.processor.PortalProcessor;
+import com.atlas.csrv.constant.EventConstants;
 import com.atlas.csrv.event.CharacterStatusEvent;
 import com.atlas.csrv.event.CharacterStatusEventType;
-import com.atlas.kafka.consumer.ConsumerRecordHandler;
+import com.atlas.kafka.consumer.SimpleEventHandler;
 
-public class CharacterStatusConsumer implements ConsumerRecordHandler<Long, CharacterStatusEvent> {
+public class CharacterStatusConsumer implements SimpleEventHandler<CharacterStatusEvent> {
    @Override
    public void handle(Long aLong, CharacterStatusEvent event) {
       if (event.type().equals(CharacterStatusEventType.LOGIN)) {
@@ -20,5 +21,25 @@ public class CharacterStatusConsumer implements ConsumerRecordHandler<Long, Char
                   CharacterTemporalRegistry.getInstance().updatePosition(event.characterId(), portal.x(), portal.y());
                });
       }
+   }
+
+   @Override
+   public Class<CharacterStatusEvent> getEventClass() {
+      return CharacterStatusEvent.class;
+   }
+
+   @Override
+   public String getConsumerId() {
+      return "Character Service";
+   }
+
+   @Override
+   public String getBootstrapServers() {
+      return System.getenv("BOOTSTRAP_SERVERS");
+   }
+
+   @Override
+   public String getTopic() {
+      return System.getenv(EventConstants.TOPIC_CHARACTER_STATUS);
    }
 }

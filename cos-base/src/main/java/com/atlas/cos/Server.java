@@ -3,17 +3,12 @@ package com.atlas.cos;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Executors;
 
-import com.atlas.cos.command.ChangeMapCommand;
-import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
-import com.atlas.cos.event.consumer.CharacterStatusConsumer;
 import com.atlas.cos.event.consumer.CharacterMovementConsumer;
+import com.atlas.cos.event.consumer.CharacterStatusConsumer;
 import com.atlas.cos.processor.BlockedNameProcessor;
-import com.atlas.csrv.event.CharacterMovementEvent;
-import com.atlas.csrv.event.CharacterStatusEvent;
-import com.atlas.kafka.consumer.ConsumerBuilder;
+import com.atlas.kafka.consumer.SimpleEventConsumerFactory;
 import com.atlas.shared.rest.RestServerFactory;
 import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
@@ -23,6 +18,10 @@ import database.PersistenceManager;
 public class Server {
    public static void main(String[] args) {
       PersistenceManager.construct("atlas-cos");
+
+      SimpleEventConsumerFactory.create(new ChangeMapCommandConsumer());
+      SimpleEventConsumerFactory.create(new CharacterStatusConsumer());
+      SimpleEventConsumerFactory.create(new CharacterMovementConsumer());
 
       List<String> blockedNameList = Arrays.asList("admin", "owner", "moderator", "intern", "donor", "administrator", "FREDRICK",
             "help", "helper", "alert", "notice", "maplestory", "fuck", "wizet", "fucking", "negro", "fuk", "fuc", "penis", "pussy",
@@ -34,27 +33,5 @@ public class Server {
 
       URI uri = UriBuilder.host(RestService.CHARACTER).uri();
       RestServerFactory.create(uri, "com.atlas.cos.rest");
-
-      Executors.newSingleThreadExecutor().execute(
-            new ConsumerBuilder<>("Character Service", ChangeMapCommand.class)
-                  .setBootstrapServers(System.getenv("BOOTSTRAP_SERVERS"))
-                  .setTopic(System.getenv(EventConstants.TOPIC_CHANGE_MAP_COMMAND))
-                  .setHandler(new ChangeMapCommandConsumer())
-                  .build()
-      );
-      Executors.newSingleThreadExecutor().execute(
-            new ConsumerBuilder<>("Character Service", CharacterStatusEvent.class)
-                  .setBootstrapServers(System.getenv("BOOTSTRAP_SERVERS"))
-                  .setTopic(System.getenv(com.atlas.csrv.constant.EventConstants.TOPIC_CHARACTER_STATUS))
-                  .setHandler(new CharacterStatusConsumer())
-                  .build()
-      );
-      Executors.newSingleThreadExecutor().execute(
-            new ConsumerBuilder<>("Character Service", CharacterMovementEvent.class)
-                  .setBootstrapServers(System.getenv("BOOTSTRAP_SERVERS"))
-                  .setTopic(System.getenv(com.atlas.csrv.constant.EventConstants.TOPIC_CHARACTER_MOVEMENT))
-                  .setHandler(new CharacterMovementConsumer())
-                  .build()
-      );
    }
 }
