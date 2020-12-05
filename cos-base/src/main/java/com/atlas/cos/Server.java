@@ -8,11 +8,11 @@ import java.util.concurrent.Executors;
 import com.atlas.cos.command.ChangeMapCommand;
 import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
-import com.atlas.cos.event.consumer.CharacterLoggedInConsumer;
+import com.atlas.cos.event.consumer.CharacterStatusConsumer;
 import com.atlas.cos.event.consumer.CharacterMovementConsumer;
 import com.atlas.cos.processor.BlockedNameProcessor;
-import com.atlas.csrv.event.CharacterLoggedInEvent;
 import com.atlas.csrv.event.CharacterMovementEvent;
+import com.atlas.csrv.event.CharacterStatusEvent;
 import com.atlas.kafka.consumer.ConsumerBuilder;
 import com.atlas.shared.rest.RestServerFactory;
 import com.atlas.shared.rest.RestService;
@@ -43,10 +43,10 @@ public class Server {
                   .build()
       );
       Executors.newSingleThreadExecutor().execute(
-            new ConsumerBuilder<>("Character Service", CharacterLoggedInEvent.class)
+            new ConsumerBuilder<>("Character Service", CharacterStatusEvent.class)
                   .setBootstrapServers(System.getenv("BOOTSTRAP_SERVERS"))
-                  .setTopic(System.getenv(com.atlas.csrv.constant.EventConstants.TOPIC_CHARACTER_LOGIN))
-                  .setHandler(new CharacterLoggedInConsumer())
+                  .setTopic(System.getenv(com.atlas.csrv.constant.EventConstants.TOPIC_CHARACTER_STATUS))
+                  .setHandler(new CharacterStatusConsumer())
                   .build()
       );
       Executors.newSingleThreadExecutor().execute(
