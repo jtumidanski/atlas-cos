@@ -1,16 +1,20 @@
 package com.atlas.cos.rest;
 
+import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.attribute.BlockedNameAttributes;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.attribute.EquipmentAttributes;
+import com.atlas.cos.attribute.LocationAttributes;
+import com.atlas.cos.attribute.LocationType;
 import com.atlas.cos.builder.BlockedNameAttributesBuilder;
 import com.atlas.cos.builder.CharacterAttributesBuilder;
 import com.atlas.cos.builder.EquipmentAttributesBuilder;
+import com.atlas.cos.builder.LocationAttributesBuilder;
 import com.atlas.cos.model.BlockedNameData;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.CharacterTemporalData;
 import com.atlas.cos.model.EquipmentData;
-import com.atlas.cos.CharacterTemporalRegistry;
+import com.atlas.cos.model.SavedLocationData;
 
 import builder.ResultObjectBuilder;
 
@@ -81,6 +85,15 @@ public class ResultObjectFactory {
                   .setSpeed(data.speed())
                   .setJump(data.jump())
                   .setSlots(data.slots())
+            );
+   }
+
+   public static ResultObjectBuilder create(SavedLocationData data) {
+      return new ResultObjectBuilder(LocationAttributes.class, data.id())
+            .setAttribute(new LocationAttributesBuilder()
+                  .setType(LocationType.valueOf(data.type()))
+                  .setMapId(data.mapId())
+                  .setPortalId(data.portalId())
             );
    }
 }

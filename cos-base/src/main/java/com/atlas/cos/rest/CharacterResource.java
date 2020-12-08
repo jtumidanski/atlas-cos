@@ -1,19 +1,29 @@
 package com.atlas.cos.rest;
 
-import builder.ResultBuilder;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import com.app.rest.RelationshipInputBody;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.attribute.CharacterSeedAttributes;
 import com.atlas.cos.attribute.EquipmentAttributes;
+import com.atlas.cos.attribute.LocationAttributes;
+import com.atlas.cos.processor.SavedLocationProcessor;
+import com.atlas.cos.rest.processor.CharacterRequestProcessor;
 import com.atlas.cos.rest.processor.CharacterSeedRequestProcessor;
 import com.atlas.cos.rest.processor.EquippedItemRequestProcessor;
 import com.atlas.cos.rest.processor.ItemRequestProcessor;
-import com.atlas.cos.rest.processor.CharacterRequestProcessor;
-import rest.InputBody;
 
-import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import builder.ResultBuilder;
+import rest.InputBody;
 
 @Path("characters")
 public class CharacterResource {
@@ -115,5 +125,26 @@ public class CharacterResource {
             inputBody.attribute(CharacterSeedAttributes::shoes),
             inputBody.attribute(CharacterSeedAttributes::weapon)
       ).build();
+   }
+
+   @GET
+   @Path("/{characterId}/locations")
+   @Consumes(MediaType.APPLICATION_JSON)
+   @Produces(MediaType.APPLICATION_JSON)
+   public Response getSavedLocations(@PathParam("characterId") Integer characterId,
+                                     @QueryParam("type") String type) {
+      if (type != null) {
+         return SavedLocationProcessor.getSavedLocationsByType(characterId, type).build();
+      }
+      return SavedLocationProcessor.getSavedLocations(characterId).build();
+   }
+
+   @POST
+   @Path("/{characterId}/locations")
+   @Consumes(MediaType.APPLICATION_JSON)
+   @Produces(MediaType.APPLICATION_JSON)
+   public Response addSavedLocation(@PathParam("characterId") Integer characterId,
+                                    InputBody<LocationAttributes> inputBody) {
+      return SavedLocationProcessor.addSavedLocation(characterId, inputBody.attributes()).build();
    }
 }
