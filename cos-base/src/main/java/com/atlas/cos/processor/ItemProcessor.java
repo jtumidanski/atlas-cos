@@ -1,5 +1,11 @@
 package com.atlas.cos.processor;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
 import com.app.database.util.QueryAdministratorUtil;
 import com.atlas.cos.builder.EquipmentDataBuilder;
 import com.atlas.cos.database.administrator.EquipmentAdministrator;
@@ -9,15 +15,10 @@ import com.atlas.iis.attribute.EquipmentAttributes;
 import com.atlas.iis.attribute.EquipmentSlotAttributes;
 import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
+
 import database.Connection;
 import rest.DataBody;
 import rest.DataContainer;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public final class ItemProcessor {
    private ItemProcessor() {
@@ -35,11 +36,15 @@ public final class ItemProcessor {
             null, null, null, null, characterCreation);
    }
 
-   public static Optional<EquipmentData> createEquipmentForCharacter(int characterId, int itemId, Integer strength, Integer dexterity,
+   public static Optional<EquipmentData> createEquipmentForCharacter(int characterId, int itemId, Integer strength,
+                                                                     Integer dexterity,
                                                                      Integer intelligence, Integer luck, Integer weaponAttack,
-                                                                     Integer weaponDefense, Integer magicAttack, Integer magicDefense,
-                                                                     Integer accuracy, Integer avoidability, Integer speed, Integer jump,
-                                                                     Integer hp, Integer mp, Integer slots, boolean characterCreation) {
+                                                                     Integer weaponDefense, Integer magicAttack,
+                                                                     Integer magicDefense,
+                                                                     Integer accuracy, Integer avoidability, Integer speed,
+                                                                     Integer jump,
+                                                                     Integer hp, Integer mp, Integer slots,
+                                                                     boolean characterCreation) {
       if (characterCreation) {
          boolean valid = validCharacterCreationItem(itemId);
          if (!valid) {
@@ -54,9 +59,12 @@ public final class ItemProcessor {
             weaponAttack, weaponDefense, magicAttack, magicDefense, accuracy, avoidability, speed, jump, hp, mp, slots);
    }
 
-   protected static Optional<EquipmentData> createEquipment(int characterId, int itemId, Short slot, Integer strength, Integer dexterity,
-                                                            Integer intelligence, Integer luck, Integer weaponAttack, Integer weaponDefense,
-                                                            Integer magicAttack, Integer magicDefense, Integer accuracy, Integer avoidability,
+   protected static Optional<EquipmentData> createEquipment(int characterId, int itemId, Short slot, Integer strength,
+                                                            Integer dexterity,
+                                                            Integer intelligence, Integer luck, Integer weaponAttack,
+                                                            Integer weaponDefense,
+                                                            Integer magicAttack, Integer magicDefense, Integer accuracy,
+                                                            Integer avoidability,
                                                             Integer speed, Integer jump, Integer hp, Integer mp, Integer slots) {
       EquipmentDataBuilder equipmentBuilder = new EquipmentDataBuilder()
             .setItemId(itemId)
@@ -155,6 +163,12 @@ public final class ItemProcessor {
 
    public static List<EquipmentData> getEquipmentForCharacter(int characterId) {
       return Connection.instance().list(entityManager -> EquipmentProvider.getForCharacter(entityManager, characterId));
+   }
+
+   public static Optional<EquipmentData> getEquipedItemForCharacterBySlot(int characterId, short slotId) {
+      return Connection.instance().list(entityManager -> EquipmentProvider.getForCharacter(entityManager, characterId)).stream()
+            .filter(equipmentData -> equipmentData.slot() == slotId)
+            .findFirst();
    }
 
    protected static boolean validCharacterCreationItem(int itemId) {

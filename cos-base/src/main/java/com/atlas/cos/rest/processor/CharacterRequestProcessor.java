@@ -11,7 +11,7 @@ import com.app.rest.util.stream.Mappers;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.database.provider.CharacterProvider;
 import com.atlas.cos.model.CharacterData;
-import com.atlas.cos.model.MapleJob;
+import com.atlas.cos.model.Job;
 import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.rest.ResultObjectFactory;
 
@@ -44,22 +44,24 @@ public final class CharacterRequestProcessor {
          return new ResultBuilder(Response.Status.UNAUTHORIZED);
       }
 
-      Function<CharacterAttributes, Optional<CharacterData>> creator;
-      MapleJob job = MapleJob.getById(attributes.jobId());
-      if (MapleJob.BEGINNER.equals(job)) {
-         creator = CharacterProcessor::createBeginner;
-      } else if (MapleJob.NOBLESSE.equals(job)) {
-         creator = CharacterProcessor::createNoblesse;
-      } else if (MapleJob.LEGEND.equals(job)) {
-         creator = CharacterProcessor::createLegend;
-      } else {
-         return new ResultBuilder(Response.Status.NOT_IMPLEMENTED);
-      }
-
-      return creator.apply(attributes)
+      return Job.getById(attributes.jobId())
+            .flatMap(CharacterRequestProcessor::getJobCreator)
+            .flatMap(creator -> creator.apply(attributes))
             .map(ResultObjectFactory::create)
             .map(Mappers::singleCreatedResult)
-            .orElse(new ResultBuilder(Response.Status.FORBIDDEN));
+            .orElse(new ResultBuilder(Response.Status.NOT_IMPLEMENTED));
+   }
+
+   protected static Optional<Function<CharacterAttributes, Optional<CharacterData>>> getJobCreator(Job job) {
+      if (Job.BEGINNER.equals(job)) {
+         return Optional.of(CharacterProcessor::createBeginner);
+      } else if (Job.NOBLESSE.equals(job)) {
+         return Optional.of(CharacterProcessor::createNoblesse);
+      } else if (Job.LEGEND.equals(job)) {
+         return Optional.of(CharacterProcessor::createLegend);
+      } else {
+         return Optional.empty();
+      }
    }
 
    protected static boolean validFace(int face) {

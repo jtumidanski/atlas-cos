@@ -1,6 +1,9 @@
 package com.atlas.cos.model;
 
-public enum MapleJob {
+import java.util.Arrays;
+import java.util.Optional;
+
+public enum Job {
    BEGINNER(0),
 
    WARRIOR(100),
@@ -41,62 +44,25 @@ public enum MapleJob {
    EVAN1(2200), EVAN2(2210), EVAN3(2211), EVAN4(2212), EVAN5(2213), EVAN6(2214),
    EVAN7(2215), EVAN8(2216), EVAN9(2217), EVAN10(2218);
 
-   final static int maxId = 22;    // maxId = (EVAN / 100);
-   final int jobId;
+   private final int jobId;
 
-   MapleJob(int id) {
+   Job(int id) {
       jobId = id;
    }
 
-   public static int getMax() {
-      return maxId;
+   public static Optional<Job> getById(int id) {
+      return Arrays.stream(values())
+            .filter(possible -> possible.getId() == id)
+            .findFirst();
    }
 
-   public static MapleJob getById(int id) {
-      for (MapleJob l : MapleJob.values()) {
-         if (l.getId() == id) {
-            return l;
-         }
-      }
-      return null;
-   }
-
-   public static MapleJob getBy5ByteEncoding(int encoded) {
-      return switch (encoded) {
-         case 2 -> WARRIOR;
-         case 4 -> MAGICIAN;
-         case 8 -> BOWMAN;
-         case 16 -> THIEF;
-         case 32 -> PIRATE;
-         case 1024 -> NOBLESSE;
-         case 2048 -> DAWN_WARRIOR_1;
-         case 4096 -> BLAZE_WIZARD_1;
-         case 8192 -> WIND_ARCHER_1;
-         case 16384 -> NIGHT_WALKER_1;
-         case 32768 -> THUNDER_BREAKER_1;
-         default -> BEGINNER;
-      };
+   public boolean isA(Job baseJob) {
+      int baseBranch = baseJob.getId() / 10;
+      return this.getId() / 10 == baseBranch && this.getId() >= baseJob.getId()
+            || baseBranch % 10 == 0 && this.getId() / 100 == baseJob.getId() / 100;
    }
 
    public int getId() {
       return jobId;
-   }
-
-   public boolean isA(MapleJob baseJob) {
-      int baseBranch = baseJob.getId() / 10;
-      return (getId() / 10 == baseBranch && getId() >= baseJob.getId()) || (baseBranch % 10 == 0 && getId() / 100 == baseJob.getId() / 100);
-   }
-
-   public int getJobNiche() {
-      return (jobId / 100) % 10;
-        
-        /*
-        case 0: BEGINNER;
-        case 1: WARRIOR;
-        case 2: MAGICIAN;
-        case 3: BOWMAN;  
-        case 4: THIEF;
-        case 5: PIRATE;
-        */
    }
 }

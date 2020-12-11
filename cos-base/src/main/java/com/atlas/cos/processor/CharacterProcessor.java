@@ -1,5 +1,7 @@
 package com.atlas.cos.processor;
 
+import java.util.Optional;
+
 import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.builder.CharacterBuilder;
@@ -8,9 +10,9 @@ import com.atlas.cos.database.provider.CharacterProvider;
 import com.atlas.cos.event.producer.CharacterCreatedProducer;
 import com.atlas.cos.event.producer.MapChangedProducer;
 import com.atlas.cos.model.CharacterData;
-import database.Connection;
+import com.atlas.cos.model.EquipmentData;
 
-import java.util.Optional;
+import database.Connection;
 
 public final class CharacterProcessor {
    private CharacterProcessor() {
@@ -89,6 +91,64 @@ public final class CharacterProcessor {
    }
 
    public static void updateSpawnPoint(int characterId, int newSpawnPoint) {
-      Connection.instance().with(entityManager -> CharacterAdministrator.updateSpawnPoint(entityManager, characterId, newSpawnPoint));
+      Connection.instance()
+            .with(entityManager -> CharacterAdministrator.updateSpawnPoint(entityManager, characterId, newSpawnPoint));
+   }
+
+   public static int getWeaponAttack(CharacterData character) {
+      int weaponAttack = 0;
+
+      weaponAttack += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
+            .mapToInt(EquipmentData::weaponAttack)
+            .sum();
+
+      //TODO
+      // apply Aran Combo
+      // apply ThunderBreaker Marauder energy charge
+      // apply Marksman Boost or Bowmaster Expert
+      // apply weapon attack buffs
+      // apply blessing
+      // apply active projectile
+
+      return weaponAttack;
+   }
+
+   public static int getStrength(CharacterData character) {
+      int strength = character.strength();
+
+      //TODO
+      // apply Maple Warrior
+
+      strength += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
+            .mapToInt(EquipmentData::strength)
+            .sum();
+
+      return strength;
+   }
+
+   public static int getDexterity(CharacterData character) {
+      int dexterity = character.dexterity();
+
+      //TODO
+      // apply Maple Warrior
+
+      dexterity += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
+            .mapToInt(EquipmentData::dexterity)
+            .sum();
+
+      return dexterity;
+   }
+
+   public static int getLuck(CharacterData character) {
+      int luck = character.luck();
+
+      //TODO
+      // apply Maple Warrior
+
+      luck += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
+            .mapToInt(EquipmentData::luck)
+            .sum();
+
+      return luck;
    }
 }

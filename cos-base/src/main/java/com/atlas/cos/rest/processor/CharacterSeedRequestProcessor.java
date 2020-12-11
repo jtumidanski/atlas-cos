@@ -4,7 +4,7 @@ import builder.ResultBuilder;
 import com.app.rest.util.stream.Mappers;
 import com.atlas.cos.builder.CharacterBuilder;
 import com.atlas.cos.model.CharacterData;
-import com.atlas.cos.model.MapleJob;
+import com.atlas.cos.model.Job;
 import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.processor.ItemProcessor;
 import com.atlas.cos.processor.JobProcessor;
@@ -20,14 +20,14 @@ public final class CharacterSeedRequestProcessor {
 
    public static ResultBuilder create(int accountId, int worldId, String name, int jobIndex, int face, int hair, int hairColor, int skin,
                                       byte gender, int top, int bottom, int shoes, int weapon) {
-      MapleJob job = JobProcessor.getJobFromIndex(jobIndex).orElse(MapleJob.BEGINNER);
+      Job job = JobProcessor.getJobFromIndex(jobIndex).orElse(Job.BEGINNER);
 
       Function<CharacterBuilder, Optional<CharacterData>> creator;
-      if (MapleJob.BEGINNER.equals(job)) {
+      if (Job.BEGINNER.equals(job)) {
          creator = CharacterProcessor::createBeginner;
-      } else if (MapleJob.NOBLESSE.equals(job)) {
+      } else if (Job.NOBLESSE.equals(job)) {
          creator = CharacterProcessor::createNoblesse;
-      } else if (MapleJob.LEGEND.equals(job)) {
+      } else if (Job.LEGEND.equals(job)) {
          creator = CharacterProcessor::createLegend;
       } else {
          return new ResultBuilder(Response.Status.NOT_IMPLEMENTED);

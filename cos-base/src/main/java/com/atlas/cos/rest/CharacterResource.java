@@ -19,6 +19,7 @@ import com.atlas.cos.attribute.LocationAttributes;
 import com.atlas.cos.processor.SavedLocationProcessor;
 import com.atlas.cos.rest.processor.CharacterRequestProcessor;
 import com.atlas.cos.rest.processor.CharacterSeedRequestProcessor;
+import com.atlas.cos.rest.processor.DamageProcessor;
 import com.atlas.cos.rest.processor.EquippedItemRequestProcessor;
 import com.atlas.cos.rest.processor.ItemRequestProcessor;
 
@@ -146,5 +147,13 @@ public class CharacterResource {
    public Response addSavedLocation(@PathParam("characterId") Integer characterId,
                                     InputBody<LocationAttributes> inputBody) {
       return SavedLocationProcessor.addSavedLocation(characterId, inputBody.attributes()).build();
+   }
+
+   @GET
+   @Path("/{characterId}/damage/weapon")
+   @Consumes(MediaType.APPLICATION_JSON)
+   @Produces(MediaType.APPLICATION_JSON)
+   public Response getCharacterDamage(@PathParam("characterId") Integer characterId) {
+      return DamageProcessor.getWeaponDamage(characterId).build();
    }
 }
