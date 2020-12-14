@@ -35,6 +35,21 @@ public class CharacterAdministrator {
       return Optional.of(QueryAdministratorUtil.insertAndReturn(entityManager, character, new CharacterDataTransformer()));
    }
 
+   public static void setExperience(EntityManager entityManager, int characterId, int experience) {
+      QueryAdministratorUtil
+            .update(entityManager, Character.class, characterId, character -> character.setExp(experience));
+   }
+
+   public static void setLevel(EntityManager entityManager, int characterId, int level) {
+      QueryAdministratorUtil
+            .update(entityManager, Character.class, characterId, character -> character.setLevel(level));
+   }
+
+   public static void increaseExperience(EntityManager entityManager, int characterId, int experience) {
+      QueryAdministratorUtil
+            .update(entityManager, Character.class, characterId, character -> character.setExp(character.getExp() + experience));
+   }
+
    public static void updateMap(EntityManager entityManager, int characterId, int mapId) {
       QueryAdministratorUtil
             .update(entityManager, Character.class, characterId, character -> character.setMap(mapId));

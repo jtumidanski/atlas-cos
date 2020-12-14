@@ -1,6 +1,8 @@
 package com.atlas.cos.processor;
 
+import com.atlas.cos.model.Monster;
 import com.atlas.cos.model.Portal;
+import com.atlas.mis.attribute.MonsterDataAttributes;
 import com.atlas.mis.attribute.PortalAttributes;
 
 import rest.DataBody;
@@ -19,5 +21,9 @@ public final class ModelFactory {
             body.getAttributes().targetMap(),
             body.getAttributes().scriptName()
       );
+   }
+
+   public static Monster createMonster(DataBody<MonsterDataAttributes> body) {
+      return new Monster(body.getAttributes().experience(), body.getAttributes().hp());
    }
 }
