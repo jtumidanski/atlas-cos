@@ -137,6 +137,7 @@ public final class MonsterProcessor {
          if (CharacterProcessor.inMap(damageEntry.character(), mapId)) {
             soloDistribution.put(damageEntry.character(), damageEntry.damage());
          }
+         totalEntries += 1;
       }
 
       //TODO account for healing.
