@@ -1,7 +1,9 @@
 package com.atlas.cos.processor;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import com.atlas.cos.CharacterTemporalRegistry;
@@ -228,42 +230,11 @@ public final class CharacterProcessor {
             .setMaxHp(hpMpSummary.hp())
             .setMaxMp(hpMpSummary.mp())
             .setLevel(1);
-      StatisticChangeSummary summary = builder.build();
 
-      Connection.instance()
-            .with(entityManager -> CharacterAdministrator.update(entityManager, characterId, summary.hp(),
-                  summary.maxHp(), summary.mp(), summary.maxMp(), summary.strength(), summary.dexterity(),
-                  summary.intelligence(), summary.luck(), summary.ap(), summary.level()));
+      StatisticChangeSummary summary = builder.build();
+      processStatisticChangeSummary(characterId, summary);
 
       //levelUpGainSp();
-      //
-      //      levelUpHealthAndManaPoints(isBeginner);
-
-      //      levelUpGainSp();
-      //
-      //      effLock.lock();
-      //      statWriteLock.lock();
-      //      try {
-      //         recalculateLocalStats();
-      //         changeHpMp(localMaxHp, localMaxMp, true);
-      //
-      //         List<Pair<MapleStat, Integer>> statIncreases = new ArrayList<>(10);
-      //         statIncreases.add(new Pair<>(MapleStat.AVAILABLE_AP, remainingAp));
-      //         statIncreases.add(new Pair<>(MapleStat.AVAILABLE_SP, remainingSp[GameConstants.getSkillBook(job.getId())]));
-      //         statIncreases.add(new Pair<>(MapleStat.HP, hp));
-      //         statIncreases.add(new Pair<>(MapleStat.MP, mp));
-      //         statIncreases.add(new Pair<>(MapleStat.EXP, exp.get()));
-      //         statIncreases.add(new Pair<>(MapleStat.LEVEL, level));
-      //         statIncreases.add(new Pair<>(MapleStat.MAX_HP, clientMaxHp));
-      //         statIncreases.add(new Pair<>(MapleStat.MAX_MP, clientMaxMp));
-      //         statIncreases.add(new Pair<>(MapleStat.STR, str));
-      //         statIncreases.add(new Pair<>(MapleStat.DEX, dex));
-      //
-      //         PacketCreator.announce(client, new UpdatePlayerStats(statIncreases, true, this));
-      //      } finally {
-      //         statWriteLock.unlock();
-      //         effLock.unlock();
-      //      }
 
       CharacterStatUpdateProducer.statsUpdated(worldId, channelId, mapId, characterId, Arrays.asList(
             StatUpdateType.EXPERIENCE,
@@ -278,6 +249,237 @@ public final class CharacterProcessor {
             StatUpdateType.LUCK,
             StatUpdateType.INTELLIGENCE
       ));
+   }
+
+   protected static void processStatisticChangeSummary(int characterId, StatisticChangeSummary summary) {
+      Connection.instance()
+            .with(entityManager -> CharacterAdministrator.update(entityManager, characterId, summary.hp(),
+                  summary.maxHp(), summary.mp(), summary.maxMp(), summary.strength(), summary.dexterity(),
+                  summary.intelligence(), summary.luck(), summary.ap(), summary.level()));
+   }
+
+   public static void assignStrDexIntLuk(int worldId, int channelId, int mapId, CharacterData character, int deltaStr, int deltaDex,
+                                         int deltaInt, int deltaLuk) {
+      int apUsed = apAssigned(deltaStr) + apAssigned(deltaDex) + apAssigned(deltaInt) + apAssigned(deltaLuk);
+      if (apUsed > character.ap()) {
+         return;
+      }
+
+      int newStr = character.strength() + deltaStr;
+      int newDex = character.dexterity() + deltaDex;
+      int newInt = character.intelligence() + deltaInt;
+      int newLuk = character.luck() + deltaLuk;
+      if (outOfRange(newStr, deltaStr)) {
+         return;
+      }
+
+      if (outOfRange(newDex, deltaDex)) {
+         return;
+      }
+
+      if (outOfRange(newInt, deltaInt)) {
+         return;
+      }
+
+      if (outOfRange(newLuk, deltaLuk)) {
+         return;
+      }
+
+      StatisticChangeSummary summary = new StatisticChangeSummaryBuilder()
+            .setStrength(deltaStr)
+            .setDexterity(deltaDex)
+            .setIntelligence(deltaInt)
+            .setLuck(deltaLuk)
+            .setAp(-apUsed)
+            .build();
+      processStatisticChangeSummary(character.id(), summary);
+
+      List<StatUpdateType> statUpdateTypes = new ArrayList<>();
+      if (deltaStr != 0) {
+         statUpdateTypes.add(StatUpdateType.STRENGTH);
+      }
+      if (deltaDex != 0) {
+         statUpdateTypes.add(StatUpdateType.DEXTERITY);
+      }
+      if (deltaInt != 0) {
+         statUpdateTypes.add(StatUpdateType.INTELLIGENCE);
+      }
+      if (deltaLuk != 0) {
+         statUpdateTypes.add(StatUpdateType.LUCK);
+      }
+      if (apUsed != 0) {
+         statUpdateTypes.add(StatUpdateType.AVAILABLE_AP);
+      }
+
+      CharacterStatUpdateProducer.statsUpdated(worldId, channelId, mapId, character.id(), statUpdateTypes);
+   }
+
+   protected static int calcHpChange(CharacterData character, boolean usedAPReset) {
+      Job job = Job.getById(character.jobId()).orElseThrow();
+      int MaxHP = 0;
+
+      if (job.isA(Job.WARRIOR) || job.isA(Job.DAWN_WARRIOR_1)) {
+         //         if (!usedAPReset) {
+         //            int skillId = job.isA(MapleJob.DAWN_WARRIOR_1) ? DawnWarrior.MAX_HP_INCREASE : Warrior.IMPROVED_MAX_HP;
+         //            MaxHP += SkillFactory.applyIfHasSkill(player, skillId, (skill, skillLevel) -> skill.getEffect(skillLevel).getY(), 0);
+         //         }
+
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (usedAPReset) {
+               MaxHP += 20;
+            } else {
+               MaxHP += Randomizer.rand(18, 22);
+            }
+         } else {
+            MaxHP += 20;
+         }
+      } else if (job.isA(Job.ARAN1)) {
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (usedAPReset) {
+               MaxHP += 20;
+            } else {
+               MaxHP += Randomizer.rand(26, 30);
+            }
+         } else {
+            MaxHP += 28;
+         }
+      } else if (job.isA(Job.MAGICIAN) || job.isA(Job.BLAZE_WIZARD_1)) {
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (usedAPReset) {
+               MaxHP += 6;
+            } else {
+               MaxHP += Randomizer.rand(5, 9);
+            }
+         } else {
+            MaxHP += 6;
+         }
+      } else if (job.isA(Job.THIEF) || job.isA(Job.NIGHT_WALKER_1)) {
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (usedAPReset) {
+               MaxHP += 16;
+            } else {
+               MaxHP += Randomizer.rand(14, 18);
+            }
+         } else {
+            MaxHP += 16;
+         }
+      } else if (job.isA(Job.BOWMAN) || job.isA(Job.WIND_ARCHER_1)) {
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (usedAPReset) {
+               MaxHP += 16;
+            } else {
+               MaxHP += Randomizer.rand(14, 18);
+            }
+         } else {
+            MaxHP += 16;
+         }
+      } else if (job.isA(Job.PIRATE) || job.isA(Job.THUNDER_BREAKER_1)) {
+         //         if (!usedAPReset) {
+         //            MaxHP += SkillFactory.applyIfHasSkill(player, job.isA(MapleJob.PIRATE) ? Brawler.IMPROVE_MAX_HP : ThunderBreaker.IMPROVE_MAX_HP, (skill, skillLevel) -> skill.getEffect(skillLevel).getY(), 0);
+         //         }
+
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (usedAPReset) {
+               MaxHP += 18;
+            } else {
+               MaxHP += Randomizer.rand(16, 20);
+            }
+         } else {
+            MaxHP += 18;
+         }
+      } else if (usedAPReset) {
+         MaxHP += 8;
+      } else {
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            MaxHP += Randomizer.rand(8, 12);
+         } else {
+            MaxHP += 10;
+         }
+      }
+
+      return MaxHP;
+   }
+
+   protected static int calcMpChange(CharacterData character, boolean usedAPReset) {
+      Job job = Job.getById(character.jobId()).orElseThrow();
+      int maxMp = 0;
+
+      if (job.isA(Job.WARRIOR) || job.isA(Job.DAWN_WARRIOR_1) || job.isA(Job.ARAN1)) {
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (!usedAPReset) {
+               maxMp += (Randomizer.rand(2, 4) + (character.intelligence() / 10));
+            } else {
+               maxMp += 2;
+            }
+         } else {
+            maxMp += 3;
+         }
+      } else if (job.isA(Job.MAGICIAN) || job.isA(Job.BLAZE_WIZARD_1)) {
+         //         if (!usedAPReset) {
+         //            int skillId = job.isA(MapleJob.BLAZE_WIZARD_1) ? BlazeWizard.INCREASING_MAX_MP : Magician.IMPROVED_MAX_MP_INCREASE;
+         //            MaxMP += SkillFactory.applyIfHasSkill(player, skillId, (skill, skillLevel) -> skill.getEffect(skillLevel).getY(), 0);
+         //         }
+
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (!usedAPReset) {
+               maxMp += (Randomizer.rand(12, 16) + (character.intelligence() / 20));
+            } else {
+               maxMp += 18;
+            }
+         } else {
+            maxMp += 18;
+         }
+      } else if (job.isA(Job.BOWMAN) || job.isA(Job.WIND_ARCHER_1)) {
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (!usedAPReset) {
+               maxMp += (Randomizer.rand(6, 8) + (character.intelligence() / 10));
+            } else {
+               maxMp += 10;
+            }
+         } else {
+            maxMp += 10;
+         }
+      } else if (job.isA(Job.THIEF) || job.isA(Job.NIGHT_WALKER_1)) {
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (!usedAPReset) {
+               maxMp += (Randomizer.rand(6, 8) + (character.intelligence() / 10));
+            } else {
+               maxMp += 10;
+            }
+         } else {
+            maxMp += 10;
+         }
+      } else if (job.isA(Job.PIRATE) || job.isA(Job.THUNDER_BREAKER_1)) {
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (!usedAPReset) {
+               maxMp += (Randomizer.rand(7, 9) + (character.intelligence() / 10));
+            } else {
+               maxMp += 14;
+            }
+         } else {
+            maxMp += 14;
+         }
+      } else {
+         if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+            if (!usedAPReset) {
+               maxMp += (Randomizer.rand(4, 6) + (character.intelligence() / 10));
+            } else {
+               maxMp += 6;
+            }
+         } else {
+            maxMp += 6;
+         }
+      }
+
+      return maxMp;
+   }
+
+   protected static boolean outOfRange(int newAp, int deltaAp) {
+      return newAp < 4 && deltaAp != Short.MIN_VALUE || newAp > ConfigurationRegistry.getInstance().getConfiguration().maxAp;
+   }
+
+   protected static int apAssigned(int x) {
+      return x != Short.MIN_VALUE ? x : 0;
    }
 
    //   protected static void levelUpGainSp(Job job) {
@@ -438,5 +640,31 @@ public final class CharacterProcessor {
       } else {
          setExperience(worldId, channelId, mapId, characterId, 0);
       }
+   }
+
+   public static void assignHpMp(int worldId, int channelId, int mapId, CharacterData character, int deltaHp, int deltaMp) {
+      HpMpSummary hpMpSummary = new HpMpSummary(0, 0);
+      if (deltaHp > 0) {
+         hpMpSummary = hpMpSummary.increaseHp(calcHpChange(character, false));
+      }
+      if (deltaMp > 0) {
+         hpMpSummary = hpMpSummary.increaseMp(calcMpChange(character, false));
+      }
+
+      StatisticChangeSummary summary = new StatisticChangeSummaryBuilder()
+            .setMaxHp(hpMpSummary.hp())
+            .setMaxMp(hpMpSummary.mp())
+            .build();
+      processStatisticChangeSummary(character.id(), summary);
+
+      List<StatUpdateType> statUpdateTypes = new ArrayList<>();
+      if (hpMpSummary.hp() != 0) {
+         statUpdateTypes.add(StatUpdateType.MAX_HP);
+      }
+      if (hpMpSummary.mp() != 0) {
+         statUpdateTypes.add(StatUpdateType.MAX_MP);
+      }
+
+      CharacterStatUpdateProducer.statsUpdated(worldId, channelId, mapId, character.id(), statUpdateTypes);
    }
 }

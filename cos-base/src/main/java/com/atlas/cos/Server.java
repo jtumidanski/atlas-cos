@@ -1,5 +1,10 @@
 package com.atlas.cos;
 
+import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
+
+import com.atlas.cos.event.consumer.AssignApConsumer;
 import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
 import com.atlas.cos.event.consumer.CharacterExperienceConsumer;
 import com.atlas.cos.event.consumer.CharacterLevelConsumer;
@@ -11,11 +16,8 @@ import com.atlas.kafka.consumer.SimpleEventConsumerFactory;
 import com.atlas.shared.rest.RestServerFactory;
 import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
-import database.PersistenceManager;
 
-import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
+import database.PersistenceManager;
 
 public class Server {
    public static void main(String[] args) {
@@ -27,6 +29,7 @@ public class Server {
       SimpleEventConsumerFactory.create(new KillMonsterConsumer());
       SimpleEventConsumerFactory.create(new CharacterExperienceConsumer());
       SimpleEventConsumerFactory.create(new CharacterLevelConsumer());
+      SimpleEventConsumerFactory.create(new AssignApConsumer());
 
       List<String> blockedNameList = Arrays.asList("admin", "owner", "moderator", "intern", "donor", "administrator", "FREDRICK",
             "help", "helper", "alert", "notice", "maplestory", "fuck", "wizet", "fucking", "negro", "fuk", "fuc", "penis", "pussy",
