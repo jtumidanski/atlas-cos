@@ -44,6 +44,10 @@ public enum Job {
    EVAN1(2200), EVAN2(2210), EVAN3(2211), EVAN4(2212), EVAN5(2213), EVAN6(2214),
    EVAN7(2215), EVAN8(2216), EVAN9(2217), EVAN10(2218);
 
+   private static final int[] jobUpgradeBlob = {1, 20, 60, 110, 190};
+
+   private static final int[] jobUpgradeSpUp = {0, 1, 2, 3, 6};
+
    private final int jobId;
 
    Job(int id) {
@@ -64,5 +68,65 @@ public enum Job {
 
    public int getId() {
       return jobId;
+   }
+
+   public Job getJobStyle(int strength, int dexterity) {
+      return Job.getJobStyle(jobId, strength, dexterity);
+   }
+
+   public static Job getJobStyle(int jobId, int strength, int dexterity) {
+      return getJobStyleInternal(jobId, (byte) ((strength > dexterity) ? 0x80 : 0x40));
+   }
+
+   public static Job getJobStyleInternal(int jobId, byte opt) {
+      int jobType = jobId / 100;
+
+      if (jobType == Job.WARRIOR.getId() / 100 || jobType == Job.DAWN_WARRIOR_1.getId() / 100
+            || jobType == Job.ARAN1.getId() / 100) {
+         return Job.WARRIOR;
+      } else if (jobType == Job.MAGICIAN.getId() / 100 || jobType == Job.BLAZE_WIZARD_1.getId() / 100
+            || jobType == Job.EVAN1.getId() / 100) {
+         return Job.MAGICIAN;
+      } else if (jobType == Job.BOWMAN.getId() / 100 || jobType == Job.WIND_ARCHER_1.getId() / 100) {
+         if (jobId / 10 == Job.CROSSBOWMAN.getId() / 10) {
+            return Job.CROSSBOWMAN;
+         } else {
+            return Job.BOWMAN;
+         }
+      } else if (jobType == Job.THIEF.getId() / 100 || jobType == Job.NIGHT_WALKER_1.getId() / 100) {
+         return (Job.THIEF);
+      } else if (jobType == Job.PIRATE.getId() / 100 || jobType == Job.THUNDER_BREAKER_1.getId() / 100) {
+         if (opt == (byte) 0x80) {
+            return Job.BRAWLER;
+         } else {
+            return Job.GUNSLINGER;
+         }
+      }
+
+      return Job.BEGINNER;
+   }
+
+   public int getJobBranch() {
+      if (jobId % 1000 == 0) {
+         return 0;
+      } else if (jobId % 100 == 0) {
+         return 1;
+      } else {
+         return 2 + (jobId % 10);
+      }
+   }
+
+   public boolean hasSpTable() {
+      return switch (this) {
+         case EVAN, EVAN1, EVAN2, EVAN3, EVAN4, EVAN5, EVAN6, EVAN7, EVAN8, EVAN9, EVAN10 -> true;
+         default -> false;
+      };
+   }
+   public int getJobUpgradeLevelRange() {
+      return jobUpgradeBlob[getJobBranch()];
+   }
+
+   public int getChangeJobSpUpgrade() {
+      return jobUpgradeSpUp[getJobBranch()];
    }
 }

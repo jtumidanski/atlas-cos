@@ -15,4 +15,8 @@ public record CharacterData(int id, int accountId, int worldId, String name, int
    public int getJobType() {
       return jobId / 1000;
    }
+
+   public boolean isBeginnerJob() {
+      return (jobId == 0 || jobId == 1000 || jobId == 2000);
+   }
 }

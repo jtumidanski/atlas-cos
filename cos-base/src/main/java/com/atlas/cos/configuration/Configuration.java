@@ -8,4 +8,10 @@ public class Configuration {
    public Float expSplitCommonMod;
 
    public Float expSplitMvpMod;
+
+   public Integer maxAp;
+
+   public Boolean useRandomizeHpMpGain;
+
+   public Boolean useEnforceJobSpRange;
 }

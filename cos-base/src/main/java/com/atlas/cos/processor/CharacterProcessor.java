@@ -3,8 +3,11 @@ package com.atlas.cos.processor;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
+import javax.persistence.EntityManager;
 
+import com.app.database.util.QueryAdministratorUtil;
 import com.atlas.cos.CharacterTemporalRegistry;
+import com.atlas.cos.ConfigurationRegistry;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.builder.CharacterBuilder;
 import com.atlas.cos.database.administrator.CharacterAdministrator;
@@ -16,7 +19,9 @@ import com.atlas.cos.event.producer.CharacterStatUpdateProducer;
 import com.atlas.cos.event.producer.MapChangedProducer;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.EquipmentData;
+import com.atlas.cos.model.Job;
 import com.atlas.cos.util.ExpTable;
+import com.atlas.cos.util.Randomizer;
 
 import database.Connection;
 
@@ -158,6 +163,19 @@ public final class CharacterProcessor {
       return luck;
    }
 
+   public static int getIntelligence(CharacterData character) {
+      int intelligence = character.intelligence();
+
+      //TODO
+      // apply Maple Warrior
+
+      intelligence += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
+            .mapToInt(EquipmentData::intelligence)
+            .sum();
+
+      return intelligence;
+   }
+
    public static boolean inMap(int characterId, int mapId) {
       return getById(characterId)
             .map(CharacterData::mapId)
@@ -173,56 +191,46 @@ public final class CharacterProcessor {
    }
 
    public static void increaseLevel(int worldId, int channelId, int mapId, int characterId) {
-      Connection.instance().with(entityManager -> CharacterAdministrator.increaseLevel(entityManager, characterId));
-      CharacterStatUpdateProducer.statsUpdated(worldId, channelId, mapId, characterId, Arrays.asList(
-            StatUpdateType.EXPERIENCE,
-            StatUpdateType.LEVEL,
-            StatUpdateType.AVAILABLE_AP,
-            StatUpdateType.HP,
-            StatUpdateType.MP,
-            StatUpdateType.MAX_HP,
-            StatUpdateType.MAX_MP,
-            StatUpdateType.STRENGTH,
-            StatUpdateType.DEXTERITY,
-            StatUpdateType.LUCK,
-            StatUpdateType.INTELLIGENCE
-      ));
+      Connection.instance().with(entityManager ->
+            QueryAdministratorUtil.inTransaction(entityManager, transaction -> {
+               CharacterData runningCharacter = CharacterProvider.getById(transaction, characterId).orElseThrow();
 
-      //      boolean isBeginner = isBeginnerJob();
-      //      if (YamlConfig.config.server.USE_AUTOASSIGN_STARTERS_AP && isBeginner && level < 11) {
-      //         effLock.lock();
-      //         statWriteLock.lock();
-      //         try {
-      //            gainAp(5, true);
-      //
-      //            int str = 0, dex = 0;
-      //            if (level < 6) {
-      //               str += 5;
-      //            } else {
-      //               str += 4;
-      //               dex += 1;
-      //            }
-      //
-      //            assignStrDexIntLuk(str, dex, 0, 0);
-      //         } finally {
-      //            statWriteLock.unlock();
-      //            effLock.unlock();
-      //         }
-      //      } else {
-      //         int remainingAp = 5;
-      //
-      //         if (isCygnus()) {
-      //            if (level > 10) {
-      //               if (level <= 17) {
-      //                  remainingAp += 2;
-      //               } else if (level < 77) {
-      //                  remainingAp++;
-      //               }
-      //            }
-      //         }
-      //
-      //         gainAp(remainingAp, true);
-      //      }
+               boolean isBeginner = runningCharacter.isBeginnerJob();
+               if (ConfigurationRegistry.getInstance().getConfiguration().useAutoAssignStartersAp && isBeginner
+                     && runningCharacter.level() < 11) {
+                  gainAp(transaction, runningCharacter, 5, true);
+
+                  int str = 0, dex = 0;
+                  if (runningCharacter.level() < 6) {
+                     str += 5;
+                  } else {
+                     str += 4;
+                     dex += 1;
+                  }
+
+                  assignStrDexIntLuk(transaction, runningCharacter, str, dex, 0, 0);
+               } else {
+                  int remainingAp = 5;
+
+                  if (runningCharacter.isCygnus()) {
+                     if (runningCharacter.level() > 10) {
+                        if (runningCharacter.level() <= 17) {
+                           remainingAp += 2;
+                        } else if (runningCharacter.level() < 77) {
+                           remainingAp++;
+                        }
+                     }
+                  }
+
+                  gainAp(transaction, runningCharacter, remainingAp, true);
+               }
+
+               levelUpHealthAndManaPoints(transaction, runningCharacter, isBeginner);
+
+               CharacterAdministrator.increaseLevel(transaction, characterId);
+
+               //levelUpGainSp();
+            }));
       //
       //      levelUpHealthAndManaPoints(isBeginner);
 
@@ -252,49 +260,313 @@ public final class CharacterProcessor {
       //         effLock.unlock();
       //      }
 
-      //      setMPC(new MaplePartyCharacter(this));
-      //      silentPartyUpdate();
-      //
-      //      if (this.guildId > 0) {
-      //         getGuild().ifPresent(
-      //               guild -> MasterBroadcaster.getInstance().sendToGuild(guild, new NotifyLevelUp(2, level, name), false, this.getId()));
+      CharacterStatUpdateProducer.statsUpdated(worldId, channelId, mapId, characterId, Arrays.asList(
+            StatUpdateType.EXPERIENCE,
+            StatUpdateType.LEVEL,
+            StatUpdateType.AVAILABLE_AP,
+            StatUpdateType.HP,
+            StatUpdateType.MP,
+            StatUpdateType.MAX_HP,
+            StatUpdateType.MAX_MP,
+            StatUpdateType.STRENGTH,
+            StatUpdateType.DEXTERITY,
+            StatUpdateType.LUCK,
+            StatUpdateType.INTELLIGENCE
+      ));
+   }
+
+   //   protected static void levelUpGainSp(Job job) {
+   //      if (job.getJobBranch() == 0) {
+   //         return;
+   //      }
+   //
+   //      int spGain = 3;
+   //      if (ConfigurationRegistry.getInstance().getConfiguration().useEnforceJobSpRange && !job.hasSpTable()) {
+   //         spGain = getSpGain(spGain, job);
+   //      }
+   //
+   //      if (spGain > 0) {
+   //         gainSp(spGain, GameConstants.getSkillBook(job.getId()), true);
+   //      }
+   //   }
+
+   //   protected static int getSpGain(int spGain, Job job) {
+   //      int curSp = getUsedSp(job) + getJobRemainingSp(job);
+   //      return getSpGain(spGain, curSp, job);
+   //   }
+   //
+   //   protected static int getUsedSp(Job job) {
+   //      int jobId = job.getId();
+   //      int spUsed = 0;
+   //
+   ////      for (Map.Entry<Skill, SkillEntry> s : this.getSkills().entrySet()) {
+   ////         Skill skill = s.getKey();
+   ////         if (GameConstants.isInJobTree(skill.getId(), jobId) && !skill.isBeginnerSkill()) {
+   ////            spUsed += s.getValue().skillLevel();
+   ////         }
+   ////      }
+   //
+   //      return spUsed;
+   //   }
+   //
+   //   protected static int getJobRemainingSp(Job job) {
+   //      int skillBook = GameConstants.getSkillBook(job.getId());
+   //
+   //      int ret = 0;
+   //      for (int i = 0; i <= skillBook; i++) {
+   //         ret += this.getRemainingSp(i);
+   //      }
+   //
+   //      return ret;
+   //   }
+
+   //   protected static int getSpGain(int spGain, int curSp, Job job) {
+   //      int maxSp = getJobMaxSp(job);
+   //      spGain = Math.min(spGain, maxSp - curSp);
+   //      return spGain;
+   //   }
+
+   //   protected static int getJobMaxSp(Job job) {
+   //      int jobRange = job.getJobUpgradeLevelRange();
+   //      return getJobLevelSp(jobRange, job);
+   //   }
+
+   //   protected static int getJobLevelSp(int level, Job job) {
+   //      if (Job.getJobStyleInternal(job.getId(), (byte) 0x40) == Job.MAGICIAN) {
+   //         level += 2;  // starts earlier, level 8
+   //      }
+   //
+   //      return 3 * level + job.getChangeJobSpUpgrade();
+   //   }
+
+   protected static void gainAp(EntityManager entityManager, CharacterData character, int deltaAp, boolean silent) {
+      changeRemainingAp(entityManager, character, Math.max(0, character.ap() + deltaAp), silent);
+   }
+
+   protected static boolean assignStrDexIntLuk(EntityManager entityManager, CharacterData character, int deltaStr, int deltaDex,
+                                               int deltaInt, int deltaLuk) {
+      int apUsed = apAssigned(deltaStr) + apAssigned(deltaDex) + apAssigned(deltaInt) + apAssigned(deltaLuk);
+      if (apUsed > character.ap()) {
+         return false;
+      }
+
+      int newStr = character.strength() + deltaStr;
+      int newDex = character.dexterity() + deltaDex;
+      int newInt = character.intelligence() + deltaInt;
+      int newLuk = character.luck() + deltaLuk;
+
+      if (outOfRange(newStr, deltaStr)) {
+         return false;
+      }
+
+      if (outOfRange(newDex, deltaDex)) {
+         return false;
+      }
+
+      if (outOfRange(newInt, deltaInt)) {
+         return false;
+      }
+
+      if (outOfRange(newLuk, deltaLuk)) {
+         return false;
+      }
+
+      int newAp = character.ap() - apUsed;
+      updateStrDexIntLuk(entityManager, character.id(), newStr, newDex, newInt, newLuk, newAp);
+      return true;
+   }
+
+   protected static void levelUpHealthAndManaPoints(EntityManager entityManager, CharacterData character, boolean isBeginner) {
+      Job job = Job.getById(character.jobId()).orElseThrow();
+
+      //      int improvingMaxHPSkillId = -1;
+      //      int improvingMaxMPSkillId = -1;
+
+      int addHp = 0, addMp = 0;
+      if (isBeginner) {
+         addHp += Randomizer.rand(12, 16);
+         addMp += Randomizer.rand(10, 12);
+      } else if (job.isA(Job.WARRIOR) || job.isA(Job.DAWN_WARRIOR_1)) {
+         //         improvingMaxHPSkillId = isCygnus() ? DawnWarrior.MAX_HP_INCREASE : Warrior.IMPROVED_MAX_HP;
+         //         if (job.isA(MapleJob.CRUSADER)) {
+         //            improvingMaxMPSkillId = 1210000;
+         //         } else if (job.isA(MapleJob.DAWN_WARRIOR_2)) {
+         //            improvingMaxMPSkillId = 11110000;
+         //         }
+         addHp += Randomizer.rand(24, 28);
+         addMp += Randomizer.rand(4, 6);
+      } else if (job.isA(Job.MAGICIAN) || job.isA(Job.BLAZE_WIZARD_1)) {
+         //         improvingMaxMPSkillId = isCygnus() ? BlazeWizard.INCREASING_MAX_MP : Magician.IMPROVED_MAX_MP_INCREASE;
+         addHp += Randomizer.rand(10, 14);
+         addMp += Randomizer.rand(22, 24);
+      } else if (job.isA(Job.BOWMAN) || job.isA(Job.THIEF) || (job.getId() > 1299 && job.getId() < 1500)) {
+         addHp += Randomizer.rand(20, 24);
+         addMp += Randomizer.rand(14, 16);
+      } else if (job.isA(Job.GM)) {
+         addHp += 30000;
+         addMp += 30000;
+      } else if (job.isA(Job.PIRATE) || job.isA(Job.THUNDER_BREAKER_1)) {
+         //         improvingMaxHPSkillId = isCygnus() ? ThunderBreaker.IMPROVE_MAX_HP : Brawler.IMPROVE_MAX_HP;
+         addHp += Randomizer.rand(22, 28);
+         addMp += Randomizer.rand(18, 23);
+      } else if (job.isA(Job.ARAN1)) {
+         addHp += Randomizer.rand(44, 48);
+         int aids = Randomizer.rand(4, 8);
+         addMp += aids + Math.floor(aids * 0.1);
+      }
+
+      //      Optional<Skill> improvingMaxHP = SkillFactory.getSkill(improvingMaxHPSkillId);
+      //      if (improvingMaxHP.isPresent()) {
+      //         int improvingMaxHPLevel = getSkillLevel(improvingMaxHP.get());
+      //         if (improvingMaxHPLevel > 0 && (job.isA(MapleJob.WARRIOR) || job.isA(MapleJob.PIRATE) || job.isA(MapleJob.DAWN_WARRIOR_1)
+      //               || job.isA(MapleJob.THUNDER_BREAKER_1))) {
+      //            addHp += improvingMaxHP.get().getEffect(improvingMaxHPLevel).getX();
+      //         }
       //      }
 
-      //      if (level % 20 == 0) {
-      //         if (YamlConfig.config.server.USE_ADD_SLOTS_BY_LEVEL) {
-      //            if (!isGM()) {
-      //               for (byte i = 1; i < 5; i++) {
-      //                  gainSlots(i, 4, true);
-      //               }
-      //               MessageBroadcaster.getInstance().yellowMessage(this, I18nMessage.from("INVENTORY_EXPANSION_ON_LEVEL").with(level));
-      //            }
-      //         }
-      //         if (YamlConfig.config.server.USE_ADD_RATES_BY_LEVEL) { //For the rate upgrade
-      //            revertLastPlayerRates();
-      //            setPlayerRates();
-      //            MessageBroadcaster.getInstance().yellowMessage(this, I18nMessage.from("USER_INCREASE_RATES_ON_LEVEL").with(level));
+      //      Optional<Skill> improvingMaxMP = SkillFactory.getSkill(improvingMaxMPSkillId);
+      //      if (improvingMaxMP.isPresent()) {
+      //         int improvingMaxMPLevel = getSkillLevel(improvingMaxMP.get());
+      //         if (improvingMaxMPLevel > 0 && (job.isA(MapleJob.MAGICIAN) || job.isA(MapleJob.CRUSADER) || job
+      //               .isA(MapleJob.BLAZE_WIZARD_1))) {
+      //            addMp += improvingMaxMP.get().getEffect(improvingMaxMPLevel).getX();
       //         }
       //      }
 
-      //      if (YamlConfig.config.server.USE_PERFECT_PITCH && level >= 30) {
-      //         //milestones?
-      //         if (MapleInventoryManipulator.checkSpace(client, 4310000, (short) 1, "")) {
-      //            MapleInventoryManipulator.addById(client, 4310000, (short) 1, "", -1);
-      //         }
-      //      } else if (level == 10) {
-      //         Runnable r = () -> {
-      //            if (leaveParty()) {
-      //               showHint("You have reached #blevel 10#k, therefore you must leave your #rstarter party#k.");
-      //            }
-      //         };
-      //
-      //         ThreadManager.getInstance().newTask(r);
-      //      }
-      //
-      //      levelUpMessages();
-      //      guildUpdate();
-      //
-      //      MapleFamilyProcessor.getInstance().giveReputationToCharactersSenior(getFamilyEntry(), level, getName());
+      if (ConfigurationRegistry.getInstance().getConfiguration().useRandomizeHpMpGain) {
+         if (job.getJobStyle(character.strength(), character.dexterity()) == Job.MAGICIAN) {
+            addMp += getIntelligence(character) / 20;
+         } else {
+            addMp += getIntelligence(character) / 10;
+         }
+      }
+
+      addMaxMPMaxHP(entityManager, character, addHp, addMp);
+   }
+
+   protected static void addMaxMPMaxHP(EntityManager entityManager, CharacterData character, int hpDelta, int mpDelta) {
+      changeHpMpPool(entityManager, character.id(), Short.MIN_VALUE, Short.MIN_VALUE, character.maxHp() + hpDelta,
+            character.maxMp() + mpDelta);
+   }
+
+   protected static void changeHpMpPool(EntityManager entityManager, int characterId, int hp, int mp, int maxHp, int maxMp) {
+      long hpMpPool = calcStatPoolLong(hp, mp, maxHp, maxMp);
+      changeStatPool(entityManager, characterId, hpMpPool, null, null, -1);
+   }
+
+   protected static void updateStrDexIntLuk(EntityManager entityManager, int characterId, int str, int dex, int int_, int luk,
+                                            int remainingAp) {
+      changeStrDexIntLuk(entityManager, characterId, str, dex, int_, luk, remainingAp);
+   }
+
+   protected static int apAssigned(int x) {
+      return x != Short.MIN_VALUE ? x : 0;
+   }
+
+   protected static boolean outOfRange(int newAp, int deltaAp) {
+      return newAp < 4 && deltaAp != Short.MIN_VALUE || newAp > ConfigurationRegistry.getInstance().getConfiguration().maxAp;
+   }
+
+   protected static void changeRemainingAp(EntityManager entityManager, CharacterData character, int x, boolean silent) {
+      changeStrDexIntLuk(entityManager, character.id(), character.strength(), character.dexterity(), character.intelligence(),
+            character.luck(), x
+      );
+   }
+
+   protected static void changeStrDexIntLuk(EntityManager entityManager, int characterId, int str, int dex, int int_, int luk,
+                                            int remainingAp) {
+      long strDexIntLuk = calcStatPoolLong(str, dex, int_, luk);
+      changeStatPool(entityManager, characterId, null, strDexIntLuk, null, remainingAp);
+   }
+
+   protected static void changeStatPool(EntityManager entityManager, int characterId, Long hpMpPool, Long strDexIntLuk, Long newSp
+         , int newAp) {
+      if (hpMpPool != null) {
+         short newHp = (short) (hpMpPool >> 48);
+         short newMp = (short) (hpMpPool >> 32);
+         short newMaxHp = (short) (hpMpPool >> 16);
+         short newMaxMp = hpMpPool.shortValue();
+
+         if (newMaxHp != Short.MIN_VALUE) {
+            if (newMaxHp < 50) {
+               newMaxHp = 50;
+            }
+            int finalNewMaxHp = newMaxHp;
+            CharacterAdministrator.setMaxHp(entityManager, characterId, finalNewMaxHp);
+         }
+
+         if (newHp != Short.MIN_VALUE) {
+            CharacterAdministrator.setHp(entityManager, characterId, newHp);
+         }
+
+         if (newMaxMp != Short.MIN_VALUE) {
+            if (newMaxMp < 5) {
+               newMaxMp = 5;
+            }
+            int finalNewMaxMp = newMaxMp;
+            CharacterAdministrator.setMaxMp(entityManager, characterId, finalNewMaxMp);
+         }
+
+         if (newMp != Short.MIN_VALUE) {
+            CharacterAdministrator.setMp(entityManager, characterId, newMp);
+         }
+      }
+
+      if (strDexIntLuk != null) {
+         short newStr = (short) (strDexIntLuk >> 48);
+         short newDex = (short) (strDexIntLuk >> 32);
+         short newInt = (short) (strDexIntLuk >> 16);
+         short newLuk = strDexIntLuk.shortValue();
+
+         if (newStr >= 4) {
+            CharacterAdministrator.setStrength(entityManager, characterId, newStr);
+         }
+
+         if (newDex >= 4) {
+            CharacterAdministrator.setDexterity(entityManager, characterId, newDex);
+         }
+
+         if (newInt >= 4) {
+            CharacterAdministrator.setIntelligence(entityManager, characterId, newInt);
+         }
+
+         if (newLuk >= 4) {
+            CharacterAdministrator.setLuck(entityManager, characterId, newLuk);
+         }
+
+         if (newAp >= 0) {
+            CharacterAdministrator.setAp(entityManager, characterId, newAp);
+         }
+      }
+
+      if (newSp != null) {
+         short sp = (short) (newSp >> 16);
+         short skillBook = newSp.shortValue();
+
+         setRemainingSp(sp, skillBook);
+      }
+   }
+
+   protected static long calcStatPoolLong(int v1, int v2, int v3, int v4) {
+      long ret = 0;
+      ret |= calcStatPoolNode(v1, 48);
+      ret |= calcStatPoolNode(v2, 32);
+      ret |= calcStatPoolNode(v3, 16);
+      ret |= calcStatPoolNode(v4, 0);
+      return ret;
+   }
+
+   protected static void setRemainingSp(int remainingSp, int skillBook) {
+      //this.remainingSp[skillBook] = remainingSp;
+   }
+
+   protected static long calcStatPoolNode(long v, int displacement) {
+      if (v > Short.MAX_VALUE) {
+         v = Short.MAX_VALUE;
+      } else if (v < Short.MIN_VALUE) {
+         v = Short.MIN_VALUE;
+      }
+      return ((v & 0x0FFFF) << displacement);
    }
 
    public static void setExperience(int worldId, int channelId, int mapId, int characterId, int experience) {

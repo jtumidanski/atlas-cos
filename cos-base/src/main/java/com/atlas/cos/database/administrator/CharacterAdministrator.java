@@ -1,12 +1,12 @@
 package com.atlas.cos.database.administrator;
 
+import java.util.Optional;
+import javax.persistence.EntityManager;
+
 import com.app.database.util.QueryAdministratorUtil;
 import com.atlas.cos.database.transformer.CharacterDataTransformer;
 import com.atlas.cos.entity.Character;
 import com.atlas.cos.model.CharacterData;
-
-import javax.persistence.EntityManager;
-import java.util.Optional;
 
 public class CharacterAdministrator {
    private CharacterAdministrator() {
@@ -58,5 +58,42 @@ public class CharacterAdministrator {
    public static void updateSpawnPoint(EntityManager entityManager, int characterId, int newSpawnPoint) {
       QueryAdministratorUtil
             .update(entityManager, Character.class, characterId, character -> character.setSpawnPoint(newSpawnPoint));
+   }
+
+   public static void setAp(EntityManager entityManager, int characterId, int ap) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setAp(ap));
+   }
+
+   public static void setLuck(EntityManager entityManager, int characterId, int luck) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setLuck(luck));
+   }
+
+   public static void setIntelligence(EntityManager entityManager, int characterId, int intelligence) {
+      QueryAdministratorUtil
+            .update(entityManager, Character.class, characterId, character -> character.setIntelligence(intelligence));
+   }
+
+   public static void setDexterity(EntityManager entityManager, int characterId, int dexterity) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setDexterity(dexterity));
+   }
+
+   public static void setStrength(EntityManager entityManager, int characterId, int strength) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setStrength(strength));
+   }
+
+   public static void setMp(EntityManager entityManager, int characterId, int mp) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setMp(mp));
+   }
+
+   public static void setMaxMp(EntityManager entityManager, int characterId, int maxMp) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setMaxMp(maxMp));
+   }
+
+   public static void setHp(EntityManager entityManager, int characterId, int hp) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setHp(hp));
+   }
+
+   public static void setMaxHp(EntityManager entityManager, int characterId, int hp) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setMaxHp(hp));
    }
 }
