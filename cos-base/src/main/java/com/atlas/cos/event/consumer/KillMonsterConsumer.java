@@ -1,6 +1,7 @@
 package com.atlas.cos.event.consumer;
 
 import com.atlas.cos.processor.MonsterProcessor;
+import com.atlas.cos.processor.TopicDiscoveryProcessor;
 import com.atlas.morg.rest.constant.EventConstants;
 import com.atlas.morg.rest.event.MonsterKilledEvent;
 
@@ -20,6 +21,6 @@ public class KillMonsterConsumer extends AbstractEventConsumer<MonsterKilledEven
 
    @Override
    public String getTopic() {
-      return System.getenv(EventConstants.TOPIC_MONSTER_KILLED_EVENT);
+      return TopicDiscoveryProcessor.getTopic(EventConstants.TOPIC_MONSTER_KILLED_EVENT);
    }
 }

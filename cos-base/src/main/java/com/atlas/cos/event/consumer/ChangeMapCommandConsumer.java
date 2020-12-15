@@ -3,6 +3,7 @@ package com.atlas.cos.event.consumer;
 import com.atlas.cos.command.ChangeMapCommand;
 import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.processor.CharacterProcessor;
+import com.atlas.cos.processor.TopicDiscoveryProcessor;
 
 public class ChangeMapCommandConsumer extends AbstractEventConsumer<ChangeMapCommand> {
    @Override
@@ -18,6 +19,6 @@ public class ChangeMapCommandConsumer extends AbstractEventConsumer<ChangeMapCom
 
    @Override
    public String getTopic() {
-      return System.getenv(EventConstants.TOPIC_CHANGE_MAP_COMMAND);
+      return TopicDiscoveryProcessor.getTopic(EventConstants.TOPIC_CHANGE_MAP_COMMAND);
    }
 }

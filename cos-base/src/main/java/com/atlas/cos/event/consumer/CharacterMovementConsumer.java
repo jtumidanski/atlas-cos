@@ -4,6 +4,7 @@ import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.processor.MapProcessor;
+import com.atlas.cos.processor.TopicDiscoveryProcessor;
 import com.atlas.csrv.constant.EventConstants;
 import com.atlas.csrv.event.CharacterMovementEvent;
 
@@ -33,6 +34,6 @@ public class CharacterMovementConsumer extends AbstractEventConsumer<CharacterMo
 
    @Override
    public String getTopic() {
-      return System.getenv(EventConstants.TOPIC_CHARACTER_MOVEMENT);
+      return TopicDiscoveryProcessor.getTopic(EventConstants.TOPIC_CHARACTER_MOVEMENT);
    }
 }

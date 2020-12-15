@@ -3,6 +3,7 @@ package com.atlas.cos.event.consumer;
 import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.event.CharacterExperienceEvent;
 import com.atlas.cos.processor.CharacterProcessor;
+import com.atlas.cos.processor.TopicDiscoveryProcessor;
 
 public class CharacterExperienceConsumer extends AbstractEventConsumer<CharacterExperienceEvent> {
    @Override
@@ -17,6 +18,6 @@ public class CharacterExperienceConsumer extends AbstractEventConsumer<Character
 
    @Override
    public String getTopic() {
-      return System.getenv(EventConstants.TOPIC_CHARACTER_EXPERIENCE_EVENT);
+      return TopicDiscoveryProcessor.getTopic(EventConstants.TOPIC_CHARACTER_EXPERIENCE_EVENT);
    }
 }

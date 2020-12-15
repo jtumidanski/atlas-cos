@@ -4,6 +4,7 @@ import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.model.Portal;
 import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.processor.PortalProcessor;
+import com.atlas.cos.processor.TopicDiscoveryProcessor;
 import com.atlas.csrv.constant.EventConstants;
 import com.atlas.csrv.event.CharacterStatusEvent;
 import com.atlas.csrv.event.CharacterStatusEventType;
@@ -28,6 +29,6 @@ public class CharacterStatusConsumer extends AbstractEventConsumer<CharacterStat
 
    @Override
    public String getTopic() {
-      return System.getenv(EventConstants.TOPIC_CHARACTER_STATUS);
+      return TopicDiscoveryProcessor.getTopic(EventConstants.TOPIC_CHARACTER_STATUS);
    }
 }

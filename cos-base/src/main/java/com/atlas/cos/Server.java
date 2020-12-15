@@ -1,6 +1,11 @@
 package com.atlas.cos;
 
-import com.atlas.cos.event.consumer.*;
+import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
+import com.atlas.cos.event.consumer.CharacterExperienceConsumer;
+import com.atlas.cos.event.consumer.CharacterLevelConsumer;
+import com.atlas.cos.event.consumer.CharacterMovementConsumer;
+import com.atlas.cos.event.consumer.CharacterStatusConsumer;
+import com.atlas.cos.event.consumer.KillMonsterConsumer;
 import com.atlas.cos.processor.BlockedNameProcessor;
 import com.atlas.kafka.consumer.SimpleEventConsumerFactory;
 import com.atlas.shared.rest.RestServerFactory;
