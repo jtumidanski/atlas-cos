@@ -40,11 +40,6 @@ public class CharacterAdministrator {
             .update(entityManager, Character.class, characterId, character -> character.setExp(experience));
    }
 
-   public static void increaseLevel(EntityManager entityManager, int characterId) {
-      QueryAdministratorUtil
-            .update(entityManager, Character.class, characterId, character -> character.setLevel(character.getLevel() + 1));
-   }
-
    public static void increaseExperience(EntityManager entityManager, int characterId, int experience) {
       QueryAdministratorUtil
             .update(entityManager, Character.class, characterId, character -> character.setExp(character.getExp() + experience));
@@ -60,40 +55,19 @@ public class CharacterAdministrator {
             .update(entityManager, Character.class, characterId, character -> character.setSpawnPoint(newSpawnPoint));
    }
 
-   public static void setAp(EntityManager entityManager, int characterId, int ap) {
-      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setAp(ap));
-   }
-
-   public static void setLuck(EntityManager entityManager, int characterId, int luck) {
-      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setLuck(luck));
-   }
-
-   public static void setIntelligence(EntityManager entityManager, int characterId, int intelligence) {
-      QueryAdministratorUtil
-            .update(entityManager, Character.class, characterId, character -> character.setIntelligence(intelligence));
-   }
-
-   public static void setDexterity(EntityManager entityManager, int characterId, int dexterity) {
-      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setDexterity(dexterity));
-   }
-
-   public static void setStrength(EntityManager entityManager, int characterId, int strength) {
-      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setStrength(strength));
-   }
-
-   public static void setMp(EntityManager entityManager, int characterId, int mp) {
-      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setMp(mp));
-   }
-
-   public static void setMaxMp(EntityManager entityManager, int characterId, int maxMp) {
-      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setMaxMp(maxMp));
-   }
-
-   public static void setHp(EntityManager entityManager, int characterId, int hp) {
-      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setHp(hp));
-   }
-
-   public static void setMaxHp(EntityManager entityManager, int characterId, int hp) {
-      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> character.setMaxHp(hp));
+   public static void update(EntityManager entityManager, int characterId, int hp, int maxHp, int mp, int maxMp, int strength,
+                             int dexterity, int intelligence, int luck, int ap, int level) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId, character -> {
+         character.setHp(character.getHp() + hp);
+         character.setMaxHp(character.getMaxHp() + maxHp);
+         character.setMp(character.getMp() + mp);
+         character.setMaxMp(character.getMaxMp() + maxMp);
+         character.setStrength(character.getStrength() + strength);
+         character.setDexterity(character.getDexterity() + dexterity);
+         character.setIntelligence(character.getIntelligence() + intelligence);
+         character.setLuck(character.getLuck() + luck);
+         character.setAp(character.getAp() + ap);
+         character.setLevel(character.getLevel() + level);
+      });
    }
 }
