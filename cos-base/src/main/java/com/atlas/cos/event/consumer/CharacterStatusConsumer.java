@@ -1,15 +1,14 @@
 package com.atlas.cos.event.consumer;
 
+import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.model.Portal;
 import com.atlas.cos.processor.CharacterProcessor;
-import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.processor.PortalProcessor;
 import com.atlas.csrv.constant.EventConstants;
 import com.atlas.csrv.event.CharacterStatusEvent;
 import com.atlas.csrv.event.CharacterStatusEventType;
-import com.atlas.kafka.consumer.SimpleEventHandler;
 
-public class CharacterStatusConsumer implements SimpleEventHandler<CharacterStatusEvent> {
+public class CharacterStatusConsumer extends AbstractEventConsumer<CharacterStatusEvent> {
    @Override
    public void handle(Long aLong, CharacterStatusEvent event) {
       if (event.type().equals(CharacterStatusEventType.LOGIN)) {
@@ -25,16 +24,6 @@ public class CharacterStatusConsumer implements SimpleEventHandler<CharacterStat
    @Override
    public Class<CharacterStatusEvent> getEventClass() {
       return CharacterStatusEvent.class;
-   }
-
-   @Override
-   public String getConsumerId() {
-      return "Character Service";
-   }
-
-   @Override
-   public String getBootstrapServers() {
-      return System.getenv("BOOTSTRAP_SERVERS");
    }
 
    @Override

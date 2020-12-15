@@ -1,12 +1,12 @@
 package com.atlas.cos.database.administrator;
 
-import java.util.Optional;
-import javax.persistence.EntityManager;
-
 import com.app.database.util.QueryAdministratorUtil;
 import com.atlas.cos.database.transformer.CharacterDataTransformer;
 import com.atlas.cos.entity.Character;
 import com.atlas.cos.model.CharacterData;
+
+import javax.persistence.EntityManager;
+import java.util.Optional;
 
 public class CharacterAdministrator {
    private CharacterAdministrator() {
@@ -40,9 +40,9 @@ public class CharacterAdministrator {
             .update(entityManager, Character.class, characterId, character -> character.setExp(experience));
    }
 
-   public static void setLevel(EntityManager entityManager, int characterId, int level) {
+   public static void increaseLevel(EntityManager entityManager, int characterId) {
       QueryAdministratorUtil
-            .update(entityManager, Character.class, characterId, character -> character.setLevel(level));
+            .update(entityManager, Character.class, characterId, character -> character.setLevel(character.getLevel() + 1));
    }
 
    public static void increaseExperience(EntityManager entityManager, int characterId, int experience) {

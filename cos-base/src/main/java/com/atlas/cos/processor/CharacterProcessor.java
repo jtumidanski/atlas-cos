@@ -1,19 +1,19 @@
 package com.atlas.cos.processor;
 
-import java.util.Optional;
-
 import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.builder.CharacterBuilder;
 import com.atlas.cos.database.administrator.CharacterAdministrator;
 import com.atlas.cos.database.provider.CharacterProvider;
 import com.atlas.cos.event.producer.CharacterCreatedProducer;
+import com.atlas.cos.event.producer.CharacterLevelEventProducer;
 import com.atlas.cos.event.producer.MapChangedProducer;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.EquipmentData;
 import com.atlas.cos.util.ExpTable;
-
 import database.Connection;
+
+import java.util.Optional;
 
 public final class CharacterProcessor {
    private CharacterProcessor() {
@@ -160,15 +160,14 @@ public final class CharacterProcessor {
             .isPresent();
    }
 
-   public static CharacterData increaseExperience(int characterId, int amount) {
-      return Connection.instance()
-            .element(entityManager -> {
-               CharacterAdministrator.increaseExperience(entityManager, characterId, amount);
-               return CharacterProvider.getById(entityManager, characterId);
-            }).orElseThrow();
+   public static void increaseExperience(int characterId, int amount) {
+      Connection.instance()
+            .with(entityManager -> CharacterAdministrator.increaseExperience(entityManager, characterId, amount));
    }
 
-   public static CharacterData increaseLevel(int characterId, boolean takeExp) {
+   public static void increaseLevel(int characterId) {
+      Connection.instance().with(entityManager -> CharacterAdministrator.increaseLevel(entityManager, characterId));
+
       //      boolean isBeginner = isBeginnerJob();
       //      if (YamlConfig.config.server.USE_AUTOASSIGN_STARTERS_AP && isBeginner && level < 11) {
       //         effLock.lock();
@@ -207,39 +206,6 @@ public final class CharacterProcessor {
       //
       //      levelUpHealthAndManaPoints(isBeginner);
 
-      CharacterData characterData = getById(characterId).orElseThrow();
-
-      if (takeExp) {
-         int newExperience = characterData.experience() - ExpTable.getExpNeededForLevel(characterData.level());
-         if (newExperience < 0) {
-            newExperience = 0;
-         }
-         setExperience(characterId, newExperience);
-      }
-
-      if (characterData.level() + 1 >= characterData.maxClassLevel()) {
-         setExperience(characterId, 0);
-         Connection.instance().with(entityManager -> CharacterAdministrator.setLevel(entityManager, characterId,
-               characterData.maxClassLevel()));
-
-         //         if (level == maxClassLevel) {
-         ////            if (!this.isGM()) {
-         ////               if (YamlConfig.config.server.PLAYERNPC_AUTODEPLOY) {
-         ////                  ThreadManager.getInstance()
-         ////                        .newTask(() -> MaplePlayerNPC.spawnPlayerNPC(GameConstants.getHallOfFameMapId(job), MapleCharacter.this));
-         ////               }
-         ////
-         ////               final String names = (getMedalText() + name);
-         ////               MessageBroadcaster.getInstance().sendWorldServerNotice(world, ServerNoticeType.LIGHT_BLUE,
-         ////                     I18nMessage.from("LEVEL_200").with(names, maxClassLevel, names));
-         ////            }
-         //         }
-
-         //To prevent levels past the maximum
-      } else {
-         Connection.instance().with(entityManager -> CharacterAdministrator.setLevel(entityManager, characterId,
-               characterData.level() + 1));
-      }
 
       //      levelUpGainSp();
       //
@@ -267,7 +233,6 @@ public final class CharacterProcessor {
       //         effLock.unlock();
       //      }
 
-      //      MasterBroadcaster.getInstance().sendToAllInMap(getMap(), new ShowForeignEffect(getId(), 0), false, this);
       //      setMPC(new MaplePartyCharacter(this));
       //      silentPartyUpdate();
       //
@@ -311,14 +276,30 @@ public final class CharacterProcessor {
       //      guildUpdate();
       //
       //      MapleFamilyProcessor.getInstance().giveReputationToCharactersSenior(getFamilyEntry(), level, getName());
-      return getById(characterId).orElseThrow();
    }
 
-   public static CharacterData setExperience(int characterId, int experience) {
-      return Connection.instance()
-            .element(entityManager -> {
-               CharacterAdministrator.setExperience(entityManager, characterId, experience);
-               return CharacterProvider.getById(entityManager, characterId);
-            }).orElseThrow();
+   public static void setExperience(int characterId, int experience) {
+      Connection.instance()
+            .with(entityManager -> CharacterAdministrator.setExperience(entityManager, characterId, experience));
+   }
+
+   public static void gainExperience(int worldId, int channelId, int mapId, int characterId, int gain) {
+      getById(characterId).ifPresent(character -> gainExperience(worldId, channelId, mapId, characterId,
+            character.level(), character.maxClassLevel(), character.experience(), gain));
+   }
+
+   protected static void gainExperience(int worldId, int channelId, int mapId, int characterId, int level,
+                                        int maxLevel, int experience, int gain) {
+      if (level < maxLevel) {
+         int toNextLevel = ExpTable.getExpNeededForLevel(level) - experience;
+         if (toNextLevel <= gain) {
+            CharacterLevelEventProducer.gainLevel(worldId, channelId, mapId, characterId);
+            gainExperience(worldId, channelId, mapId, characterId, level + 1, maxLevel, 0, gain - toNextLevel);
+         } else {
+            increaseExperience(characterId, gain);
+         }
+      } else {
+         setExperience(characterId, 0);
+      }
    }
 }

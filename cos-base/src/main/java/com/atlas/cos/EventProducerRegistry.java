@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import com.atlas.cos.event.CharacterCreatedEvent;
 import com.atlas.cos.event.CharacterExperienceEvent;
+import com.atlas.cos.event.CharacterLevelEvent;
 import com.atlas.cos.event.MapChangedEvent;
 import com.atlas.kafka.KafkaProducerFactory;
 import org.apache.kafka.clients.producer.Producer;
@@ -39,6 +40,8 @@ public class EventProducerRegistry {
       producerMap.put(MapChangedEvent.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       producerMap.put(CharacterExperienceEvent.class,
+            KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
+      producerMap.put(CharacterLevelEvent.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
    }
 

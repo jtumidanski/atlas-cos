@@ -3,9 +3,8 @@ package com.atlas.cos.event.consumer;
 import com.atlas.cos.command.ChangeMapCommand;
 import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.processor.CharacterProcessor;
-import com.atlas.kafka.consumer.SimpleEventHandler;
 
-public class ChangeMapCommandConsumer implements SimpleEventHandler<ChangeMapCommand> {
+public class ChangeMapCommandConsumer extends AbstractEventConsumer<ChangeMapCommand> {
    @Override
    public void handle(Long key, ChangeMapCommand changeMapCommand) {
       CharacterProcessor.updateMap(changeMapCommand.worldId(), changeMapCommand.channelId(),
@@ -15,16 +14,6 @@ public class ChangeMapCommandConsumer implements SimpleEventHandler<ChangeMapCom
    @Override
    public Class<ChangeMapCommand> getEventClass() {
       return ChangeMapCommand.class;
-   }
-
-   @Override
-   public String getConsumerId() {
-      return "Character Service";
-   }
-
-   @Override
-   public String getBootstrapServers() {
-      return System.getenv("BOOTSTRAP_SERVERS");
    }
 
    @Override

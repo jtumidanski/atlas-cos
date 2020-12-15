@@ -1,11 +1,10 @@
 package com.atlas.cos.event.consumer;
 
 import com.atlas.cos.processor.MonsterProcessor;
-import com.atlas.kafka.consumer.SimpleEventHandler;
 import com.atlas.morg.rest.constant.EventConstants;
 import com.atlas.morg.rest.event.MonsterKilledEvent;
 
-public class KillMonsterConsumer implements SimpleEventHandler<MonsterKilledEvent> {
+public class KillMonsterConsumer extends AbstractEventConsumer<MonsterKilledEvent> {
    @Override
    public void handle(Long key, MonsterKilledEvent event) {
       MonsterProcessor.getMonster(event.monsterId())
@@ -17,16 +16,6 @@ public class KillMonsterConsumer implements SimpleEventHandler<MonsterKilledEven
    @Override
    public Class<MonsterKilledEvent> getEventClass() {
       return MonsterKilledEvent.class;
-   }
-
-   @Override
-   public String getConsumerId() {
-      return "Character Service";
-   }
-
-   @Override
-   public String getBootstrapServers() {
-      return System.getenv("BOOTSTRAP_SERVERS");
    }
 
    @Override
