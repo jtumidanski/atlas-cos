@@ -1,5 +1,7 @@
 package com.atlas.cos.processor;
 
+import java.util.Optional;
+
 import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.builder.CharacterBuilder;
@@ -11,9 +13,8 @@ import com.atlas.cos.event.producer.MapChangedProducer;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.EquipmentData;
 import com.atlas.cos.util.ExpTable;
-import database.Connection;
 
-import java.util.Optional;
+import database.Connection;
 
 public final class CharacterProcessor {
    private CharacterProcessor() {
@@ -206,7 +207,6 @@ public final class CharacterProcessor {
       //
       //      levelUpHealthAndManaPoints(isBeginner);
 
-
       //      levelUpGainSp();
       //
       //      effLock.lock();
@@ -293,6 +293,7 @@ public final class CharacterProcessor {
       if (level < maxLevel) {
          int toNextLevel = ExpTable.getExpNeededForLevel(level) - experience;
          if (toNextLevel <= gain) {
+            setExperience(characterId, 0);
             CharacterLevelEventProducer.gainLevel(worldId, channelId, mapId, characterId);
             gainExperience(worldId, channelId, mapId, characterId, level + 1, maxLevel, 0, gain - toNextLevel);
          } else {
