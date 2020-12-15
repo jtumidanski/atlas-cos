@@ -3,6 +3,7 @@ package com.atlas.cos;
 import com.atlas.cos.event.CharacterCreatedEvent;
 import com.atlas.cos.event.CharacterExperienceEvent;
 import com.atlas.cos.event.CharacterLevelEvent;
+import com.atlas.cos.event.CharacterStatUpdateEvent;
 import com.atlas.cos.event.MapChangedEvent;
 import com.atlas.cos.processor.TopicDiscoveryProcessor;
 import com.atlas.kafka.KafkaProducerFactory;
@@ -45,6 +46,8 @@ public class EventProducerRegistry {
       producerMap.put(CharacterExperienceEvent.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       producerMap.put(CharacterLevelEvent.class,
+            KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
+      producerMap.put(CharacterStatUpdateEvent.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       topicMap = new HashMap<>();
    }
