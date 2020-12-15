@@ -6,37 +6,37 @@ import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.ConfigurationRegistry;
 
 public class CharacterBuilder {
-   private int accountId;
+   private final int accountId;
 
-   private int worldId;
+   private final int worldId;
 
-   private String name;
+   private final String name;
 
    private int level;
 
-   private int strength;
+   private final int strength;
 
-   private int dexterity;
+   private final int dexterity;
 
-   private int luck;
+   private final int luck;
 
-   private int intelligence;
+   private final int intelligence;
 
-   private int maxHp;
+   private final int maxHp;
 
-   private int maxMp;
+   private final int maxMp;
 
-   private int jobId;
+   private final int jobId;
 
-   private int skinColor;
+   private final int skinColor;
 
-   private byte gender;
+   private final byte gender;
 
-   private int hair;
+   private final int hair;
 
-   private int face;
+   private final int face;
 
-   private int ap;
+   private final int ap;
 
    private int mapId;
 

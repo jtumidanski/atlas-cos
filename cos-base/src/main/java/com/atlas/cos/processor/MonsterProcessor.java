@@ -28,7 +28,7 @@ public final class MonsterProcessor {
             .getRestClient(MonsterDataAttributes.class)
             .getWithResponse()
             .result()
-            .map(DataContainer::getData)
+            .flatMap(DataContainer::data)
             .map(ModelFactory::createMonster);
    }
 

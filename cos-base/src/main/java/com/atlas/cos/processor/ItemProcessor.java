@@ -75,7 +75,7 @@ public final class ItemProcessor {
             .getRestClient(EquipmentAttributes.class)
             .getWithResponse()
             .result()
-            .map(DataContainer::getData)
+            .flatMap(DataContainer::data)
             .ifPresent(body -> {
                equipmentBuilder.setStrength(body.getAttributes().strength());
                equipmentBuilder.setDexterity(body.getAttributes().dexterity());
@@ -123,7 +123,7 @@ public final class ItemProcessor {
             .getRestClient(EquipmentSlotAttributes.class)
             .getWithResponse()
             .result()
-            .map(DataContainer::getDataAsList)
+            .map(DataContainer::dataList)
             .orElse(Collections.emptyList()).stream()
             .map(DataBody::getAttributes)
             .map(EquipmentSlotAttributes::slot);

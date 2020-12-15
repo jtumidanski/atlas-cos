@@ -2,12 +2,9 @@ package com.atlas.cos.rest.processor;
 
 import builder.ResultBuilder;
 import com.app.rest.util.stream.Collectors;
-import com.atlas.cos.database.administrator.BlockedNameAdministrator;
 import com.atlas.cos.database.provider.BlockedNameProvider;
 import com.atlas.cos.rest.ResultObjectFactory;
 import database.Connection;
-
-import java.util.List;
 
 public final class BlockedNameRequestProcessor {
    private BlockedNameRequestProcessor() {
