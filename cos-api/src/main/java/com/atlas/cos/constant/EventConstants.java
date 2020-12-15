@@ -10,4 +10,6 @@ public class EventConstants {
    public static final String TOPIC_CHARACTER_EXPERIENCE_EVENT = "TOPIC_CHARACTER_EXPERIENCE_EVENT";
 
    public static final String TOPIC_CHARACTER_LEVEL_EVENT = "TOPIC_CHARACTER_LEVEL_EVENT";
+
+   public static final String TOPIC_CHARACTER_STAT_EVENT = "TOPIC_CHARACTER_STAT_EVENT";
 }
