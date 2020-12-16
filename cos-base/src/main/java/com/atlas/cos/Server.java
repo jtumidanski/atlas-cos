@@ -10,6 +10,7 @@ import com.atlas.cos.event.consumer.CharacterExperienceConsumer;
 import com.atlas.cos.event.consumer.CharacterLevelConsumer;
 import com.atlas.cos.event.consumer.CharacterMovementConsumer;
 import com.atlas.cos.event.consumer.CharacterStatusConsumer;
+import com.atlas.cos.event.consumer.DropReservationEventConsumer;
 import com.atlas.cos.event.consumer.KillMonsterConsumer;
 import com.atlas.cos.processor.BlockedNameProcessor;
 import com.atlas.kafka.consumer.SimpleEventConsumerFactory;
@@ -30,6 +31,7 @@ public class Server {
       SimpleEventConsumerFactory.create(new CharacterExperienceConsumer());
       SimpleEventConsumerFactory.create(new CharacterLevelConsumer());
       SimpleEventConsumerFactory.create(new AssignApConsumer());
+      SimpleEventConsumerFactory.create(new DropReservationEventConsumer());
 
       List<String> blockedNameList = Arrays.asList("admin", "owner", "moderator", "intern", "donor", "administrator", "FREDRICK",
             "help", "helper", "alert", "notice", "maplestory", "fuck", "wizet", "fucking", "negro", "fuk", "fuc", "penis", "pussy",

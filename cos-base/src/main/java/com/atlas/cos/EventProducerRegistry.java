@@ -1,18 +1,22 @@
 package com.atlas.cos;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 import com.atlas.cos.event.CharacterCreatedEvent;
 import com.atlas.cos.event.CharacterExperienceEvent;
 import com.atlas.cos.event.CharacterLevelEvent;
 import com.atlas.cos.event.CharacterStatUpdateEvent;
 import com.atlas.cos.event.MapChangedEvent;
+import com.atlas.cos.event.PickedUpItemEvent;
+import com.atlas.cos.event.PickedUpMesoEvent;
+import com.atlas.cos.event.PickedUpNxEvent;
 import com.atlas.cos.processor.TopicDiscoveryProcessor;
+import com.atlas.drg.command.PickupDropCommand;
 import com.atlas.kafka.KafkaProducerFactory;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 public class EventProducerRegistry {
    private static final Object lock = new Object();
@@ -48,6 +52,14 @@ public class EventProducerRegistry {
       producerMap.put(CharacterLevelEvent.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       producerMap.put(CharacterStatUpdateEvent.class,
+            KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
+      producerMap.put(PickedUpItemEvent.class,
+            KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
+      producerMap.put(PickedUpMesoEvent.class,
+            KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
+      producerMap.put(PickedUpNxEvent.class,
+            KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
+      producerMap.put(PickupDropCommand.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       topicMap = new HashMap<>();
    }

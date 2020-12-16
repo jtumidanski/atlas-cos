@@ -1,7 +1,9 @@
 package com.atlas.cos.processor;
 
+import com.atlas.cos.model.Drop;
 import com.atlas.cos.model.Monster;
 import com.atlas.cos.model.Portal;
+import com.atlas.drg.rest.attribute.DropAttributes;
 import com.atlas.mis.attribute.MonsterDataAttributes;
 import com.atlas.mis.attribute.PortalAttributes;
 
@@ -25,5 +27,9 @@ public final class ModelFactory {
 
    public static Monster createMonster(DataBody<MonsterDataAttributes> body) {
       return new Monster(body.getAttributes().experience(), body.getAttributes().hp());
+   }
+
+   public static Drop createDrop(DataBody<DropAttributes> body) {
+      return new Drop(body.getAttributes().itemId(), body.getAttributes().quantity(), body.getAttributes().meso());
    }
 }
