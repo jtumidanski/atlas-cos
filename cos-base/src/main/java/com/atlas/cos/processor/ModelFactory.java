@@ -30,6 +30,13 @@ public final class ModelFactory {
    }
 
    public static Drop createDrop(DataBody<DropAttributes> body) {
-      return new Drop(body.getAttributes().itemId(), body.getAttributes().quantity(), body.getAttributes().meso());
+      return new Drop(Integer.parseInt(body.getId()),
+            body.getAttributes().itemId(),
+            body.getAttributes().quantity(),
+            body.getAttributes().meso(),
+            body.getAttributes().dropTime(),
+            body.getAttributes().dropType(),
+            body.getAttributes().ownerId(),
+            body.getAttributes().playerDrop());
    }
 }
