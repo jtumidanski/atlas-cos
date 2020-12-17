@@ -40,13 +40,13 @@ public final class CharacterSeedRequestProcessor {
       }
 
       ItemProcessor.createEquipmentForCharacter(result.get().id(), top, true)
-            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.id()));
+            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
       ItemProcessor.createEquipmentForCharacter(result.get().id(), bottom, true)
-            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.id()));
+            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
       ItemProcessor.createEquipmentForCharacter(result.get().id(), shoes, true)
-            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.id()));
+            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
       ItemProcessor.createEquipmentForCharacter(result.get().id(), weapon, true)
-            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.id()));
+            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
 
       return result
             .map(ResultObjectFactory::create)
