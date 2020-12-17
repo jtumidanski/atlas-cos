@@ -23,9 +23,9 @@ public class EquipmentProvider {
             .list(new EquipmentDataTransformer());
    }
 
-   public static Optional<EquipmentData> getById(EntityManager entityManager, int uniqueId) {
-      return new NamedQueryClient<>(entityManager, Equipment.GET_BY_ID, Equipment.class)
-            .setParameter(Equipment.ID, uniqueId)
+   public static Optional<EquipmentData> getByEquipmentId(EntityManager entityManager, int equipmentId) {
+      return new NamedQueryClient<>(entityManager, Equipment.GET_FOR_EQUIPMENT, Equipment.class)
+            .setParameter(Equipment.EQUIPMENT_ID, equipmentId)
             .element(new EquipmentDataTransformer());
    }
 

@@ -14,7 +14,6 @@ import javax.ws.rs.core.Response;
 import com.app.rest.RelationshipInputBody;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.attribute.CharacterSeedAttributes;
-import com.atlas.cos.attribute.EquipmentAttributes;
 import com.atlas.cos.attribute.LocationAttributes;
 import com.atlas.cos.processor.SavedLocationProcessor;
 import com.atlas.cos.rest.processor.CharacterRequestProcessor;
@@ -68,8 +67,8 @@ public class CharacterResource {
    @Produces(MediaType.APPLICATION_JSON)
    public Response equipEquipment(@PathParam("characterId") Integer characterId,
                                   RelationshipInputBody relationshipInputBody) {
-      int itemId = Integer.parseInt(relationshipInputBody.getData().getId());
-      return EquippedItemRequestProcessor.equipForCharacter(characterId, itemId).build();
+      int equipmentId = Integer.parseInt(relationshipInputBody.getData().getId());
+      return EquippedItemRequestProcessor.equipForCharacter(characterId, equipmentId).build();
    }
 
    @GET
@@ -84,17 +83,6 @@ public class CharacterResource {
       } else {
          return new ResultBuilder(Response.Status.NOT_IMPLEMENTED).build();
       }
-   }
-
-   @POST
-   @Path("/{characterId}/inventories/equipment")
-   @Consumes(MediaType.APPLICATION_JSON)
-   @Produces(MediaType.APPLICATION_JSON)
-   public Response createEquipment(@PathParam("characterId") Integer characterId,
-                                   @DefaultValue("false") @QueryParam("characterCreation") Boolean characterCreation,
-                                   InputBody<EquipmentAttributes> inputBody) {
-      return ItemRequestProcessor.createEquipmentForCharacter(characterId, inputBody.attributes(), characterCreation)
-            .build();
    }
 
    @GET

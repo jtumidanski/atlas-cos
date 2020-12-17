@@ -11,24 +11,9 @@ public class EquipmentDataTransformer implements SqlTransformer<EquipmentData, E
    public EquipmentData transform(Equipment equipment) {
       return new EquipmentDataBuilder()
             .setId(equipment.getId())
+            .setCharacterId(equipment.getCharacterId())
+            .setEquipmentId(equipment.getEquipmentId())
             .setSlot(equipment.getSlot())
-            .setItemId(equipment.getItemId())
-            .setStrength(equipment.getStrength())
-            .setDexterity(equipment.getDexterity())
-            .setIntelligence(equipment.getIntelligence())
-            .setLuck(equipment.getLuck())
-            .setHp(equipment.getHp())
-            .setMp(equipment.getMp())
-            .setWeaponAttack(equipment.getWeaponAttack())
-            .setWeaponDefense(equipment.getWeaponDefense())
-            .setMagicAttack(equipment.getMagicAttack())
-            .setMagicDefense(equipment.getMagicDefense())
-            .setAccuracy(equipment.getAccuracy())
-            .setAvoidability(equipment.getAvoidability())
-            .setHands(equipment.getHands())
-            .setSpeed(equipment.getSpeed())
-            .setJump(equipment.getJump())
-            .setSlots(equipment.getSlots())
             .build();
    }
 }

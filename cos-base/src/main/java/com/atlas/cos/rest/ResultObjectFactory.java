@@ -67,24 +67,8 @@ public class ResultObjectFactory {
    public static ResultObjectBuilder create(EquipmentData data) {
       return new ResultObjectBuilder(EquipmentAttributes.class, data.id())
             .setAttribute(new EquipmentAttributesBuilder()
-                  .setItemId(data.itemId())
+                  .setEquipmentId(data.equipmentId())
                   .setSlot(data.slot())
-                  .setStrength(data.strength())
-                  .setDexterity(data.dexterity())
-                  .setIntelligence(data.intelligence())
-                  .setLuck(data.luck())
-                  .setHp(data.hp())
-                  .setMp(data.mp())
-                  .setWeaponAttack(data.weaponAttack())
-                  .setWeaponDefense(data.weaponDefense())
-                  .setMagicAttack(data.magicAttack())
-                  .setMagicDefense(data.magicDefense())
-                  .setAccuracy(data.accuracy())
-                  .setAvoidability(data.avoidability())
-                  .setHands(data.hands())
-                  .setSpeed(data.speed())
-                  .setJump(data.jump())
-                  .setSlots(data.slots())
             );
    }
 

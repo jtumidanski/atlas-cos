@@ -7,15 +7,16 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import com.app.database.util.QueryAdministratorUtil;
-import com.atlas.cos.builder.EquipmentDataBuilder;
 import com.atlas.cos.database.administrator.EquipmentAdministrator;
 import com.atlas.cos.database.provider.EquipmentProvider;
 import com.atlas.cos.model.EquipmentData;
-import com.atlas.iis.attribute.EquipmentAttributes;
+import com.atlas.eso.attribute.EquipmentAttributes;
+import com.atlas.eso.builder.EquipmentAttributesBuilder;
 import com.atlas.iis.attribute.EquipmentSlotAttributes;
 import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
 
+import builder.ResultObjectBuilder;
 import database.Connection;
 import rest.DataBody;
 import rest.DataContainer;
@@ -24,27 +25,7 @@ public final class ItemProcessor {
    private ItemProcessor() {
    }
 
-   protected static <T> void setIfNotNull(Consumer<T> setter, T value) {
-      if (value != null) {
-         setter.accept(value);
-      }
-   }
-
    public static Optional<EquipmentData> createEquipmentForCharacter(int characterId, int itemId, boolean characterCreation) {
-      return createEquipmentForCharacter(characterId, itemId, null, null, null, null,
-            null, null, null, null, null, null, null,
-            null, null, null, null, characterCreation);
-   }
-
-   public static Optional<EquipmentData> createEquipmentForCharacter(int characterId, int itemId, Integer strength,
-                                                                     Integer dexterity,
-                                                                     Integer intelligence, Integer luck, Integer weaponAttack,
-                                                                     Integer weaponDefense, Integer magicAttack,
-                                                                     Integer magicDefense,
-                                                                     Integer accuracy, Integer avoidability, Integer speed,
-                                                                     Integer jump,
-                                                                     Integer hp, Integer mp, Integer slots,
-                                                                     boolean characterCreation) {
       if (characterCreation) {
          boolean valid = validCharacterCreationItem(itemId);
          if (!valid) {
@@ -55,65 +36,20 @@ public final class ItemProcessor {
       short nextOpenSlot = Connection.instance()
             .element(entityManager -> EquipmentProvider.getNextFreeEquipmentSlot(entityManager, characterId))
             .orElse((short) 0);
-      return ItemProcessor.createEquipment(characterId, itemId, nextOpenSlot, strength, dexterity, intelligence, luck,
-            weaponAttack, weaponDefense, magicAttack, magicDefense, accuracy, avoidability, speed, jump, hp, mp, slots);
-   }
 
-   protected static Optional<EquipmentData> createEquipment(int characterId, int itemId, Short slot, Integer strength,
-                                                            Integer dexterity,
-                                                            Integer intelligence, Integer luck, Integer weaponAttack,
-                                                            Integer weaponDefense,
-                                                            Integer magicAttack, Integer magicDefense, Integer accuracy,
-                                                            Integer avoidability,
-                                                            Integer speed, Integer jump, Integer hp, Integer mp, Integer slots) {
-      EquipmentDataBuilder equipmentBuilder = new EquipmentDataBuilder()
-            .setItemId(itemId)
-            .setSlot(slot);
-
-      UriBuilder.service(RestService.ITEM_INFORMATION)
-            .pathParam("equipment", itemId)
+      return UriBuilder.service(RestService.EQUIPMENT_STORAGE)
+            .path("equipment")
             .getRestClient(EquipmentAttributes.class)
-            .getWithResponse()
+            .createWithResponse(new ResultObjectBuilder(EquipmentAttributes.class, 0)
+                  .setAttribute(new EquipmentAttributesBuilder().setItemId(itemId))
+                  .inputObject()
+            )
             .result()
             .flatMap(DataContainer::data)
-            .ifPresent(body -> {
-               equipmentBuilder.setStrength(body.getAttributes().strength());
-               equipmentBuilder.setDexterity(body.getAttributes().dexterity());
-               equipmentBuilder.setIntelligence(body.getAttributes().intelligence());
-               equipmentBuilder.setLuck(body.getAttributes().luck());
-               equipmentBuilder.setWeaponAttack(body.getAttributes().weaponAttack());
-               equipmentBuilder.setWeaponDefense(body.getAttributes().weaponDefense());
-               equipmentBuilder.setMagicAttack(body.getAttributes().magicAttack());
-               equipmentBuilder.setMagicDefense(body.getAttributes().magicDefense());
-               equipmentBuilder.setAccuracy(body.getAttributes().accuracy());
-               equipmentBuilder.setAvoidability(body.getAttributes().avoidability());
-               equipmentBuilder.setSpeed(body.getAttributes().speed());
-               equipmentBuilder.setJump(body.getAttributes().jump());
-               equipmentBuilder.setHp(body.getAttributes().hp());
-               equipmentBuilder.setMp(body.getAttributes().mp());
-               equipmentBuilder.setSlots(body.getAttributes().slots());
-            });
-
-      setIfNotNull(equipmentBuilder::setStrength, strength);
-      setIfNotNull(equipmentBuilder::setDexterity, dexterity);
-      setIfNotNull(equipmentBuilder::setIntelligence, intelligence);
-      setIfNotNull(equipmentBuilder::setLuck, luck);
-      setIfNotNull(equipmentBuilder::setWeaponAttack, weaponAttack);
-      setIfNotNull(equipmentBuilder::setWeaponDefense, weaponDefense);
-      setIfNotNull(equipmentBuilder::setMagicAttack, magicAttack);
-      setIfNotNull(equipmentBuilder::setMagicDefense, magicDefense);
-      setIfNotNull(equipmentBuilder::setAccuracy, accuracy);
-      setIfNotNull(equipmentBuilder::setAvoidability, avoidability);
-      setIfNotNull(equipmentBuilder::setSpeed, speed);
-      setIfNotNull(equipmentBuilder::setJump, jump);
-      setIfNotNull(equipmentBuilder::setHp, hp);
-      setIfNotNull(equipmentBuilder::setMp, mp);
-      setIfNotNull(equipmentBuilder::setSlots, slots);
-
-      EquipmentData equipment = equipmentBuilder.build();
-
-      return Connection.instance()
-            .element(entityManager -> EquipmentAdministrator.create(entityManager, characterId, equipment));
+            .map(DataBody::getId)
+            .map(Integer::parseInt)
+            .flatMap(id -> Connection.instance().element(entityManager ->
+                  EquipmentAdministrator.create(entityManager, characterId, id, nextOpenSlot)));
    }
 
    protected static Stream<Short> getEquipmentSlotDestination(int itemId) {
@@ -129,15 +65,27 @@ public final class ItemProcessor {
             .map(EquipmentSlotAttributes::slot);
    }
 
-   public static void equipItemForCharacter(int characterId, int id) {
+   public static void equipItemForCharacter(int characterId, int equipmentId) {
       Connection.instance()
-            .element(entityManager -> EquipmentProvider.getById(entityManager, id))
-            .map(EquipmentData::itemId)
+            .element(entityManager -> EquipmentProvider.getByEquipmentId(entityManager, equipmentId))
+            .map(EquipmentData::equipmentId)
+            .flatMap(ItemProcessor::getItemIdForEquipment)
             .flatMap(itemId -> getEquipmentSlotDestination(itemId).findFirst())
-            .ifPresent(destinationSlot -> equipItemForCharacter(characterId, id, destinationSlot));
+            .ifPresent(destinationSlot -> equipItemForCharacter(characterId, equipmentId, destinationSlot));
    }
 
-   protected static void equipItemForCharacter(int characterId, int id, short destinationSlot) {
+   protected static Optional<Integer> getItemIdForEquipment(int equipmentId) {
+      return UriBuilder.service(RestService.EQUIPMENT_STORAGE)
+            .pathParam("equipment", equipmentId)
+            .getRestClient(EquipmentAttributes.class)
+            .getWithResponse()
+            .result()
+            .flatMap(DataContainer::data)
+            .map(DataBody::getAttributes)
+            .map(EquipmentAttributes::itemId);
+   }
+
+   protected static void equipItemForCharacter(int characterId, int equipmentId, short destinationSlot) {
       Connection.instance().with(entityManager ->
             QueryAdministratorUtil.inTransaction(entityManager, transactionEm -> {
                short temporarySlot = Short.MIN_VALUE;
@@ -146,11 +94,11 @@ public final class ItemProcessor {
                      .ifPresent(itemToMove -> EquipmentAdministrator.updateSlot(transactionEm, itemToMove, temporarySlot));
 
                short currentSlot = EquipmentProvider
-                     .getById(transactionEm, id)
+                     .getByEquipmentId(transactionEm, equipmentId)
                      .map(EquipmentData::slot)
                      .orElse(EquipmentProvider.getNextFreeEquipmentSlot(transactionEm, characterId).orElse((short) 0));
 
-               EquipmentAdministrator.updateSlot(transactionEm, id, destinationSlot);
+               EquipmentAdministrator.updateSlot(transactionEm, equipmentId, destinationSlot);
 
                EquipmentProvider.findEquipmentInSlot(transactionEm, characterId, temporarySlot)
                      .ifPresent(itemToMove -> EquipmentAdministrator.updateSlot(transactionEm, itemToMove, currentSlot));
@@ -158,7 +106,7 @@ public final class ItemProcessor {
    }
 
    public static Optional<EquipmentData> getEquipmentForCharacter(int characterId, int equipmentId) {
-      return Connection.instance().element(entityManager -> EquipmentProvider.getById(entityManager, equipmentId));
+      return Connection.instance().element(entityManager -> EquipmentProvider.getByEquipmentId(entityManager, equipmentId));
    }
 
    public static List<EquipmentData> getEquipmentForCharacter(int characterId) {

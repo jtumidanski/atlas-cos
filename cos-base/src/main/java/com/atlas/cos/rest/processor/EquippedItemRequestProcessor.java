@@ -7,8 +7,8 @@ public final class EquippedItemRequestProcessor {
    private EquippedItemRequestProcessor() {
    }
 
-   public static ResultBuilder equipForCharacter(int characterId, int id) {
-      ItemProcessor.equipItemForCharacter(characterId, id);
+   public static ResultBuilder equipForCharacter(int characterId, int equipmentId) {
+      ItemProcessor.equipItemForCharacter(characterId, equipmentId);
       return new ResultBuilder();
    }
 }
