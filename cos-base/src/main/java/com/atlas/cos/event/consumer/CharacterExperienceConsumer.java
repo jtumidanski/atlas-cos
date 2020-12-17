@@ -8,7 +8,7 @@ import com.atlas.cos.processor.TopicDiscoveryProcessor;
 public class CharacterExperienceConsumer extends AbstractEventConsumer<CharacterExperienceEvent> {
    @Override
    public void handle(Long key, CharacterExperienceEvent event) {
-      CharacterProcessor.gainExperience(event.worldId(), event.channelId(), event.mapId(), event.characterId(), event.personalGain() + event.partyGain());
+      CharacterProcessor.gainExperience(event.characterId(), event.personalGain() + event.partyGain());
    }
 
    @Override

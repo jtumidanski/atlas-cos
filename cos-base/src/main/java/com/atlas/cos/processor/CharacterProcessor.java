@@ -186,14 +186,14 @@ public final class CharacterProcessor {
             .isPresent();
    }
 
-   public static void increaseExperience(int worldId, int channelId, int mapId, int characterId, int amount) {
+   public static void increaseExperience(int characterId, int amount) {
       Connection.instance()
             .with(entityManager -> CharacterAdministrator.increaseExperience(entityManager, characterId, amount));
       CharacterStatUpdateProducer
-            .statsUpdated(worldId, channelId, mapId, characterId, Collections.singleton(StatUpdateType.EXPERIENCE));
+            .statsUpdated(characterId, Collections.singleton(StatUpdateType.EXPERIENCE));
    }
 
-   public static void increaseLevel(int worldId, int channelId, int mapId, int characterId) {
+   public static void increaseLevel(int characterId) {
       CharacterData runningCharacter = Connection.instance()
             .element(entityManager -> CharacterProvider.getById(entityManager, characterId)).orElseThrow();
 
@@ -236,7 +236,7 @@ public final class CharacterProcessor {
 
       //levelUpGainSp();
 
-      CharacterStatUpdateProducer.statsUpdated(worldId, channelId, mapId, characterId, Arrays.asList(
+      CharacterStatUpdateProducer.statsUpdated(characterId, Arrays.asList(
             StatUpdateType.EXPERIENCE,
             StatUpdateType.LEVEL,
             StatUpdateType.AVAILABLE_AP,
@@ -258,7 +258,7 @@ public final class CharacterProcessor {
                   summary.intelligence(), summary.luck(), summary.ap(), summary.level()));
    }
 
-   public static void assignStrDexIntLuk(int worldId, int channelId, int mapId, CharacterData character, int deltaStr, int deltaDex,
+   public static void assignStrDexIntLuk(CharacterData character, int deltaStr, int deltaDex,
                                          int deltaInt, int deltaLuk) {
       int apUsed = apAssigned(deltaStr) + apAssigned(deltaDex) + apAssigned(deltaInt) + apAssigned(deltaLuk);
       if (apUsed > character.ap()) {
@@ -311,7 +311,7 @@ public final class CharacterProcessor {
          statUpdateTypes.add(StatUpdateType.AVAILABLE_AP);
       }
 
-      CharacterStatUpdateProducer.statsUpdated(worldId, channelId, mapId, character.id(), statUpdateTypes);
+      CharacterStatUpdateProducer.statsUpdated(character.id(), statUpdateTypes);
    }
 
    protected static int calcHpChange(CharacterData character, boolean usedAPReset) {
@@ -614,35 +614,35 @@ public final class CharacterProcessor {
       return summary;
    }
 
-   public static void setExperience(int worldId, int channelId, int mapId, int characterId, int experience) {
+   public static void setExperience(int characterId, int experience) {
       Connection.instance()
             .with(entityManager -> CharacterAdministrator.setExperience(entityManager, characterId, experience));
       CharacterStatUpdateProducer
-            .statsUpdated(worldId, channelId, mapId, characterId, Collections.singleton(StatUpdateType.EXPERIENCE));
+            .statsUpdated(characterId, Collections.singleton(StatUpdateType.EXPERIENCE));
    }
 
-   public static void gainExperience(int worldId, int channelId, int mapId, int characterId, int gain) {
-      getById(characterId).ifPresent(character -> gainExperience(worldId, channelId, mapId, characterId,
+   public static void gainExperience(int characterId, int gain) {
+      getById(characterId).ifPresent(character -> gainExperience(characterId,
             character.level(), character.maxClassLevel(), character.experience(), gain));
    }
 
-   protected static void gainExperience(int worldId, int channelId, int mapId, int characterId, int level,
+   protected static void gainExperience(int characterId, int level,
                                         int maxLevel, int experience, int gain) {
       if (level < maxLevel) {
          int toNextLevel = ExpTable.getExpNeededForLevel(level) - experience;
          if (toNextLevel <= gain) {
-            setExperience(worldId, channelId, mapId, characterId, 0);
-            CharacterLevelEventProducer.gainLevel(worldId, channelId, mapId, characterId);
-            gainExperience(worldId, channelId, mapId, characterId, level + 1, maxLevel, 0, gain - toNextLevel);
+            setExperience(characterId, 0);
+            CharacterLevelEventProducer.gainLevel(characterId);
+            gainExperience(characterId, level + 1, maxLevel, 0, gain - toNextLevel);
          } else {
-            increaseExperience(worldId, channelId, mapId, characterId, gain);
+            increaseExperience(characterId, gain);
          }
       } else {
-         setExperience(worldId, channelId, mapId, characterId, 0);
+         setExperience(characterId, 0);
       }
    }
 
-   public static void assignHpMp(int worldId, int channelId, int mapId, CharacterData character, int deltaHp, int deltaMp) {
+   public static void assignHpMp(CharacterData character, int deltaHp, int deltaMp) {
       HpMpSummary hpMpSummary = new HpMpSummary(0, 0);
       if (deltaHp > 0) {
          hpMpSummary = hpMpSummary.increaseHp(calcHpChange(character, false));
@@ -665,10 +665,11 @@ public final class CharacterProcessor {
          statUpdateTypes.add(StatUpdateType.MAX_MP);
       }
 
-      CharacterStatUpdateProducer.statsUpdated(worldId, channelId, mapId, character.id(), statUpdateTypes);
+      CharacterStatUpdateProducer.statsUpdated(character.id(), statUpdateTypes);
    }
 
    public static void gainMeso(int characterId, int meso) {
       Connection.instance().with(entityManager -> CharacterAdministrator.increaseMeso(entityManager, characterId, meso));
+      CharacterStatUpdateProducer.statsUpdated(characterId, Collections.singleton(StatUpdateType.MESO));
    }
 }

@@ -8,7 +8,7 @@ import com.atlas.cos.processor.TopicDiscoveryProcessor;
 public class CharacterLevelConsumer extends AbstractEventConsumer<CharacterLevelEvent> {
    @Override
    public void handle(Long key, CharacterLevelEvent event) {
-      CharacterProcessor.increaseLevel(event.worldId(), event.channelId(), event.mapId(), event.characterId());
+      CharacterProcessor.increaseLevel(event.characterId());
    }
 
    @Override

@@ -12,18 +12,12 @@ public class AssignApConsumer extends AbstractEventConsumer<AssignApCommand> {
             .getById(command.characterId())
             .ifPresent(character -> {
                switch (command.type()) {
-                  case STRENGTH -> CharacterProcessor.assignStrDexIntLuk(command.worldId(), command.channelId(),
-                        command.mapId(), character, 1, 0, 0, 0);
-                  case DEXTERITY -> CharacterProcessor.assignStrDexIntLuk(command.worldId(), command.channelId(),
-                        command.mapId(), character, 0, 1, 0, 0);
-                  case INTELLIGENCE -> CharacterProcessor.assignStrDexIntLuk(command.worldId(), command.channelId(),
-                        command.mapId(), character, 0, 0, 1, 0);
-                  case LUCK -> CharacterProcessor.assignStrDexIntLuk(command.worldId(), command.channelId(),
-                        command.mapId(), character, 0, 0, 0, 1);
-                  case HP -> CharacterProcessor.assignHpMp(command.worldId(), command.channelId(), command.mapId(), character,
-                        1, 0);
-                  case MP -> CharacterProcessor.assignHpMp(command.worldId(), command.channelId(), command.mapId(), character,
-                        0, 1);
+                  case STRENGTH -> CharacterProcessor.assignStrDexIntLuk(character, 1, 0, 0, 0);
+                  case DEXTERITY -> CharacterProcessor.assignStrDexIntLuk(character, 0, 1, 0, 0);
+                  case INTELLIGENCE -> CharacterProcessor.assignStrDexIntLuk(character, 0, 0, 1, 0);
+                  case LUCK -> CharacterProcessor.assignStrDexIntLuk(character, 0, 0, 0, 1);
+                  case HP -> CharacterProcessor.assignHpMp(character, 1, 0);
+                  case MP -> CharacterProcessor.assignHpMp(character, 0, 1);
                }
             });
    }

@@ -8,9 +8,9 @@ public final class CharacterLevelEventProducer {
    private CharacterLevelEventProducer() {
    }
 
-   public static void gainLevel(int worldId, int channelId, int mapId, int characterId) {
+   public static void gainLevel(int characterId) {
       EventProducerRegistry.getInstance()
-            .send(CharacterLevelEvent.class, EventConstants.TOPIC_CHARACTER_LEVEL_EVENT, worldId, channelId,
-                  new CharacterLevelEvent(worldId, channelId, mapId, characterId));
+            .send(CharacterLevelEvent.class, EventConstants.TOPIC_CHARACTER_LEVEL_EVENT, characterId,
+                  new CharacterLevelEvent(characterId));
    }
 }

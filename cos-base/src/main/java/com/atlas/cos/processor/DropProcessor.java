@@ -80,7 +80,6 @@ public final class DropProcessor {
    }
 
    protected static void pickupMeso(CharacterData character, Drop drop) {
-      CharacterProcessor.gainMeso(character.id(), drop.meso());
       PickedUpMesoProducer.emit(character.id(), drop.meso());
    }
 

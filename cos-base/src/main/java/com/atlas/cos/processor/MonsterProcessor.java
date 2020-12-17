@@ -44,7 +44,7 @@ public final class MonsterProcessor {
                .map(CharacterData::level)
                .orElse(1);
 
-         distributePlayerExperience(worldId, channelId, mapId, characterId, level, exp, 0.0f, level, true,
+         distributePlayerExperience(characterId, level, exp, 0.0f, level, true,
                isWhiteExpGain(characterId, distribution.personalRatio(), distribution.standardDeviationRatio()), false);
       }
 
@@ -58,7 +58,7 @@ public final class MonsterProcessor {
       //                              }
    }
 
-   protected static void distributePlayerExperience(int worldId, int channelId, int mapId, int characterId, int level,
+   protected static void distributePlayerExperience(int characterId, int level,
                                                     float experience, float partyBonusMod, int totalPartyLevel,
                                                     boolean highestPartyDamage, boolean whiteExpGain, boolean hasPartySharers) {
       float expSplitCommonMod = ConfigurationRegistry.getInstance().getConfiguration().expSplitCommonMod;
@@ -70,11 +70,11 @@ public final class MonsterProcessor {
       playerExp *= experience;
       float bonusExp = partyBonusMod * playerExp;
 
-      giveExpToCharacter(worldId, channelId, mapId, characterId, playerExp, bonusExp, whiteExpGain, hasPartySharers);
+      giveExpToCharacter(characterId, playerExp, bonusExp, whiteExpGain, hasPartySharers);
       //      giveFamilyRep(chr.getFamilyEntry());
    }
 
-   protected static void giveExpToCharacter(int worldId, int channelId, int mapId, int characterId, Float personalExp,
+   protected static void giveExpToCharacter(int characterId, Float personalExp,
                                             Float partyExp, boolean white, boolean hasPartySharers) {
       //      if (attacker.isAlive()) {
       //         if (personalExp != null) {
@@ -101,7 +101,7 @@ public final class MonsterProcessor {
 
       int correctedParty = expValueToInteger(partyExp);
 
-      CharacterExperienceGainProducer.gainExperience(worldId, channelId, mapId, characterId, correctedPersonal, correctedParty,
+      CharacterExperienceGainProducer.gainExperience(characterId, correctedPersonal, correctedParty,
             true, false, white);
       //         attacker.increaseEquipExp(_personalExp);
       //      }
