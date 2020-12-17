@@ -70,4 +70,9 @@ public class CharacterAdministrator {
          character.setLevel(character.getLevel() + level);
       });
    }
+
+   public static void increaseMeso(EntityManager entityManager, int characterId, int meso) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId,
+            character -> character.setMeso(character.getMeso() + meso));
+   }
 }

@@ -667,4 +667,8 @@ public final class CharacterProcessor {
 
       CharacterStatUpdateProducer.statsUpdated(worldId, channelId, mapId, character.id(), statUpdateTypes);
    }
+
+   public static void gainMeso(int characterId, int meso) {
+      Connection.instance().with(entityManager -> CharacterAdministrator.increaseMeso(entityManager, characterId, meso));
+   }
 }
