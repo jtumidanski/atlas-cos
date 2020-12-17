@@ -3,7 +3,6 @@ package com.atlas.cos.processor;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import com.app.database.util.QueryAdministratorUtil;
@@ -113,7 +112,7 @@ public final class ItemProcessor {
       return Connection.instance().list(entityManager -> EquipmentProvider.getForCharacter(entityManager, characterId));
    }
 
-   public static Optional<EquipmentData> getEquipedItemForCharacterBySlot(int characterId, short slotId) {
+   public static Optional<EquipmentData> getEquippedItemForCharacterBySlot(int characterId, short slotId) {
       return Connection.instance().list(entityManager -> EquipmentProvider.getForCharacter(entityManager, characterId)).stream()
             .filter(equipmentData -> equipmentData.slot() == slotId)
             .findFirst();

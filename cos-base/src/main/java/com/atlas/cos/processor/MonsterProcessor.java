@@ -170,18 +170,10 @@ public final class MonsterProcessor {
    }
 
    protected static double calcExperienceStandDevThreshold(List<Float> entryExpRatio, int totalEntries) {
-      float avgExpReward = 0.0f;
-      for (Float exp : entryExpRatio) {
-         avgExpReward += exp;
-      }
-      avgExpReward /= totalEntries;
-
-      float varExpReward = 0.0f;
-      for (Float exp : entryExpRatio) {
-         varExpReward += Math.pow(exp - avgExpReward, 2);
-      }
-      varExpReward /= entryExpRatio.size();
-
+      float avgExpReward = entryExpRatio.stream()
+            .reduce(0.0f, Float::sum) / totalEntries;
+      float varExpReward = entryExpRatio.stream()
+            .reduce(0.0f, (result, next) -> (float) (result + Math.pow(next - avgExpReward, 2))) / entryExpRatio.size();
       return avgExpReward + Math.sqrt(varExpReward);
    }
 }
