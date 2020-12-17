@@ -1,9 +1,11 @@
 package com.atlas.cos.processor;
 
 import com.atlas.cos.model.Drop;
+import com.atlas.cos.model.EquipData;
 import com.atlas.cos.model.Monster;
 import com.atlas.cos.model.Portal;
 import com.atlas.drg.rest.attribute.DropAttributes;
+import com.atlas.eso.attribute.EquipmentAttributes;
 import com.atlas.mis.attribute.MonsterDataAttributes;
 import com.atlas.mis.attribute.PortalAttributes;
 
@@ -38,5 +40,27 @@ public final class ModelFactory {
             body.getAttributes().dropType(),
             body.getAttributes().ownerId(),
             body.getAttributes().playerDrop());
+   }
+
+   public static EquipData createEquip(DataBody<EquipmentAttributes> body) {
+      return new EquipData(
+            body.getAttributes().itemId(),
+            body.getAttributes().strength(),
+            body.getAttributes().dexterity(),
+            body.getAttributes().intelligence(),
+            body.getAttributes().luck(),
+            body.getAttributes().hp(),
+            body.getAttributes().mp(),
+            body.getAttributes().weaponAttack(),
+            body.getAttributes().magicAttack(),
+            body.getAttributes().weaponDefense(),
+            body.getAttributes().magicDefense(),
+            body.getAttributes().accuracy(),
+            body.getAttributes().avoidability(),
+            body.getAttributes().hands(),
+            body.getAttributes().speed(),
+            body.getAttributes().jump(),
+            body.getAttributes().slots()
+      );
    }
 }

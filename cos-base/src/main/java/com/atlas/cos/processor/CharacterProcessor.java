@@ -19,6 +19,7 @@ import com.atlas.cos.event.producer.CharacterLevelEventProducer;
 import com.atlas.cos.event.producer.CharacterStatUpdateProducer;
 import com.atlas.cos.event.producer.MapChangedProducer;
 import com.atlas.cos.model.CharacterData;
+import com.atlas.cos.model.EquipData;
 import com.atlas.cos.model.EquipmentData;
 import com.atlas.cos.model.HpMpSummary;
 import com.atlas.cos.model.Job;
@@ -113,7 +114,10 @@ public final class CharacterProcessor {
       int weaponAttack = 0;
 
       weaponAttack += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
-            .mapToInt(EquipmentData::weaponAttack)
+            .map(EquipmentData::equipmentId)
+            .map(EquipProcessor::getEquipData)
+            .flatMap(Optional::stream)
+            .mapToInt(EquipData::weaponAttack)
             .sum();
 
       //TODO
@@ -134,7 +138,10 @@ public final class CharacterProcessor {
       // apply Maple Warrior
 
       strength += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
-            .mapToInt(EquipmentData::strength)
+            .map(EquipmentData::equipmentId)
+            .map(EquipProcessor::getEquipData)
+            .flatMap(Optional::stream)
+            .mapToInt(EquipData::strength)
             .sum();
 
       return strength;
@@ -147,7 +154,10 @@ public final class CharacterProcessor {
       // apply Maple Warrior
 
       dexterity += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
-            .mapToInt(EquipmentData::dexterity)
+            .map(EquipmentData::equipmentId)
+            .map(EquipProcessor::getEquipData)
+            .flatMap(Optional::stream)
+            .mapToInt(EquipData::dexterity)
             .sum();
 
       return dexterity;
@@ -160,7 +170,10 @@ public final class CharacterProcessor {
       // apply Maple Warrior
 
       luck += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
-            .mapToInt(EquipmentData::luck)
+            .map(EquipmentData::equipmentId)
+            .map(EquipProcessor::getEquipData)
+            .flatMap(Optional::stream)
+            .mapToInt(EquipData::luck)
             .sum();
 
       return luck;
@@ -173,7 +186,10 @@ public final class CharacterProcessor {
       // apply Maple Warrior
 
       intelligence += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
-            .mapToInt(EquipmentData::intelligence)
+            .map(EquipmentData::equipmentId)
+            .map(EquipProcessor::getEquipData)
+            .flatMap(Optional::stream)
+            .mapToInt(EquipData::intelligence)
             .sum();
 
       return intelligence;

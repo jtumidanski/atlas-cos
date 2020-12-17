@@ -1,6 +1,7 @@
 package com.atlas.cos.processor;
 
 import com.atlas.cos.model.CharacterData;
+import com.atlas.cos.model.EquipmentData;
 import com.atlas.cos.model.Job;
 import com.atlas.cos.model.WeaponType;
 
@@ -18,6 +19,8 @@ public final class DamageProcessor {
       int weaponAttack = CharacterProcessor.getWeaponAttack(character);
 
       return ItemProcessor.getEquipedItemForCharacterBySlot(character.id(), (short) -11)
+            .map(EquipmentData::equipmentId)
+            .flatMap(EquipProcessor::getEquipData)
             .map(weapon -> getMaxBaseDamage(character, weaponAttack, WeaponType.getWeaponType(weapon.itemId())))
             .orElse(getMaxBaseDamageNoWeapon(character));
    }
