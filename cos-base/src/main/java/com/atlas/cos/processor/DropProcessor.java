@@ -1,5 +1,7 @@
 package com.atlas.cos.processor;
 
+import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 
 import com.atlas.cos.event.producer.CancelDropReservationProducer;
@@ -9,6 +11,8 @@ import com.atlas.cos.event.producer.PickedUpNxProducer;
 import com.atlas.cos.event.producer.PickupDropCommandProducer;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.Drop;
+import com.atlas.cos.model.InventoryType;
+import com.atlas.cos.model.ItemData;
 import com.atlas.cos.model.Party;
 import com.atlas.drg.rest.attribute.DropAttributes;
 import com.atlas.shared.rest.RestService;
@@ -66,12 +70,65 @@ public final class DropProcessor {
             // TODO handle scripted item
          }
 
-         // TODO actually add item to inventory
+         InventoryType inventoryType = getInventoryType(drop.itemId()).orElseThrow();
+         if (inventoryType == InventoryType.EQUIP) {
+            pickupEquip(character, drop);
+         } else {
+            pickupItem(character, inventoryType, drop);
+         }
+
          // TODO update ariant score if 4031868
 
          PickedUpItemProducer.emit(character.id(), drop.itemId(), drop.quantity());
       }
       PickupDropCommandProducer.emit(character.id(), drop.id());
+   }
+
+   protected static void pickupEquip(CharacterData character, Drop drop) {
+      ItemProcessor.createEquipmentForCharacter(character.id(), drop.itemId(), false);
+      //InventoryModificationProducer.emit(character.id(), 0, drop.itemId(), drop.quantity(), inventoryType.getType(), slot);
+   }
+
+   protected static void pickupItem(CharacterData character, InventoryType inventoryType, Drop drop) {
+      int slotMax = maxInSlot(character, drop);
+
+      int quantity = drop.quantity();
+
+      List<ItemData> existingItems = ItemProcessor.getItemsForCharacter(character.id(), inventoryType, drop.itemId());
+      // Breaks for a rechargeable item.
+      if (existingItems.size() > 0) {
+         Iterator<ItemData> itemIterator = existingItems.iterator();
+         while (quantity > 0) {
+            if (itemIterator.hasNext()) {
+               ItemData itemData = itemIterator.next();
+               int oldQuantity = itemData.quantity();
+               if (oldQuantity < slotMax) {
+                  int newQuantity = Math.min(oldQuantity + quantity, slotMax);
+                  quantity -= (newQuantity - oldQuantity);
+                  ItemProcessor.updateItemQuantity(itemData.id(), newQuantity);
+               }
+            } else {
+               break;
+            }
+         }
+      }
+      while (quantity > 0) {
+         int newQuantity = Math.min(quantity, slotMax);
+         quantity -= newQuantity;
+         ItemProcessor.createItemForCharacter(character.id(), inventoryType, drop.itemId(), newQuantity);
+      }
+   }
+
+   protected static int maxInSlot(CharacterData character, Drop drop) {
+      return 200;
+   }
+
+   protected static Optional<InventoryType> getInventoryType(int itemId) {
+      byte type = (byte) (itemId / 1000000);
+      if (type >= 1 && type <= 5) {
+         return InventoryType.getByType(type);
+      }
+      return Optional.empty();
    }
 
    protected static void pickupNx(CharacterData character, Drop drop) {

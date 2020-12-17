@@ -7,8 +7,12 @@ import java.util.stream.Stream;
 
 import com.app.database.util.QueryAdministratorUtil;
 import com.atlas.cos.database.administrator.EquipmentAdministrator;
+import com.atlas.cos.database.administrator.ItemAdministrator;
 import com.atlas.cos.database.provider.EquipmentProvider;
+import com.atlas.cos.database.provider.ItemProvider;
 import com.atlas.cos.model.EquipmentData;
+import com.atlas.cos.model.InventoryType;
+import com.atlas.cos.model.ItemData;
 import com.atlas.eso.attribute.EquipmentAttributes;
 import com.atlas.eso.builder.EquipmentAttributesBuilder;
 import com.atlas.iis.attribute.EquipmentSlotAttributes;
@@ -127,5 +131,23 @@ public final class ItemProcessor {
             30000, 30010, 30020, 30030, 31000, 31040, 31050,// hair
             20000, 20001, 20002, 21000, 21001, 21002, 21201, 20401, 20402, 21700, 20100  //face
       ).anyMatch(id -> id == itemId);
+   }
+
+   public static List<ItemData> getItemsForCharacter(int characterId, InventoryType inventoryType, int itemId) {
+      return Connection.instance()
+            .list(entityManager -> ItemProvider.getItemsForCharacter(entityManager, characterId, inventoryType.getType(), itemId));
+   }
+
+   public static void updateItemQuantity(int uniqueId, int quantity) {
+      Connection.instance().with(entityManager -> ItemAdministrator.updateQuantity(entityManager, uniqueId, quantity));
+   }
+
+   public static void createItemForCharacter(int characterId, InventoryType inventoryType, int itemId, int quantity) {
+      short nextOpenSlot = Connection.instance()
+            .element(entityManager -> ItemProvider.getNextFreeEquipmentSlot(entityManager, characterId, inventoryType.getType()))
+            .orElse((short) 0);
+
+      Connection.instance().element(entityManager ->
+            ItemAdministrator.create(entityManager, characterId, inventoryType.getType(), itemId, quantity, nextOpenSlot));
    }
 }

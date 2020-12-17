@@ -20,8 +20,16 @@ public final class ItemRequestProcessor {
             .orElse(new ResultBuilder(Response.Status.NOT_FOUND));
    }
 
-   public static ResultBuilder getEquippedItemsForCharacter(Integer characterId) {
+   public static ResultBuilder getEquippedItemsForCharacter(int characterId) {
       return ItemProcessor.getEquipmentForCharacter(characterId).stream()
+            .filter(equipment -> equipment.slot() < 0)
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
+   }
+
+   public static ResultBuilder getEquipsForCharacter(int characterId) {
+      return ItemProcessor.getEquipmentForCharacter(characterId).stream()
+            .filter(equipment -> equipment.slot() >= 0)
             .map(ResultObjectFactory::create)
             .collect(Collectors.toResultBuilder());
    }

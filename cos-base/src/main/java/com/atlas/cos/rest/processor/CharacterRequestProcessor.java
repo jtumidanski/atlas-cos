@@ -53,15 +53,12 @@ public final class CharacterRequestProcessor {
    }
 
    protected static Optional<Function<CharacterAttributes, Optional<CharacterData>>> getJobCreator(Job job) {
-      if (Job.BEGINNER.equals(job)) {
-         return Optional.of(CharacterProcessor::createBeginner);
-      } else if (Job.NOBLESSE.equals(job)) {
-         return Optional.of(CharacterProcessor::createNoblesse);
-      } else if (Job.LEGEND.equals(job)) {
-         return Optional.of(CharacterProcessor::createLegend);
-      } else {
-         return Optional.empty();
-      }
+      return switch (job) {
+         case BEGINNER -> Optional.of(CharacterProcessor::createBeginner);
+         case NOBLESSE -> Optional.of(CharacterProcessor::createNoblesse);
+         case LEGEND -> Optional.of(CharacterProcessor::createLegend);
+         default -> Optional.empty();
+      };
    }
 
    protected static boolean validFace(int face) {

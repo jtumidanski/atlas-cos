@@ -78,10 +78,9 @@ public class CharacterResource {
    public Response getEquipment(@PathParam("characterId") Integer characterId,
                                 @DefaultValue("false") @QueryParam("filter[equipped]") Boolean equipped) {
       if (equipped != null) {
-         return ItemRequestProcessor.getEquippedItemsForCharacter(characterId)
-               .build();
+         return ItemRequestProcessor.getEquippedItemsForCharacter(characterId).build();
       } else {
-         return new ResultBuilder(Response.Status.NOT_IMPLEMENTED).build();
+         return ItemRequestProcessor.getEquipsForCharacter(characterId).build();
       }
    }
 
@@ -90,8 +89,7 @@ public class CharacterResource {
    @Consumes(MediaType.APPLICATION_JSON)
    @Produces(MediaType.APPLICATION_JSON)
    public Response createEquipment(@PathParam("characterId") Integer characterId, @PathParam("equipmentId") Integer equipmentId) {
-      return ItemRequestProcessor.getEquipmentForCharacter(characterId, equipmentId)
-            .build();
+      return ItemRequestProcessor.getEquipmentForCharacter(characterId, equipmentId).build();
    }
 
    @POST
