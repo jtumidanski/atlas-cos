@@ -4,7 +4,7 @@ import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.attribute.BlockedNameAttributes;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.attribute.EquipmentAttributes;
-import com.atlas.cos.attribute.EquipmentStatistics;
+import com.atlas.cos.attribute.EquipmentStatisticsAttributes;
 import com.atlas.cos.attribute.InventoryAttributes;
 import com.atlas.cos.attribute.ItemAttributes;
 import com.atlas.cos.attribute.LocationAttributes;
@@ -90,7 +90,7 @@ public class ResultObjectFactory {
                   .addRelationship("equipmentStatistics", new RelationshipBuilder()
                         .addData(new LinkDataBuilder()
                               .setId(String.valueOf(data.equipmentId()))
-                              .setType(EquipmentStatistics.class)
+                              .setType(EquipmentStatisticsAttributes.class)
                         )
                   )
             );
@@ -150,7 +150,7 @@ public class ResultObjectFactory {
    }
 
    public static ResultObjectBuilder create(EquipData equipData) {
-      return new ResultObjectBuilder(EquipmentStatistics.class, equipData.id())
+      return new ResultObjectBuilder(EquipmentStatisticsAttributes.class, equipData.id())
             .setAttribute(new EquipmentStatisticsAttributesBuilder()
                   .setItemId(equipData.itemId())
                   .setStrength(equipData.strength())

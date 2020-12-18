@@ -1,11 +1,11 @@
 package com.atlas.cos.builder;
 
 import com.app.common.builder.RecordBuilder;
-import com.atlas.cos.attribute.EquipmentStatistics;
+import com.atlas.cos.attribute.EquipmentStatisticsAttributes;
 
 import builder.AttributeResultBuilder;
 
-public class EquipmentStatisticsAttributesBuilder extends RecordBuilder<EquipmentStatistics, EquipmentStatisticsAttributesBuilder>
+public class EquipmentStatisticsAttributesBuilder extends RecordBuilder<EquipmentStatisticsAttributes, EquipmentStatisticsAttributesBuilder>
       implements AttributeResultBuilder {
    private Integer itemId;
 
@@ -42,8 +42,8 @@ public class EquipmentStatisticsAttributesBuilder extends RecordBuilder<Equipmen
    private Integer slots;
 
    @Override
-   public EquipmentStatistics construct() {
-      return new EquipmentStatistics(itemId, strength, dexterity, intelligence, luck, hp, mp, weaponAttack, magicAttack,
+   public EquipmentStatisticsAttributes construct() {
+      return new EquipmentStatisticsAttributes(itemId, strength, dexterity, intelligence, luck, hp, mp, weaponAttack, magicAttack,
             weaponDefense, magicDefense, accuracy, avoidability, hands, speed, jump, slots);
    }
 
