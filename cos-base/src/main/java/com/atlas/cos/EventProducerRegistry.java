@@ -76,7 +76,7 @@ public class EventProducerRegistry {
    }
 
    public <T> void send(Class<T> clazz, String topic, long key, T event) {
-      ProducerRecord<Long, T> record = new ProducerRecord<>(TopicDiscoveryProcessor.getTopic(topic), key, event);
+      ProducerRecord<Long, T> record = new ProducerRecord<>(getTopic(topic), key, event);
       getProducer(clazz).ifPresent(producer -> producer.send(record));
    }
 

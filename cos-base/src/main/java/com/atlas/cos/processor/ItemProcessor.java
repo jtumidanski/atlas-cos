@@ -30,12 +30,12 @@ public final class ItemProcessor {
       Connection.instance().with(entityManager -> ItemAdministrator.updateQuantity(entityManager, uniqueId, quantity));
    }
 
-   public static void createItemForCharacter(int characterId, InventoryType inventoryType, int itemId, int quantity) {
+   public static Optional<ItemData> createItemForCharacter(int characterId, InventoryType inventoryType, int itemId, int quantity) {
       short nextOpenSlot = Connection.instance()
             .element(entityManager -> ItemProvider.getNextFreeEquipmentSlot(entityManager, characterId, inventoryType.getType()))
             .orElse((short) 0);
 
-      Connection.instance().element(entityManager ->
+      return Connection.instance().element(entityManager ->
             ItemAdministrator.create(entityManager, characterId, inventoryType.getType(), itemId, quantity, nextOpenSlot));
    }
 

@@ -15,6 +15,6 @@ public final class InventoryModificationProducer {
       EventProducerRegistry.getInstance()
             .send(CharacterInventoryModifyEvent.class, EventConstants.TOPIC_INVENTORY_MODIFICATION, characterId,
                   new CharacterInventoryModifyEvent(characterId, true,
-                        Collections.singletonList(new InventoryModification(mode, itemId, quantity, inventoryType, position))));
+                        Collections.singletonList(new InventoryModification(mode, itemId, inventoryType, quantity, position))));
    }
 }
