@@ -1,7 +1,6 @@
 package com.atlas.cos.processor;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,24 +26,22 @@ public final class InventoryProcessor {
    }
 
    protected static Optional<Inventory> getInventoryByType(int characterId, InventoryType type) {
-      List<InventoryItem> items;
+      Stream<InventoryItem> items;
       if (type.equals(InventoryType.EQUIP)) {
          items = getEquipInventoryItems(characterId);
       } else {
          items = getInventoryItems(characterId, type);
       }
-      return Optional.of(new Inventory(type.getType(), type.name(), 4, items));
+      return Optional.of(new Inventory(type.getType(), type.name(), 4, items.collect(Collectors.toList())));
    }
 
-   protected static List<InventoryItem> getEquipInventoryItems(int characterId) {
-      return ItemProcessor.getEquipmentForCharacter(characterId).stream()
-            .map(equipment -> new InventoryItem(equipment.id(), InventoryItemType.EQUIPMENT, equipment.slot()))
-            .collect(Collectors.toList());
+   protected static Stream<InventoryItem> getEquipInventoryItems(int characterId) {
+      return ItemProcessor.getEquipmentForCharacter(characterId)
+            .map(equipment -> new InventoryItem(equipment.id(), InventoryItemType.EQUIPMENT, equipment.slot()));
    }
 
-   protected static List<InventoryItem> getInventoryItems(int characterId, InventoryType type) {
-      return ItemProcessor.getItemsForCharacter(characterId, type).stream()
-            .map(item -> new InventoryItem(item.id(), InventoryItemType.ITEM, item.slot()))
-            .collect(Collectors.toList());
+   protected static Stream<InventoryItem> getInventoryItems(int characterId, InventoryType type) {
+      return ItemProcessor.getItemsForCharacter(characterId, type)
+            .map(item -> new InventoryItem(item.id(), InventoryItemType.ITEM, item.slot()));
    }
 }

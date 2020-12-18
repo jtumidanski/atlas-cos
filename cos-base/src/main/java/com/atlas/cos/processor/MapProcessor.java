@@ -11,7 +11,7 @@ public final class MapProcessor {
 
    public static Optional<Integer> findClosestSpawnPoint(int mapId, int x, int y) {
       Point from = new Point(x, y);
-      return PortalProcessor.getMapPortals(mapId).stream()
+      return PortalProcessor.getMapPortals(mapId)
             .filter(MapProcessor::isSpawnPoint)
             .min((o1, o2) -> compareDistanceFromPoint(from, o1, o2))
             .map(Portal::id);

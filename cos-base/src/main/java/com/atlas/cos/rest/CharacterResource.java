@@ -13,7 +13,7 @@ import javax.ws.rs.core.Response;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.attribute.CharacterSeedAttributes;
 import com.atlas.cos.attribute.LocationAttributes;
-import com.atlas.cos.processor.SavedLocationProcessor;
+import com.atlas.cos.rest.processor.SavedLocationProcessor;
 import com.atlas.cos.rest.processor.CharacterRequestProcessor;
 import com.atlas.cos.rest.processor.CharacterSeedRequestProcessor;
 import com.atlas.cos.rest.processor.DamageProcessor;

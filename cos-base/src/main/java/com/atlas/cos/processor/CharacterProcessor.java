@@ -113,7 +113,7 @@ public final class CharacterProcessor {
    public static int getWeaponAttack(CharacterData character) {
       int weaponAttack = 0;
 
-      weaponAttack += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
+      weaponAttack += ItemProcessor.getEquipmentForCharacter(character.id())
             .map(EquipmentData::equipmentId)
             .map(EquipProcessor::getEquipData)
             .flatMap(Optional::stream)
@@ -137,7 +137,7 @@ public final class CharacterProcessor {
       //TODO
       // apply Maple Warrior
 
-      strength += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
+      strength += ItemProcessor.getEquipmentForCharacter(character.id())
             .map(EquipmentData::equipmentId)
             .map(EquipProcessor::getEquipData)
             .flatMap(Optional::stream)
@@ -153,7 +153,7 @@ public final class CharacterProcessor {
       //TODO
       // apply Maple Warrior
 
-      dexterity += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
+      dexterity += ItemProcessor.getEquipmentForCharacter(character.id())
             .map(EquipmentData::equipmentId)
             .map(EquipProcessor::getEquipData)
             .flatMap(Optional::stream)
@@ -169,7 +169,7 @@ public final class CharacterProcessor {
       //TODO
       // apply Maple Warrior
 
-      luck += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
+      luck += ItemProcessor.getEquipmentForCharacter(character.id())
             .map(EquipmentData::equipmentId)
             .map(EquipProcessor::getEquipData)
             .flatMap(Optional::stream)
@@ -185,7 +185,7 @@ public final class CharacterProcessor {
       //TODO
       // apply Maple Warrior
 
-      intelligence += ItemProcessor.getEquipmentForCharacter(character.id()).stream()
+      intelligence += ItemProcessor.getEquipmentForCharacter(character.id())
             .map(EquipmentData::equipmentId)
             .map(EquipProcessor::getEquipData)
             .flatMap(Optional::stream)

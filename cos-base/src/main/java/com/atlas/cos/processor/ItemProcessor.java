@@ -112,8 +112,10 @@ public final class ItemProcessor {
       return Connection.instance().element(entityManager -> EquipmentProvider.getById(entityManager, id));
    }
 
-   public static List<EquipmentData> getEquipmentForCharacter(int characterId) {
-      return Connection.instance().list(entityManager -> EquipmentProvider.getForCharacter(entityManager, characterId));
+   public static Stream<EquipmentData> getEquipmentForCharacter(int characterId) {
+      return Connection.instance()
+            .list(entityManager -> EquipmentProvider.getForCharacter(entityManager, characterId))
+            .stream();
    }
 
    public static Optional<EquipmentData> getEquippedItemForCharacterBySlot(int characterId, short slotId) {
@@ -133,9 +135,10 @@ public final class ItemProcessor {
       ).anyMatch(id -> id == itemId);
    }
 
-   public static List<ItemData> getItemsForCharacter(int characterId, InventoryType inventoryType) {
+   public static Stream<ItemData> getItemsForCharacter(int characterId, InventoryType inventoryType) {
       return Connection.instance()
-            .list(entityManager -> ItemProvider.getForCharacterByInventory(entityManager, characterId, inventoryType.getType()));
+            .list(entityManager -> ItemProvider.getForCharacterByInventory(entityManager, characterId, inventoryType.getType()))
+            .stream();
    }
 
    public static List<ItemData> getItemsForCharacter(int characterId, InventoryType inventoryType, int itemId) {

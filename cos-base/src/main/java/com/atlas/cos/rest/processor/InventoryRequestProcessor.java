@@ -39,7 +39,7 @@ public final class InventoryRequestProcessor {
                .forEach(resultBuilder::addInclude);
       }
       if (containsIgnoreCase(includedResources, "equipmentStatistics")) {
-         ItemProcessor.getEquipmentForCharacter(characterId).stream()
+         ItemProcessor.getEquipmentForCharacter(characterId)
                .map(EquipmentData::equipmentId)
                .map(EquipProcessor::getEquipData)
                .flatMap(Optional::stream)
@@ -69,7 +69,7 @@ public final class InventoryRequestProcessor {
                .forEach(resultBuilder::addInclude);
       }
       if (containsIgnoreCase(includedResources, "equipmentStatistics")) {
-         ItemProcessor.getEquipmentForCharacter(characterId).stream()
+         ItemProcessor.getEquipmentForCharacter(characterId)
                .map(EquipmentData::equipmentId)
                .map(EquipProcessor::getEquipData)
                .flatMap(Optional::stream)

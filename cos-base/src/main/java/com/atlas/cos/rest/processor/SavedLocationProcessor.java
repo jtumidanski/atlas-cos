@@ -1,4 +1,4 @@
-package com.atlas.cos.processor;
+package com.atlas.cos.rest.processor;
 
 import javax.ws.rs.core.Response;
 
