@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import javax.ws.rs.core.Response;
 
 import com.app.rest.util.stream.Collectors;
 import com.app.rest.util.stream.Mappers;
@@ -41,7 +40,7 @@ public final class CharacterRequestProcessor {
    public static ResultBuilder createCharacter(CharacterAttributes attributes) {
       if (!validFace(attributes.face()) || !validHair(attributes.hair())) {
          System.out.println("Owner from account '" + attributes.accountId() + "' tried to packet edit in char creation.");
-         return new ResultBuilder(Response.Status.UNAUTHORIZED);
+         return ResultBuilder.unauthorized();
       }
 
       return Job.getById(attributes.jobId())
@@ -49,7 +48,7 @@ public final class CharacterRequestProcessor {
             .flatMap(creator -> creator.apply(attributes))
             .map(ResultObjectFactory::create)
             .map(Mappers::singleCreatedResult)
-            .orElse(new ResultBuilder(Response.Status.NOT_IMPLEMENTED));
+            .orElseGet(ResultBuilder::notImplemented);
    }
 
    protected static Optional<Function<CharacterAttributes, Optional<CharacterData>>> getJobCreator(Job job) {
@@ -74,7 +73,7 @@ public final class CharacterRequestProcessor {
       return CharacterProcessor.getById(characterId)
             .map(ResultObjectFactory::create)
             .map(Mappers::singleOkResult)
-            .orElse(new ResultBuilder(Response.Status.NOT_FOUND));
+            .orElseGet(ResultBuilder::notFound);
    }
 
    public static ResultBuilder getForWorldInMap(int worldId, int mapId) {

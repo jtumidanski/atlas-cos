@@ -1,9 +1,9 @@
 package com.atlas.cos.builder;
 
+import com.atlas.cos.ConfigurationRegistry;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.configuration.Configuration;
 import com.atlas.cos.model.CharacterData;
-import com.atlas.cos.ConfigurationRegistry;
 
 public class CharacterBuilder {
    private final int accountId;
@@ -26,7 +26,7 @@ public class CharacterBuilder {
 
    private final int maxMp;
 
-   private final int jobId;
+   private int jobId;
 
    private final int skinColor;
 
@@ -40,12 +40,12 @@ public class CharacterBuilder {
 
    private int mapId;
 
-   public CharacterBuilder(int accountId, int worldId, String name, int jobId, int skinColor, byte gender, int hair, int face) {
+   public CharacterBuilder(int accountId, int worldId, String name, int skinColor, byte gender, int hair, int face) {
       this.accountId = accountId;
       this.worldId = worldId;
       this.name = name;
-      this.jobId = jobId;
       this.level = 1;
+      this.jobId = 0;
 
       this.skinColor = skinColor;
       this.gender = gender;
@@ -79,16 +79,22 @@ public class CharacterBuilder {
       this.maxMp = 5;
    }
 
-   public CharacterBuilder(int accountId, int worldId, String name, int jobId, int skinColor, byte gender, int hair, int face,
+   public CharacterBuilder(int accountId, int worldId, String name, int skinColor, byte gender, int hair, int face,
                            int level, int mapId) {
-      this(accountId, worldId, name, jobId, skinColor, gender, hair, face);
+      this(accountId, worldId, name, skinColor, gender, hair, face);
       this.level = level;
       this.mapId = mapId;
    }
 
    public CharacterBuilder(CharacterAttributes attributes, int level, int mapId) {
-      this(attributes.accountId(), attributes.worldId(), attributes.name(), attributes.jobId(), attributes.skinColor(),
+      this(attributes.accountId(), attributes.worldId(), attributes.name(), attributes.skinColor(),
             attributes.gender(), attributes.hair(), attributes.face(), level, mapId);
+      setJobId(attributes.jobId());
+   }
+
+   public CharacterBuilder setJobId(int jobId) {
+      this.jobId = jobId;
+      return this;
    }
 
    public CharacterBuilder setMapId(int mapId) {

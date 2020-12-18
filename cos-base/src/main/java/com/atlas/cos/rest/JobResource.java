@@ -22,6 +22,6 @@ public class JobResource {
       if (createIndex != null) {
          return JobRequestProcessor.getByCreateIndex(createIndex).build();
       }
-      return new ResultBuilder(Response.Status.NOT_FOUND).build();
+      return ResultBuilder.notFound().build();
    }
 }

@@ -1,5 +1,7 @@
 package com.atlas.cos.processor;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -69,7 +71,8 @@ public final class EquipmentProcessor {
             .getWithResponse()
             .result()
             .map(DataContainer::dataList)
-            .orElse(Collections.emptyList()).stream()
+            .stream()
+            .flatMap(Collection::stream)
             .map(DataBody::getAttributes)
             .map(EquipmentSlotAttributes::slot);
    }
@@ -128,5 +131,14 @@ public final class EquipmentProcessor {
       return Connection.instance().list(entityManager -> EquipmentProvider.getForCharacter(entityManager, characterId)).stream()
             .filter(equipmentData -> equipmentData.slot() == slotId)
             .findFirst();
+   }
+
+   public static void createAndEquip(int characterId, int... items) {
+      Arrays.stream(items).forEach(itemId -> createAndEquip(characterId, itemId));
+   }
+
+   public static void createAndEquip(int characterId, int itemId) {
+      createEquipmentForCharacter(characterId, itemId, true)
+            .ifPresent(equipment -> equipItemForCharacter(characterId, equipment.equipmentId()));
    }
 }

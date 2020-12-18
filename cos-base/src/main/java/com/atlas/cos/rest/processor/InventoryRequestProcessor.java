@@ -2,10 +2,8 @@ package com.atlas.cos.rest.processor;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import javax.ws.rs.core.Response;
 
 import com.app.rest.util.stream.Collectors;
 import com.app.rest.util.stream.Mappers;
@@ -63,8 +61,8 @@ public final class InventoryRequestProcessor {
       if (containsIgnoreCase(includedResources, "inventoryItems")) {
          InventoryProcessor.getInventoryByType(characterId, type)
                .map(Inventory::items)
-               .orElse(Collections.emptyList())
                .stream()
+               .flatMap(Collection::stream)
                .map(ResultObjectFactory::create)
                .forEach(resultBuilder::addInclude);
       }
@@ -84,6 +82,6 @@ public final class InventoryRequestProcessor {
       return InventoryProcessor.getInventoryByType(characterId, type)
             .map(ResultObjectFactory::create)
             .map(Mappers::singleOkResult)
-            .orElse(new ResultBuilder(Response.Status.NOT_FOUND));
+            .orElseGet(ResultBuilder::notFound);
    }
 }

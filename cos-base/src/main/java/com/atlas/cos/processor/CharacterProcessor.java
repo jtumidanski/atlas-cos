@@ -61,36 +61,33 @@ public final class CharacterProcessor {
 
    public static Optional<CharacterData> createBeginner(CharacterAttributes attributes) {
       CharacterBuilder builder = new CharacterBuilder(attributes, 1, 10000);
-      //giveItem(recipe, 4161001, 1, MapleInventoryType.ETC);
       return create(builder);
    }
 
    public static Optional<CharacterData> createNoblesse(CharacterAttributes attributes) {
       CharacterBuilder builder = new CharacterBuilder(attributes, 1, 130030000);
-      //giveItem(recipe, 4161047, 1, MapleInventoryType.ETC);
       return create(builder);
    }
 
    public static Optional<CharacterData> createLegend(CharacterAttributes attributes) {
       CharacterBuilder builder = new CharacterBuilder(attributes, 1, 914000000);
-      //giveItem(recipe, 4161048, 1, MapleInventoryType.ETC);
       return create(builder);
    }
 
    public static Optional<CharacterData> createBeginner(CharacterBuilder builder) {
-      //giveItem(recipe, 4161001, 1, MapleInventoryType.ETC);
+      builder.setJobId(Job.BEGINNER.getId());
       builder.setMapId(10000);
       return create(builder);
    }
 
    public static Optional<CharacterData> createNoblesse(CharacterBuilder builder) {
-      //giveItem(recipe, 4161047, 1, MapleInventoryType.ETC);
+      builder.setJobId(Job.NOBLESSE.getId());
       builder.setMapId(130030000);
       return create(builder);
    }
 
    public static Optional<CharacterData> createLegend(CharacterBuilder builder) {
-      //giveItem(recipe, 4161048, 1, MapleInventoryType.ETC);
+      builder.setJobId(Job.LEGEND.getId());
       builder.setMapId(914000000);
       return create(builder);
    }

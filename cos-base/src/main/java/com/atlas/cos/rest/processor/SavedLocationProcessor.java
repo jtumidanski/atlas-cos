@@ -1,7 +1,5 @@
 package com.atlas.cos.rest.processor;
 
-import javax.ws.rs.core.Response;
-
 import com.app.rest.util.stream.Collectors;
 import com.atlas.cos.attribute.LocationAttributes;
 import com.atlas.cos.database.administrator.SavedLocationAdministrator;
@@ -39,6 +37,6 @@ public final class SavedLocationProcessor {
          SavedLocationAdministrator.deleteForCharacterByType(entityManager, characterId, type);
          SavedLocationAdministrator.create(entityManager, characterId, type, attributes.mapId(), attributes.portalId());
       });
-      return new ResultBuilder(Response.Status.NO_CONTENT);
+      return ResultBuilder.noContent();
    }
 }

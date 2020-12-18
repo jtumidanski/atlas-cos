@@ -13,11 +13,11 @@ import javax.ws.rs.core.Response;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.attribute.CharacterSeedAttributes;
 import com.atlas.cos.attribute.LocationAttributes;
-import com.atlas.cos.rest.processor.SavedLocationProcessor;
 import com.atlas.cos.rest.processor.CharacterRequestProcessor;
 import com.atlas.cos.rest.processor.CharacterSeedRequestProcessor;
 import com.atlas.cos.rest.processor.DamageProcessor;
 import com.atlas.cos.rest.processor.InventoryRequestProcessor;
+import com.atlas.cos.rest.processor.SavedLocationProcessor;
 
 import builder.ResultBuilder;
 import rest.InputBody;
@@ -39,7 +39,7 @@ public class CharacterResource {
       } else if (worldId != null && mapId != null) {
          return CharacterRequestProcessor.getForWorldInMap(worldId, mapId).build();
       }
-      return new ResultBuilder().build();
+      return ResultBuilder.ok().build();
    }
 
    @POST

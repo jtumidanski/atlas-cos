@@ -1,9 +1,7 @@
 package com.atlas.cos.processor;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.atlas.cos.model.Portal;
@@ -36,7 +34,7 @@ public final class PortalProcessor {
             .getWithResponse()
             .result()
             .map(DataContainer::dataList)
-            .orElse(Collections.emptyList())
+            .orElseGet(Collections::emptyList)
             .stream()
             .map(ModelFactory::createPortal);
    }

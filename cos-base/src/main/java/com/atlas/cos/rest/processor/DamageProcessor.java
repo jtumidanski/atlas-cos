@@ -12,7 +12,7 @@ public final class DamageProcessor {
    }
 
    public static ResultBuilder getWeaponDamage(int characterId) {
-      return new ResultBuilder()
+      return ResultBuilder.ok()
             .addData(new ResultObjectBuilder(DamageAttributes.class, 0)
                   .setAttribute(new DamageAttributesBuilder()
                         .setType(DamageType.WEAPON)
