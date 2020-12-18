@@ -19,8 +19,8 @@ import com.atlas.cos.event.producer.CharacterLevelEventProducer;
 import com.atlas.cos.event.producer.CharacterStatUpdateProducer;
 import com.atlas.cos.event.producer.MapChangedProducer;
 import com.atlas.cos.model.CharacterData;
-import com.atlas.cos.model.EquipData;
 import com.atlas.cos.model.EquipmentData;
+import com.atlas.cos.model.EquipmentStatistics;
 import com.atlas.cos.model.HpMpSummary;
 import com.atlas.cos.model.Job;
 import com.atlas.cos.model.StatisticChangeSummary;
@@ -113,11 +113,11 @@ public final class CharacterProcessor {
    public static int getWeaponAttack(CharacterData character) {
       int weaponAttack = 0;
 
-      weaponAttack += ItemProcessor.getEquipmentForCharacter(character.id())
+      weaponAttack += EquipmentProcessor.getEquipmentForCharacter(character.id())
             .map(EquipmentData::equipmentId)
-            .map(EquipProcessor::getEquipData)
+            .map(EquipmentStatisticsProcessor::getEquipData)
             .flatMap(Optional::stream)
-            .mapToInt(EquipData::weaponAttack)
+            .mapToInt(EquipmentStatistics::weaponAttack)
             .sum();
 
       //TODO
@@ -137,11 +137,11 @@ public final class CharacterProcessor {
       //TODO
       // apply Maple Warrior
 
-      strength += ItemProcessor.getEquipmentForCharacter(character.id())
+      strength += EquipmentProcessor.getEquipmentForCharacter(character.id())
             .map(EquipmentData::equipmentId)
-            .map(EquipProcessor::getEquipData)
+            .map(EquipmentStatisticsProcessor::getEquipData)
             .flatMap(Optional::stream)
-            .mapToInt(EquipData::strength)
+            .mapToInt(EquipmentStatistics::strength)
             .sum();
 
       return strength;
@@ -153,11 +153,11 @@ public final class CharacterProcessor {
       //TODO
       // apply Maple Warrior
 
-      dexterity += ItemProcessor.getEquipmentForCharacter(character.id())
+      dexterity += EquipmentProcessor.getEquipmentForCharacter(character.id())
             .map(EquipmentData::equipmentId)
-            .map(EquipProcessor::getEquipData)
+            .map(EquipmentStatisticsProcessor::getEquipData)
             .flatMap(Optional::stream)
-            .mapToInt(EquipData::dexterity)
+            .mapToInt(EquipmentStatistics::dexterity)
             .sum();
 
       return dexterity;
@@ -169,11 +169,11 @@ public final class CharacterProcessor {
       //TODO
       // apply Maple Warrior
 
-      luck += ItemProcessor.getEquipmentForCharacter(character.id())
+      luck += EquipmentProcessor.getEquipmentForCharacter(character.id())
             .map(EquipmentData::equipmentId)
-            .map(EquipProcessor::getEquipData)
+            .map(EquipmentStatisticsProcessor::getEquipData)
             .flatMap(Optional::stream)
-            .mapToInt(EquipData::luck)
+            .mapToInt(EquipmentStatistics::luck)
             .sum();
 
       return luck;
@@ -185,11 +185,11 @@ public final class CharacterProcessor {
       //TODO
       // apply Maple Warrior
 
-      intelligence += ItemProcessor.getEquipmentForCharacter(character.id())
+      intelligence += EquipmentProcessor.getEquipmentForCharacter(character.id())
             .map(EquipmentData::equipmentId)
-            .map(EquipProcessor::getEquipData)
+            .map(EquipmentStatisticsProcessor::getEquipData)
             .flatMap(Optional::stream)
-            .mapToInt(EquipData::intelligence)
+            .mapToInt(EquipmentStatistics::intelligence)
             .sum();
 
       return intelligence;

@@ -11,9 +11,9 @@ import com.app.rest.util.stream.Collectors;
 import com.app.rest.util.stream.Mappers;
 import com.atlas.cos.model.EquipmentData;
 import com.atlas.cos.model.Inventory;
-import com.atlas.cos.processor.EquipProcessor;
+import com.atlas.cos.processor.EquipmentProcessor;
+import com.atlas.cos.processor.EquipmentStatisticsProcessor;
 import com.atlas.cos.processor.InventoryProcessor;
-import com.atlas.cos.processor.ItemProcessor;
 import com.atlas.cos.rest.ResultObjectFactory;
 
 import builder.ResultBuilder;
@@ -39,9 +39,9 @@ public final class InventoryRequestProcessor {
                .forEach(resultBuilder::addInclude);
       }
       if (containsIgnoreCase(includedResources, "equipmentStatistics")) {
-         ItemProcessor.getEquipmentForCharacter(characterId)
+         EquipmentProcessor.getEquipmentForCharacter(characterId)
                .map(EquipmentData::equipmentId)
-               .map(EquipProcessor::getEquipData)
+               .map(EquipmentStatisticsProcessor::getEquipData)
                .flatMap(Optional::stream)
                .map(ResultObjectFactory::create)
                .forEach(resultBuilder::addInclude);
@@ -69,9 +69,9 @@ public final class InventoryRequestProcessor {
                .forEach(resultBuilder::addInclude);
       }
       if (containsIgnoreCase(includedResources, "equipmentStatistics")) {
-         ItemProcessor.getEquipmentForCharacter(characterId)
+         EquipmentProcessor.getEquipmentForCharacter(characterId)
                .map(EquipmentData::equipmentId)
-               .map(EquipProcessor::getEquipData)
+               .map(EquipmentStatisticsProcessor::getEquipData)
                .flatMap(Optional::stream)
                .map(ResultObjectFactory::create)
                .forEach(resultBuilder::addInclude);

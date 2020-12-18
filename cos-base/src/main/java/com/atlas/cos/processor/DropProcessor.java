@@ -86,7 +86,7 @@ public final class DropProcessor {
    }
 
    protected static void pickupEquip(CharacterData character, Drop drop) {
-      ItemProcessor.createEquipmentForCharacter(character.id(), drop.itemId(), false);
+      EquipmentProcessor.createEquipmentForCharacter(character.id(), drop.itemId(), false);
       //InventoryModificationProducer.emit(character.id(), 0, drop.itemId(), drop.quantity(), inventoryType.getType(), slot);
    }
 

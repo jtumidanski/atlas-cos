@@ -7,9 +7,8 @@ import com.atlas.cos.processor.TopicDiscoveryProcessor;
 
 public class ChangeMapCommandConsumer extends AbstractEventConsumer<ChangeMapCommand> {
    @Override
-   public void handle(Long key, ChangeMapCommand changeMapCommand) {
-      CharacterProcessor.updateMap(changeMapCommand.worldId(), changeMapCommand.channelId(),
-            changeMapCommand.characterId(), changeMapCommand.mapId(), changeMapCommand.portalId());
+   public void handle(Long key, ChangeMapCommand command) {
+      CharacterProcessor.updateMap(command.worldId(), command.channelId(), command.characterId(), command.mapId(), command.portalId());
    }
 
    @Override

@@ -36,7 +36,7 @@ public final class InventoryProcessor {
    }
 
    protected static Stream<InventoryItem> getEquipInventoryItems(int characterId) {
-      return ItemProcessor.getEquipmentForCharacter(characterId)
+      return EquipmentProcessor.getEquipmentForCharacter(characterId)
             .map(equipment -> new InventoryItem(equipment.id(), InventoryItemType.EQUIPMENT, equipment.slot()));
    }
 

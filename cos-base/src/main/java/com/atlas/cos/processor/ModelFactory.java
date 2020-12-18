@@ -1,7 +1,7 @@
 package com.atlas.cos.processor;
 
 import com.atlas.cos.model.Drop;
-import com.atlas.cos.model.EquipData;
+import com.atlas.cos.model.EquipmentStatistics;
 import com.atlas.cos.model.Monster;
 import com.atlas.cos.model.Portal;
 import com.atlas.drg.rest.attribute.DropAttributes;
@@ -42,8 +42,8 @@ public final class ModelFactory {
             body.getAttributes().playerDrop());
    }
 
-   public static EquipData createEquip(DataBody<EquipmentAttributes> body) {
-      return new EquipData(
+   public static EquipmentStatistics createEquip(DataBody<EquipmentAttributes> body) {
+      return new EquipmentStatistics(
             Integer.parseInt(body.getId()),
             body.getAttributes().itemId(),
             body.getAttributes().strength(),

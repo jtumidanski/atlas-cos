@@ -6,6 +6,7 @@ import com.atlas.cos.builder.CharacterBuilder;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.Job;
 import com.atlas.cos.processor.CharacterProcessor;
+import com.atlas.cos.processor.EquipmentProcessor;
 import com.atlas.cos.processor.ItemProcessor;
 import com.atlas.cos.processor.JobProcessor;
 import com.atlas.cos.rest.ResultObjectFactory;
@@ -39,14 +40,14 @@ public final class CharacterSeedRequestProcessor {
          return new ResultBuilder(Response.Status.FORBIDDEN);
       }
 
-      ItemProcessor.createEquipmentForCharacter(result.get().id(), top, true)
-            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
-      ItemProcessor.createEquipmentForCharacter(result.get().id(), bottom, true)
-            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
-      ItemProcessor.createEquipmentForCharacter(result.get().id(), shoes, true)
-            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
-      ItemProcessor.createEquipmentForCharacter(result.get().id(), weapon, true)
-            .ifPresent(equipment -> ItemProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
+      EquipmentProcessor.createEquipmentForCharacter(result.get().id(), top, true)
+            .ifPresent(equipment -> EquipmentProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
+      EquipmentProcessor.createEquipmentForCharacter(result.get().id(), bottom, true)
+            .ifPresent(equipment -> EquipmentProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
+      EquipmentProcessor.createEquipmentForCharacter(result.get().id(), shoes, true)
+            .ifPresent(equipment -> EquipmentProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
+      EquipmentProcessor.createEquipmentForCharacter(result.get().id(), weapon, true)
+            .ifPresent(equipment -> EquipmentProcessor.equipItemForCharacter(result.get().id(), equipment.equipmentId()));
 
       return result
             .map(ResultObjectFactory::create)

@@ -18,9 +18,9 @@ public final class DamageProcessor {
    protected static int getMaxBaseDamage(CharacterData character) {
       int weaponAttack = CharacterProcessor.getWeaponAttack(character);
 
-      return ItemProcessor.getEquippedItemForCharacterBySlot(character.id(), (short) -11)
+      return EquipmentProcessor.getEquippedItemForCharacterBySlot(character.id(), (short) -11)
             .map(EquipmentData::equipmentId)
-            .flatMap(EquipProcessor::getEquipData)
+            .flatMap(EquipmentStatisticsProcessor::getEquipData)
             .map(weapon -> getMaxBaseDamage(character, weaponAttack, WeaponType.getWeaponType(weapon.itemId())))
             .orElse(getMaxBaseDamageNoWeapon(character));
    }

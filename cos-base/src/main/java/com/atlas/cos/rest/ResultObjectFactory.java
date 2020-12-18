@@ -19,13 +19,14 @@ import com.atlas.cos.builder.LocationAttributesBuilder;
 import com.atlas.cos.model.BlockedNameData;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.CharacterTemporalData;
-import com.atlas.cos.model.EquipData;
 import com.atlas.cos.model.EquipmentData;
+import com.atlas.cos.model.EquipmentStatistics;
 import com.atlas.cos.model.Inventory;
 import com.atlas.cos.model.InventoryItem;
 import com.atlas.cos.model.InventoryItemType;
 import com.atlas.cos.model.ItemData;
 import com.atlas.cos.model.SavedLocationData;
+import com.atlas.cos.processor.EquipmentProcessor;
 import com.atlas.cos.processor.ItemProcessor;
 
 import builder.LinkDataBuilder;
@@ -139,7 +140,7 @@ public class ResultObjectFactory {
 
    public static ResultObjectBuilder create(InventoryItem inventoryItem) {
       if (inventoryItem.type().equals(InventoryItemType.EQUIPMENT)) {
-         return ItemProcessor.getEquipmentById(inventoryItem.id())
+         return EquipmentProcessor.getEquipmentById(inventoryItem.id())
                .map(ResultObjectFactory::create)
                .orElseThrow();
       } else {
@@ -149,26 +150,26 @@ public class ResultObjectFactory {
       }
    }
 
-   public static ResultObjectBuilder create(EquipData equipData) {
-      return new ResultObjectBuilder(EquipmentStatisticsAttributes.class, equipData.id())
+   public static ResultObjectBuilder create(EquipmentStatistics statistics) {
+      return new ResultObjectBuilder(EquipmentStatisticsAttributes.class, statistics.id())
             .setAttribute(new EquipmentStatisticsAttributesBuilder()
-                  .setItemId(equipData.itemId())
-                  .setStrength(equipData.strength())
-                  .setDexterity(equipData.dexterity())
-                  .setIntelligence(equipData.intelligence())
-                  .setLuck(equipData.luck())
-                  .setHp(equipData.hp())
-                  .setMp(equipData.mp())
-                  .setWeaponAttack(equipData.weaponAttack())
-                  .setMagicAttack(equipData.magicAttack())
-                  .setWeaponDefense(equipData.weaponDefense())
-                  .setMagicDefense(equipData.magicDefense())
-                  .setAccuracy(equipData.accuracy())
-                  .setAvoidability(equipData.avoidability())
-                  .setHands(equipData.hands())
-                  .setSpeed(equipData.speed())
-                  .setJump(equipData.jump())
-                  .setSlots(equipData.slots())
+                  .setItemId(statistics.itemId())
+                  .setStrength(statistics.strength())
+                  .setDexterity(statistics.dexterity())
+                  .setIntelligence(statistics.intelligence())
+                  .setLuck(statistics.luck())
+                  .setHp(statistics.hp())
+                  .setMp(statistics.mp())
+                  .setWeaponAttack(statistics.weaponAttack())
+                  .setMagicAttack(statistics.magicAttack())
+                  .setWeaponDefense(statistics.weaponDefense())
+                  .setMagicDefense(statistics.magicDefense())
+                  .setAccuracy(statistics.accuracy())
+                  .setAvoidability(statistics.avoidability())
+                  .setHands(statistics.hands())
+                  .setSpeed(statistics.speed())
+                  .setJump(statistics.jump())
+                  .setSlots(statistics.slots())
             );
    }
 }
