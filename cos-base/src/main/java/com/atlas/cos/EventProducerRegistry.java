@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import com.atlas.cos.event.CharacterCreatedEvent;
 import com.atlas.cos.event.CharacterExperienceEvent;
+import com.atlas.cos.event.CharacterInventoryModifyEvent;
 import com.atlas.cos.event.CharacterLevelEvent;
 import com.atlas.cos.event.CharacterStatUpdateEvent;
 import com.atlas.cos.event.MapChangedEvent;
@@ -63,6 +64,8 @@ public class EventProducerRegistry {
       producerMap.put(PickupDropCommand.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       producerMap.put(CancelDropReservationCommand.class,
+            KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
+      producerMap.put(CharacterInventoryModifyEvent.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       topicMap = new HashMap<>();
    }

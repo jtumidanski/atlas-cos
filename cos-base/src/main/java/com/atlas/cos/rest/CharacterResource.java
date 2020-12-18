@@ -1,7 +1,6 @@
 package com.atlas.cos.rest;
 
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -11,7 +10,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.app.rest.RelationshipInputBody;
 import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.attribute.CharacterSeedAttributes;
 import com.atlas.cos.attribute.LocationAttributes;
@@ -19,8 +17,7 @@ import com.atlas.cos.processor.SavedLocationProcessor;
 import com.atlas.cos.rest.processor.CharacterRequestProcessor;
 import com.atlas.cos.rest.processor.CharacterSeedRequestProcessor;
 import com.atlas.cos.rest.processor.DamageProcessor;
-import com.atlas.cos.rest.processor.EquippedItemRequestProcessor;
-import com.atlas.cos.rest.processor.ItemRequestProcessor;
+import com.atlas.cos.rest.processor.InventoryRequestProcessor;
 
 import builder.ResultBuilder;
 import rest.InputBody;
@@ -61,35 +58,17 @@ public class CharacterResource {
       return CharacterRequestProcessor.getById(characterId).build();
    }
 
-   @POST
-   @Path("/{characterId}/equipmentSlots/relationships/equipment")
-   @Consumes(MediaType.APPLICATION_JSON)
-   @Produces(MediaType.APPLICATION_JSON)
-   public Response equipEquipment(@PathParam("characterId") Integer characterId,
-                                  RelationshipInputBody relationshipInputBody) {
-      int equipmentId = Integer.parseInt(relationshipInputBody.getData().getId());
-      return EquippedItemRequestProcessor.equipForCharacter(characterId, equipmentId).build();
-   }
-
    @GET
-   @Path("/{characterId}/inventories/equipment")
+   @Path("/{characterId}/inventories")
    @Consumes(MediaType.APPLICATION_JSON)
    @Produces(MediaType.APPLICATION_JSON)
-   public Response getEquipment(@PathParam("characterId") Integer characterId,
-                                @DefaultValue("false") @QueryParam("filter[equipped]") Boolean equipped) {
-      if (equipped != null) {
-         return ItemRequestProcessor.getEquippedItemsForCharacter(characterId).build();
-      } else {
-         return ItemRequestProcessor.getEquipsForCharacter(characterId).build();
+   public Response getInventoryForCharacter(@PathParam("characterId") Integer characterId,
+                                            @QueryParam("type") String type,
+                                            @QueryParam("include") String include) {
+      if (type != null) {
+         return InventoryRequestProcessor.getInventoryByType(characterId, type, include).build();
       }
-   }
-
-   @GET
-   @Path("/{characterId}/inventories/equipment/{equipmentId}")
-   @Consumes(MediaType.APPLICATION_JSON)
-   @Produces(MediaType.APPLICATION_JSON)
-   public Response createEquipment(@PathParam("characterId") Integer characterId, @PathParam("equipmentId") Integer equipmentId) {
-      return ItemRequestProcessor.getEquipmentForCharacter(characterId, equipmentId).build();
+      return InventoryRequestProcessor.getAllInventories(characterId, include).build();
    }
 
    @POST

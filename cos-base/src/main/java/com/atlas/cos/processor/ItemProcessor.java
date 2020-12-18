@@ -108,8 +108,8 @@ public final class ItemProcessor {
             }));
    }
 
-   public static Optional<EquipmentData> getEquipmentForCharacter(int characterId, int equipmentId) {
-      return Connection.instance().element(entityManager -> EquipmentProvider.getByEquipmentId(entityManager, equipmentId));
+   public static Optional<EquipmentData> getEquipmentById(int id) {
+      return Connection.instance().element(entityManager -> EquipmentProvider.getById(entityManager, id));
    }
 
    public static List<EquipmentData> getEquipmentForCharacter(int characterId) {
@@ -133,6 +133,11 @@ public final class ItemProcessor {
       ).anyMatch(id -> id == itemId);
    }
 
+   public static List<ItemData> getItemsForCharacter(int characterId, InventoryType inventoryType) {
+      return Connection.instance()
+            .list(entityManager -> ItemProvider.getForCharacterByInventory(entityManager, characterId, inventoryType.getType()));
+   }
+
    public static List<ItemData> getItemsForCharacter(int characterId, InventoryType inventoryType, int itemId) {
       return Connection.instance()
             .list(entityManager -> ItemProvider.getItemsForCharacter(entityManager, characterId, inventoryType.getType(), itemId));
@@ -149,5 +154,9 @@ public final class ItemProcessor {
 
       Connection.instance().element(entityManager ->
             ItemAdministrator.create(entityManager, characterId, inventoryType.getType(), itemId, quantity, nextOpenSlot));
+   }
+
+   public static Optional<ItemData> getItemById(int id) {
+      return Connection.instance().element(entityManager -> ItemProvider.getById(entityManager, id));
    }
 }

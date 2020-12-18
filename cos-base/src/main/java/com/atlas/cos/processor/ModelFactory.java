@@ -44,6 +44,7 @@ public final class ModelFactory {
 
    public static EquipData createEquip(DataBody<EquipmentAttributes> body) {
       return new EquipData(
+            Integer.parseInt(body.getId()),
             body.getAttributes().itemId(),
             body.getAttributes().strength(),
             body.getAttributes().dexterity(),

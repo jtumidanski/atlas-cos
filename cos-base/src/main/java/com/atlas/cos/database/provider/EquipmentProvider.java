@@ -59,4 +59,10 @@ public class EquipmentProvider {
             .findFirst()
             .orElse((short) usedSlots.size()));
    }
+
+   public static Optional<EquipmentData> getById(EntityManager entityManager, int id) {
+      return new NamedQueryClient<>(entityManager, Equipment.GET_BY_ID, Equipment.class)
+            .setParameter(Equipment.ID, id)
+            .element(new EquipmentDataTransformer());
+   }
 }

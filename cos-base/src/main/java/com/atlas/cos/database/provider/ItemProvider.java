@@ -48,11 +48,17 @@ public final class ItemProvider {
             .orElse((short) usedSlots.size()));
    }
 
-   private static List<ItemData> getForCharacterByInventory(EntityManager entityManager, int characterId, byte type) {
+   public static List<ItemData> getForCharacterByInventory(EntityManager entityManager, int characterId, byte type) {
       TypedQuery<Item> query = entityManager.createQuery("SELECT i FROM Item i WHERE i.characterId = :characterId AND i"
             + ".inventoryType = :type", Item.class);
       query.setParameter("characterId", characterId);
       query.setParameter("type", type);
       return QueryProviderUtil.list(query, new ItemDataTransformer());
+   }
+
+   public static Optional<ItemData> getById(EntityManager entityManager, int id) {
+      TypedQuery<Item> query = entityManager.createQuery("SELECT i FROM Item i WHERE i.id = :id", Item.class);
+      query.setParameter("id", id);
+      return QueryProviderUtil.optionalElement(query, new ItemDataTransformer());
    }
 }

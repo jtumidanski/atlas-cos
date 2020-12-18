@@ -80,6 +80,7 @@ public final class DropProcessor {
          // TODO update ariant score if 4031868
 
          PickedUpItemProducer.emit(character.id(), drop.itemId(), drop.quantity());
+         //InventoryModificationProducer.emit(character.id(), 0, drop.itemId(), drop.quantity(), inventoryType.getType(), slot);
       }
       PickupDropCommandProducer.emit(character.id(), drop.id());
    }
@@ -106,6 +107,8 @@ public final class DropProcessor {
                   int newQuantity = Math.min(oldQuantity + quantity, slotMax);
                   quantity -= (newQuantity - oldQuantity);
                   ItemProcessor.updateItemQuantity(itemData.id(), newQuantity);
+                  //InventoryModificationProducer.emit(character.id(), 1, drop.itemId(), drop.quantity(), inventoryType.getType()
+                  // , slot);
                }
             } else {
                break;
@@ -116,6 +119,7 @@ public final class DropProcessor {
          int newQuantity = Math.min(quantity, slotMax);
          quantity -= newQuantity;
          ItemProcessor.createItemForCharacter(character.id(), inventoryType, drop.itemId(), newQuantity);
+         //InventoryModificationProducer.emit(character.id(), 0, drop.itemId(), drop.quantity(), inventoryType.getType(), slot);
       }
    }
 
