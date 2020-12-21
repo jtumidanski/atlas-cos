@@ -15,6 +15,8 @@ public class EventConstants {
 
    public static final String TOPIC_ASSIGN_AP_COMMAND = "TOPIC_ASSIGN_AP_COMMAND";
 
+   public static final String TOPIC_ASSIGN_SP_COMMAND = "TOPIC_ASSIGN_SP_COMMAND";
+
    public static final String TOPIC_PICKED_UP_ITEM = "TOPIC_PICKED_UP_ITEM";
 
    public static final String TOPIC_PICKED_UP_NX = "TOPIC_PICKED_UP_NX";
