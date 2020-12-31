@@ -9,6 +9,7 @@ import com.atlas.cos.attribute.InventoryAttributes;
 import com.atlas.cos.attribute.ItemAttributes;
 import com.atlas.cos.attribute.LocationAttributes;
 import com.atlas.cos.attribute.LocationType;
+import com.atlas.cos.attribute.SkillAttributes;
 import com.atlas.cos.builder.BlockedNameAttributesBuilder;
 import com.atlas.cos.builder.CharacterAttributesBuilder;
 import com.atlas.cos.builder.EquipmentAttributesBuilder;
@@ -16,6 +17,7 @@ import com.atlas.cos.builder.EquipmentStatisticsAttributesBuilder;
 import com.atlas.cos.builder.InventoryAttributesBuilder;
 import com.atlas.cos.builder.ItemAttributesBuilder;
 import com.atlas.cos.builder.LocationAttributesBuilder;
+import com.atlas.cos.builder.SkillAttributesBuilder;
 import com.atlas.cos.model.BlockedNameData;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.CharacterTemporalData;
@@ -26,6 +28,7 @@ import com.atlas.cos.model.InventoryItem;
 import com.atlas.cos.model.InventoryItemType;
 import com.atlas.cos.model.ItemData;
 import com.atlas.cos.model.SavedLocationData;
+import com.atlas.cos.model.SkillData;
 import com.atlas.cos.processor.EquipmentProcessor;
 import com.atlas.cos.processor.ItemProcessor;
 
@@ -170,6 +173,15 @@ public class ResultObjectFactory {
                   .setSpeed(statistics.speed())
                   .setJump(statistics.jump())
                   .setSlots(statistics.slots())
+            );
+   }
+
+   public static ResultObjectBuilder create(SkillData data) {
+      return new ResultObjectBuilder(SkillAttributes.class, data.skillId())
+            .setAttribute(new SkillAttributesBuilder()
+                  .setLevel(data.skillLevel())
+                  .setMasterLevel(data.masterLevel())
+                  .setExpiration(data.expiration())
             );
    }
 }

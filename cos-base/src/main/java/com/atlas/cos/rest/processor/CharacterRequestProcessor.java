@@ -83,4 +83,11 @@ public final class CharacterRequestProcessor {
             .map(ResultObjectFactory::create)
             .collect(Collectors.toResultBuilder());
    }
+
+   public static ResultBuilder getSkills(int characterId) {
+      return CharacterProcessor.getSkills(characterId)
+            .stream()
+            .map(ResultObjectFactory::create)
+            .collect(Collectors.toResultBuilder());
+   }
 }

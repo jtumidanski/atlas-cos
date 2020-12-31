@@ -1,13 +1,19 @@
 package com.atlas.cos.processor;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import com.atlas.cos.model.Drop;
 import com.atlas.cos.model.EquipmentStatistics;
 import com.atlas.cos.model.Monster;
 import com.atlas.cos.model.Portal;
+import com.atlas.cos.model.SkillInformation;
+import com.atlas.cos.model.StatEffect;
 import com.atlas.drg.rest.attribute.DropAttributes;
 import com.atlas.eso.attribute.EquipmentAttributes;
 import com.atlas.mis.attribute.MonsterDataAttributes;
 import com.atlas.mis.attribute.PortalAttributes;
+import com.atlas.sis.rest.attribute.SkillAttributes;
 
 import rest.DataBody;
 
@@ -63,5 +69,19 @@ public final class ModelFactory {
             body.getAttributes().jump(),
             body.getAttributes().slots()
       );
+   }
+
+   public static SkillInformation createSkillInformation(DataBody<SkillAttributes> body) {
+      return new SkillInformation(
+            getStatEffects(body)
+      );
+   }
+
+   protected static List<StatEffect> getStatEffects(DataBody<SkillAttributes> body) {
+      return body.getAttributes()
+            .effects()
+            .stream()
+            .map(attributes -> new StatEffect())
+            .collect(Collectors.toList());
    }
 }

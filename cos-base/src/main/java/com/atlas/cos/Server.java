@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.atlas.cos.event.consumer.AssignApConsumer;
+import com.atlas.cos.event.consumer.AssignSpConsumer;
 import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
 import com.atlas.cos.event.consumer.CharacterExperienceConsumer;
 import com.atlas.cos.event.consumer.CharacterLevelConsumer;
@@ -32,6 +33,7 @@ public class Server {
       SimpleEventConsumerFactory.create(new CharacterExperienceConsumer());
       SimpleEventConsumerFactory.create(new CharacterLevelConsumer());
       SimpleEventConsumerFactory.create(new AssignApConsumer());
+      SimpleEventConsumerFactory.create(new AssignSpConsumer());
       SimpleEventConsumerFactory.create(new DropReservationEventConsumer());
       SimpleEventConsumerFactory.create(new PickedUpMesoConsumer());
 

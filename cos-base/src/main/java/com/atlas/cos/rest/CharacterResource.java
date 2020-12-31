@@ -121,4 +121,12 @@ public class CharacterResource {
    public Response getCharacterDamage(@PathParam("characterId") Integer characterId) {
       return DamageProcessor.getWeaponDamage(characterId).build();
    }
+
+   @GET
+   @Path("/{characterId}/skills")
+   @Consumes(MediaType.APPLICATION_JSON)
+   @Produces(MediaType.APPLICATION_JSON)
+   public Response getCharacterSkills(@PathParam("characterId") Integer characterId) {
+      return CharacterRequestProcessor.getSkills(characterId).build();
+   }
 }

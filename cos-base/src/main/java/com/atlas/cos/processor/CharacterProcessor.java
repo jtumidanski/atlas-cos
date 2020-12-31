@@ -13,6 +13,7 @@ import com.atlas.cos.builder.CharacterBuilder;
 import com.atlas.cos.builder.StatisticChangeSummaryBuilder;
 import com.atlas.cos.database.administrator.CharacterAdministrator;
 import com.atlas.cos.database.provider.CharacterProvider;
+import com.atlas.cos.database.provider.SkillProvider;
 import com.atlas.cos.event.StatUpdateType;
 import com.atlas.cos.event.producer.CharacterCreatedProducer;
 import com.atlas.cos.event.producer.CharacterLevelEventProducer;
@@ -23,6 +24,7 @@ import com.atlas.cos.model.EquipmentData;
 import com.atlas.cos.model.EquipmentStatistics;
 import com.atlas.cos.model.HpMpSummary;
 import com.atlas.cos.model.Job;
+import com.atlas.cos.model.SkillData;
 import com.atlas.cos.model.StatisticChangeSummary;
 import com.atlas.cos.util.ExpTable;
 import com.atlas.cos.util.Randomizer;
@@ -684,5 +686,9 @@ public final class CharacterProcessor {
    public static void gainMeso(int characterId, int meso) {
       Connection.instance().with(entityManager -> CharacterAdministrator.increaseMeso(entityManager, characterId, meso));
       CharacterStatUpdateProducer.statsUpdated(characterId, Collections.singleton(StatUpdateType.MESO));
+   }
+
+   public static List<SkillData> getSkills(int characterId) {
+      return Connection.instance().list(entityManager -> SkillProvider.getSkills(entityManager, characterId));
    }
 }
