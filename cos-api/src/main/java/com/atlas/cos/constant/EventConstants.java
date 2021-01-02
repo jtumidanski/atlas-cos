@@ -13,6 +13,8 @@ public class EventConstants {
 
    public static final String TOPIC_CHARACTER_STAT_EVENT = "TOPIC_CHARACTER_STAT_EVENT";
 
+   public static final String TOPIC_CHARACTER_SKILL_UPDATE_EVENT = "TOPIC_CHARACTER_SKILL_UPDATE_EVENT";
+
    public static final String TOPIC_ASSIGN_AP_COMMAND = "TOPIC_ASSIGN_AP_COMMAND";
 
    public static final String TOPIC_ASSIGN_SP_COMMAND = "TOPIC_ASSIGN_SP_COMMAND";

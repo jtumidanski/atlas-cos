@@ -2,11 +2,22 @@ package com.atlas.cos.event.consumer;
 
 import com.atlas.cos.command.AssignSpCommand;
 import com.atlas.cos.constant.EventConstants;
+import com.atlas.cos.database.administrator.SkillAdministrator;
+import com.atlas.cos.database.provider.SkillProvider;
+import com.atlas.cos.event.StatUpdateType;
+import com.atlas.cos.event.producer.CharacterEnableActionsProducer;
+import com.atlas.cos.event.producer.CharacterSkillUpdateProducer;
+import com.atlas.cos.event.producer.CharacterStatUpdateProducer;
+import com.atlas.cos.model.CharacterData;
+import com.atlas.cos.model.SkillData;
 import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.processor.SkillInformationProcessor;
 import com.atlas.cos.processor.SkillProcessor;
 import com.atlas.cos.processor.TopicDiscoveryProcessor;
 import com.atlas.cos.util.SkillUtil;
+import database.Connection;
+
+import java.util.Collections;
 
 public class AssignSpConsumer extends AbstractEventConsumer<AssignSpCommand> {
    @Override
@@ -37,7 +48,7 @@ public class AssignSpConsumer extends AbstractEventConsumer<AssignSpCommand> {
                            if (!beginnerSkill) {
                               adjustSp(character.id(), -1, skillBookId);
                            } else {
-                              // enable actions.
+                              CharacterEnableActionsProducer.enableActions(character.id());
                            }
 
                            //TODO special handling for aran full swing and over swing.
@@ -50,9 +61,24 @@ public class AssignSpConsumer extends AbstractEventConsumer<AssignSpCommand> {
    }
 
    protected void adjustSp(int characterId, int amount, int skillBookId) {
+      int newValue = CharacterProcessor.getById(characterId)
+            .map(CharacterData::sps)
+            .map(sps -> sps[skillBookId])
+            .map(sp -> sp + amount)
+            .map(sp -> Math.max(0, sp))
+            .orElse(0);
+      CharacterProcessor.updateSp(characterId, newValue, skillBookId);
+      CharacterStatUpdateProducer.statsUpdated(characterId, Collections.singleton(StatUpdateType.AVAILABLE_SP));
    }
 
    protected void changeSkillLevel(int characterId, int skillId, byte level, int masterLevel, long expiration) {
+      Connection.instance().with(entityManager -> {
+         SkillData skillData = SkillProvider
+               .getSkill(entityManager, characterId, skillId)
+               .orElse(SkillAdministrator.createSkill(entityManager, characterId, skillId, masterLevel));
+         SkillAdministrator.updateSkill(entityManager, skillData.id(), level, masterLevel, expiration);
+      });
+      CharacterSkillUpdateProducer.updateSkill(characterId, skillId, level, masterLevel, expiration);
    }
 
    @Override

@@ -691,4 +691,8 @@ public final class CharacterProcessor {
    public static List<SkillData> getSkills(int characterId) {
       return Connection.instance().list(entityManager -> SkillProvider.getSkills(entityManager, characterId));
    }
+
+   public static void updateSp(int characterId, int newValue, int skillBookId) {
+      Connection.instance().with(entityManager -> CharacterAdministrator.updateSp(entityManager, characterId, newValue, skillBookId));
+   }
 }
