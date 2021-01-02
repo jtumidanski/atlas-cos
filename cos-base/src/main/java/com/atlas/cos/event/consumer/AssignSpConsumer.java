@@ -26,15 +26,21 @@ public class AssignSpConsumer extends AbstractEventConsumer<AssignSpCommand> {
       CharacterProcessor
             .getById(command.characterId())
             .ifPresent(character -> {
-               int skillBookId = SkillUtil.getSkillBook(command.skillId() / 10000);
-               int remainingSp = character.sps()[skillBookId];
-
                SkillProcessor.getSkill(command.characterId(), command.skillId())
                      .ifPresent(skillData -> {
+                        int skillBookId = SkillUtil.getSkillBook(command.skillId() / 10000);
+                        int remainingSp = character.sps()[skillBookId];
                         int currentLevel = skillData.skillLevel();
 
                         boolean beginnerSkill = false;
                         if (command.skillId() % 10000000 > 999 && command.skillId() % 10000000 < 1003) {
+                           int total = 0;
+                           for (int i = 0; i < 3; i++) {
+                              total += SkillProcessor.getSkill(character.id(), command.skillId())
+                                    .map(SkillData::skillLevel)
+                                    .orElse(0);
+                           }
+                           remainingSp = Math.min((character.level() - 1), 6) - total;
                            beginnerSkill = true;
                         }
 
@@ -52,9 +58,8 @@ public class AssignSpConsumer extends AbstractEventConsumer<AssignSpCommand> {
                            }
 
                            //TODO special handling for aran full swing and over swing.
-                           long expiration = 0;
                            changeSkillLevel(character.id(), skillData.skillId(), (byte) (currentLevel + 1), masterLevel,
-                                 expiration);
+                                 skillData.expiration());
                         }
                      });
             });
@@ -72,12 +77,7 @@ public class AssignSpConsumer extends AbstractEventConsumer<AssignSpCommand> {
    }
 
    protected void changeSkillLevel(int characterId, int skillId, byte level, int masterLevel, long expiration) {
-      Connection.instance().with(entityManager -> {
-         SkillData skillData = SkillProvider
-               .getSkill(entityManager, characterId, skillId)
-               .orElse(SkillAdministrator.createSkill(entityManager, characterId, skillId, masterLevel));
-         SkillAdministrator.updateSkill(entityManager, skillData.id(), level, masterLevel, expiration);
-      });
+      SkillProcessor.updateSkill(characterId, skillId, level, masterLevel, expiration);
       CharacterSkillUpdateProducer.updateSkill(characterId, skillId, level, masterLevel, expiration);
    }
 

@@ -11,13 +11,13 @@ public final class SkillAdministrator {
    private SkillAdministrator() {
    }
 
-   public static SkillData createSkill(EntityManager entityManager, int characterId, int skillId, int masterLevel) {
+   public static SkillData createSkill(EntityManager entityManager, int characterId, int skillId, int level, int masterLevel, long expiration) {
       Skill skill = new Skill();
       skill.setCharacterId(characterId);
       skill.setSkillId(skillId);
-      skill.setSkillLevel(0);
+      skill.setSkillLevel(level);
       skill.setMasterLevel(masterLevel);
-      skill.setExpiration(0L);
+      skill.setExpiration(expiration);
       QueryAdministratorUtil.insert(entityManager, skill);
       return new SkillTransformer().transform(skill);
    }

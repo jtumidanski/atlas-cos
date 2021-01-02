@@ -9,10 +9,14 @@ import com.atlas.cos.builder.CharacterBuilder;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.InventoryType;
 import com.atlas.cos.model.Job;
+import com.atlas.cos.model.skills.Beginner;
+import com.atlas.cos.model.skills.Legend;
+import com.atlas.cos.model.skills.Noblesse;
 import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.processor.EquipmentProcessor;
 import com.atlas.cos.processor.ItemProcessor;
 import com.atlas.cos.processor.JobProcessor;
+import com.atlas.cos.processor.SkillProcessor;
 import com.atlas.cos.rest.ResultObjectFactory;
 
 import builder.ResultBuilder;
@@ -59,8 +63,28 @@ public final class CharacterSeedRequestProcessor {
             .flatMap(creator -> creator.apply(new CharacterBuilder(accountId, worldId, name, skin, gender, hair + hairColor, face)))
             .map(character -> addEquippedItems(character, top, bottom, shoes, weapon))
             .map(CharacterSeedRequestProcessor::addOtherItems)
+            .map(CharacterSeedRequestProcessor::addSkills)
             .map(ResultObjectFactory::create)
             .map(Mappers::singleCreatedResult)
             .orElseGet(ResultBuilder::forbidden);
+   }
+
+   protected static CharacterData addSkills(CharacterData characterData) {
+      Job.getById(characterData.jobId()).ifPresent(job -> addSkills(characterData.id(), job));
+      return characterData;
+   }
+
+   protected static void addSkills(int characterId, Job job) {
+      if (job.isA(Job.BEGINNER)) {
+         SkillProcessor.awardSkill(characterId, Beginner.RECOVERY);
+         SkillProcessor.awardSkill(characterId, Beginner.NIMBLE_FEET);
+         SkillProcessor.awardSkill(characterId, Beginner.THREE_SNAILS);
+      } else if (job.isA(Job.LEGEND)) {
+
+      } else if (job.isA(Job.NOBLESSE)) {
+         SkillProcessor.awardSkill(characterId, Noblesse.RECOVERY);
+         SkillProcessor.awardSkill(characterId, Noblesse.NIMBLE_FEET);
+         SkillProcessor.awardSkill(characterId, Noblesse.THREE_SNAILS);
+      }
    }
 }
