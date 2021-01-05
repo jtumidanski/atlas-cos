@@ -1,7 +1,7 @@
 package com.atlas.cos.event.consumer;
 
 import com.atlas.cos.command.GainMesoCommand;
-import com.atlas.cos.constant.EventConstants;
+import com.atlas.cos.constant.CommandConstants;
 import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.processor.TopicDiscoveryProcessor;
 
@@ -18,6 +18,6 @@ public class GainMesoConsumer extends AbstractEventConsumer<GainMesoCommand> {
 
    @Override
    public String getTopic() {
-      return TopicDiscoveryProcessor.getTopic(EventConstants.TOPIC_GAIN_MESO);
+      return TopicDiscoveryProcessor.getTopic(CommandConstants.TOPIC_GAIN_MESO);
    }
 }

@@ -1,7 +1,7 @@
 package com.atlas.cos.event.consumer;
 
 import com.atlas.cos.command.AssignApCommand;
-import com.atlas.cos.constant.EventConstants;
+import com.atlas.cos.constant.CommandConstants;
 import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.processor.TopicDiscoveryProcessor;
 
@@ -29,6 +29,6 @@ public class AssignApConsumer extends AbstractEventConsumer<AssignApCommand> {
 
    @Override
    public String getTopic() {
-      return TopicDiscoveryProcessor.getTopic(EventConstants.TOPIC_ASSIGN_AP_COMMAND);
+      return TopicDiscoveryProcessor.getTopic(CommandConstants.TOPIC_ASSIGN_AP_COMMAND);
    }
 }

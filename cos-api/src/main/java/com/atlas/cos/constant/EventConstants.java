@@ -1,6 +1,7 @@
 package com.atlas.cos.constant;
 
 public class EventConstants {
+   @Deprecated
    public static final String TOPIC_CHANGE_MAP_COMMAND = "TOPIC_CHANGE_MAP_COMMAND";
 
    public static final String TOPIC_CHANGE_MAP_EVENT = "TOPIC_CHANGE_MAP_EVENT";
@@ -15,14 +16,17 @@ public class EventConstants {
 
    public static final String TOPIC_CHARACTER_SKILL_UPDATE_EVENT = "TOPIC_CHARACTER_SKILL_UPDATE_EVENT";
 
+   @Deprecated
    public static final String TOPIC_ASSIGN_AP_COMMAND = "TOPIC_ASSIGN_AP_COMMAND";
 
+   @Deprecated
    public static final String TOPIC_ASSIGN_SP_COMMAND = "TOPIC_ASSIGN_SP_COMMAND";
 
    public static final String TOPIC_PICKED_UP_ITEM = "TOPIC_PICKED_UP_ITEM";
 
    public static final String TOPIC_PICKED_UP_NX = "TOPIC_PICKED_UP_NX";
 
+   @Deprecated
    public static final String TOPIC_GAIN_MESO = "TOPIC_GAIN_MESO";
 
    public static final String TOPIC_MESO_GAINED = "TOPIC_MESO_GAINED";

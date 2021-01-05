@@ -1,9 +1,9 @@
 package com.atlas.cos.event.consumer;
 
+import java.util.Collections;
+
 import com.atlas.cos.command.AssignSpCommand;
-import com.atlas.cos.constant.EventConstants;
-import com.atlas.cos.database.administrator.SkillAdministrator;
-import com.atlas.cos.database.provider.SkillProvider;
+import com.atlas.cos.constant.CommandConstants;
 import com.atlas.cos.event.StatUpdateType;
 import com.atlas.cos.event.producer.CharacterEnableActionsProducer;
 import com.atlas.cos.event.producer.CharacterSkillUpdateProducer;
@@ -15,9 +15,6 @@ import com.atlas.cos.processor.SkillInformationProcessor;
 import com.atlas.cos.processor.SkillProcessor;
 import com.atlas.cos.processor.TopicDiscoveryProcessor;
 import com.atlas.cos.util.SkillUtil;
-import database.Connection;
-
-import java.util.Collections;
 
 public class AssignSpConsumer extends AbstractEventConsumer<AssignSpCommand> {
    @Override
@@ -88,6 +85,6 @@ public class AssignSpConsumer extends AbstractEventConsumer<AssignSpCommand> {
 
    @Override
    public String getTopic() {
-      return TopicDiscoveryProcessor.getTopic(EventConstants.TOPIC_ASSIGN_SP_COMMAND);
+      return TopicDiscoveryProcessor.getTopic(CommandConstants.TOPIC_ASSIGN_SP_COMMAND);
    }
 }
