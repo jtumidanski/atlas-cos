@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import com.atlas.cos.command.GainMesoCommand;
 import com.atlas.cos.event.CharacterCreatedEvent;
 import com.atlas.cos.event.CharacterExperienceEvent;
 import com.atlas.cos.event.CharacterInventoryModifyEvent;
@@ -12,7 +13,6 @@ import com.atlas.cos.event.CharacterSkillUpdateEvent;
 import com.atlas.cos.event.CharacterStatUpdateEvent;
 import com.atlas.cos.event.MapChangedEvent;
 import com.atlas.cos.event.PickedUpItemEvent;
-import com.atlas.cos.event.PickedUpMesoEvent;
 import com.atlas.cos.event.PickedUpNxEvent;
 import com.atlas.cos.processor.TopicDiscoveryProcessor;
 import com.atlas.csrv.command.EnableActionsCommand;
@@ -59,7 +59,7 @@ public class EventProducerRegistry {
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       producerMap.put(PickedUpItemEvent.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
-      producerMap.put(PickedUpMesoEvent.class,
+      producerMap.put(GainMesoCommand.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       producerMap.put(PickedUpNxEvent.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));

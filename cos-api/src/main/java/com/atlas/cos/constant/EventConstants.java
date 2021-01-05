@@ -23,7 +23,7 @@ public class EventConstants {
 
    public static final String TOPIC_PICKED_UP_NX = "TOPIC_PICKED_UP_NX";
 
-   public static final String TOPIC_PICKED_UP_MESO = "TOPIC_PICKED_UP_MESO";
+   public static final String TOPIC_GAIN_MESO = "TOPIC_GAIN_MESO";
 
    public static final String TOPIC_INVENTORY_MODIFICATION = "TOPIC_INVENTORY_MODIFICATION";
 }

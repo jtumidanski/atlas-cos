@@ -7,7 +7,7 @@ import java.util.Optional;
 import com.atlas.cos.event.producer.CancelDropReservationProducer;
 import com.atlas.cos.event.producer.InventoryModificationProducer;
 import com.atlas.cos.event.producer.PickedUpItemProducer;
-import com.atlas.cos.event.producer.PickedUpMesoProducer;
+import com.atlas.cos.event.producer.GainMesoProducer;
 import com.atlas.cos.event.producer.PickedUpNxProducer;
 import com.atlas.cos.event.producer.PickupDropCommandProducer;
 import com.atlas.cos.model.CharacterData;
@@ -144,7 +144,7 @@ public final class DropProcessor {
    }
 
    protected static void pickupMeso(CharacterData character, Drop drop) {
-      PickedUpMesoProducer.emit(character.id(), drop.meso());
+      GainMesoProducer.command(character.id(), drop.meso());
    }
 
    protected static boolean isOwnerLockedMap(int mapId) {
