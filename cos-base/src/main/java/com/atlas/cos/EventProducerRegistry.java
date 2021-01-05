@@ -12,6 +12,7 @@ import com.atlas.cos.event.CharacterLevelEvent;
 import com.atlas.cos.event.CharacterSkillUpdateEvent;
 import com.atlas.cos.event.CharacterStatUpdateEvent;
 import com.atlas.cos.event.MapChangedEvent;
+import com.atlas.cos.event.MesoGainedEvent;
 import com.atlas.cos.event.PickedUpItemEvent;
 import com.atlas.cos.event.PickedUpNxEvent;
 import com.atlas.cos.processor.TopicDiscoveryProcessor;
@@ -72,6 +73,8 @@ public class EventProducerRegistry {
       producerMap.put(EnableActionsCommand.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       producerMap.put(CharacterSkillUpdateEvent.class,
+            KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
+      producerMap.put(MesoGainedEvent.class,
             KafkaProducerFactory.createProducer("Character Service", System.getenv("BOOTSTRAP_SERVERS")));
       topicMap = new HashMap<>();
    }

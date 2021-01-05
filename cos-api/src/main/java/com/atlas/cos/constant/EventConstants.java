@@ -25,5 +25,7 @@ public class EventConstants {
 
    public static final String TOPIC_GAIN_MESO = "TOPIC_GAIN_MESO";
 
+   public static final String TOPIC_MESO_GAINED = "TOPIC_MESO_GAINED";
+
    public static final String TOPIC_INVENTORY_MODIFICATION = "TOPIC_INVENTORY_MODIFICATION";
 }

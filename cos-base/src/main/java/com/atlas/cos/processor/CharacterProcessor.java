@@ -19,6 +19,7 @@ import com.atlas.cos.event.producer.CharacterCreatedProducer;
 import com.atlas.cos.event.producer.CharacterLevelEventProducer;
 import com.atlas.cos.event.producer.CharacterStatUpdateProducer;
 import com.atlas.cos.event.producer.MapChangedProducer;
+import com.atlas.cos.event.producer.MesoGainedProducer;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.EquipmentData;
 import com.atlas.cos.model.EquipmentStatistics;
@@ -685,6 +686,7 @@ public final class CharacterProcessor {
 
    public static void gainMeso(int characterId, int meso) {
       Connection.instance().with(entityManager -> CharacterAdministrator.increaseMeso(entityManager, characterId, meso));
+      MesoGainedProducer.emit(characterId, meso);
       CharacterStatUpdateProducer.statsUpdated(characterId, Collections.singleton(StatUpdateType.MESO));
    }
 
@@ -693,6 +695,7 @@ public final class CharacterProcessor {
    }
 
    public static void updateSp(int characterId, int newValue, int skillBookId) {
-      Connection.instance().with(entityManager -> CharacterAdministrator.updateSp(entityManager, characterId, newValue, skillBookId));
+      Connection.instance()
+            .with(entityManager -> CharacterAdministrator.updateSp(entityManager, characterId, newValue, skillBookId));
    }
 }
