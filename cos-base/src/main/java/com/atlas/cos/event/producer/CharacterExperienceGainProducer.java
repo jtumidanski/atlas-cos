@@ -9,9 +9,7 @@ public final class CharacterExperienceGainProducer {
    }
 
    public static void gainExperience(int characterId, int personalGain, int partyGain, boolean show, boolean chat, boolean white) {
-      EventProducerRegistry.getInstance()
-            .send(CharacterExperienceEvent.class, EventConstants.TOPIC_CHARACTER_EXPERIENCE_EVENT, characterId,
-                  new CharacterExperienceEvent(characterId, personalGain, partyGain, show, chat,
-                        white));
+      EventProducerRegistry.getInstance().send(EventConstants.TOPIC_CHARACTER_EXPERIENCE_EVENT, characterId,
+            new CharacterExperienceEvent(characterId, personalGain, partyGain, show, chat, white));
    }
 }

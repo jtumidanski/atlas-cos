@@ -9,8 +9,7 @@ public final class GainMesoProducer {
    }
 
    public static void command(int characterId, int meso) {
-      EventProducerRegistry.getInstance()
-            .send(GainMesoCommand.class, CommandConstants.TOPIC_GAIN_MESO, characterId,
-                  new GainMesoCommand(characterId, meso));
+      EventProducerRegistry.getInstance().send(CommandConstants.TOPIC_GAIN_MESO, characterId,
+            new GainMesoCommand(characterId, meso));
    }
 }

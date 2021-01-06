@@ -9,8 +9,7 @@ public final class PickedUpNxProducer {
    }
 
    public static void emit(int characterId, int gain) {
-      EventProducerRegistry.getInstance()
-            .send(PickedUpNxEvent.class, EventConstants.TOPIC_PICKED_UP_NX, characterId,
-                  new PickedUpNxEvent(characterId, gain));
+      EventProducerRegistry.getInstance().send(EventConstants.TOPIC_PICKED_UP_NX, characterId,
+            new PickedUpNxEvent(characterId, gain));
    }
 }

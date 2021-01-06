@@ -9,8 +9,7 @@ public final class PickedUpItemProducer {
    }
 
    public static void emit(int characterId, int itemId, int quantity) {
-      EventProducerRegistry.getInstance()
-            .send(PickedUpItemEvent.class, EventConstants.TOPIC_PICKED_UP_ITEM, characterId,
-                  new PickedUpItemEvent(characterId, itemId, quantity));
+      EventProducerRegistry.getInstance().send(EventConstants.TOPIC_PICKED_UP_ITEM, characterId,
+            new PickedUpItemEvent(characterId, itemId, quantity));
    }
 }

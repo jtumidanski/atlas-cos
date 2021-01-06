@@ -9,8 +9,7 @@ public final class MapChangedProducer {
    }
 
    public static void notifyChange(int worldId, int channelId, int characterId, int mapId, int portalId) {
-      EventProducerRegistry.getInstance()
-            .send(MapChangedEvent.class, EventConstants.TOPIC_CHANGE_MAP_EVENT, worldId, channelId, new MapChangedEvent(worldId,
-                  channelId, mapId, portalId, characterId));
+      EventProducerRegistry.getInstance().send(EventConstants.TOPIC_CHANGE_MAP_EVENT, characterId,
+            new MapChangedEvent(worldId, channelId, mapId, portalId, characterId));
    }
 }

@@ -9,8 +9,7 @@ public final class CancelDropReservationProducer {
    }
 
    public static void emit(int dropId, int characterId) {
-      EventProducerRegistry.getInstance()
-            .send(CancelDropReservationCommand.class, EventConstants.TOPIC_CANCEL_DROP_RESERVATION_COMMAND, dropId,
-                  new CancelDropReservationCommand(characterId, dropId));
+      EventProducerRegistry.getInstance().send(EventConstants.TOPIC_CANCEL_DROP_RESERVATION_COMMAND, dropId,
+            new CancelDropReservationCommand(characterId, dropId));
    }
 }

@@ -9,8 +9,7 @@ public final class PickupDropCommandProducer {
    }
 
    public static void emit(int characterId, int dropId) {
-      EventProducerRegistry.getInstance()
-            .send(PickupDropCommand.class, EventConstants.TOPIC_PICKUP_DROP_COMMAND, dropId,
-                  new PickupDropCommand(dropId, characterId));
+      EventProducerRegistry.getInstance().send(EventConstants.TOPIC_PICKUP_DROP_COMMAND, dropId,
+            new PickupDropCommand(dropId, characterId));
    }
 }

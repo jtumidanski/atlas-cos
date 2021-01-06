@@ -9,8 +9,7 @@ public final class CharacterLevelEventProducer {
    }
 
    public static void gainLevel(int characterId) {
-      EventProducerRegistry.getInstance()
-            .send(CharacterLevelEvent.class, EventConstants.TOPIC_CHARACTER_LEVEL_EVENT, characterId,
-                  new CharacterLevelEvent(characterId));
+      EventProducerRegistry.getInstance().send(EventConstants.TOPIC_CHARACTER_LEVEL_EVENT, characterId,
+            new CharacterLevelEvent(characterId));
    }
 }

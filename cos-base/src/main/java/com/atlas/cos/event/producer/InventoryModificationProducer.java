@@ -12,9 +12,8 @@ public final class InventoryModificationProducer {
    }
 
    public static void emit(int characterId, int mode, int itemId, int quantity, int inventoryType, int position) {
-      EventProducerRegistry.getInstance()
-            .send(CharacterInventoryModifyEvent.class, EventConstants.TOPIC_INVENTORY_MODIFICATION, characterId,
-                  new CharacterInventoryModifyEvent(characterId, true,
-                        Collections.singletonList(new InventoryModification(mode, itemId, inventoryType, quantity, position))));
+      EventProducerRegistry.getInstance().send(EventConstants.TOPIC_INVENTORY_MODIFICATION, characterId,
+            new CharacterInventoryModifyEvent(characterId, true,
+                  Collections.singletonList(new InventoryModification(mode, itemId, inventoryType, quantity, position))));
    }
 }

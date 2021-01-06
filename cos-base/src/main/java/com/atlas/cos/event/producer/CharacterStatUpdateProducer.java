@@ -12,8 +12,7 @@ public final class CharacterStatUpdateProducer {
    }
 
    public static void statsUpdated(int characterId, Collection<StatUpdateType> updates) {
-      EventProducerRegistry.getInstance()
-            .send(CharacterStatUpdateEvent.class, EventConstants.TOPIC_CHARACTER_STAT_EVENT, characterId,
-                  new CharacterStatUpdateEvent(characterId, updates));
+      EventProducerRegistry.getInstance().send(EventConstants.TOPIC_CHARACTER_STAT_EVENT, characterId,
+            new CharacterStatUpdateEvent(characterId, updates));
    }
 }

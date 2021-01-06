@@ -10,8 +10,7 @@ public final class CharacterCreatedProducer {
    }
 
    public static void notifyCharacterCreated(CharacterData data) {
-      EventProducerRegistry.getInstance()
-            .send(CharacterCreatedEvent.class, EventConstants.TOPIC_CHARACTER_CREATED_EVENT, data.id(),
-                  new CharacterCreatedEvent(data.worldId(), data.id(), data.name()));
+      EventProducerRegistry.getInstance().send(EventConstants.TOPIC_CHARACTER_CREATED_EVENT, data.id(),
+            new CharacterCreatedEvent(data.worldId(), data.id(), data.name()));
    }
 }
