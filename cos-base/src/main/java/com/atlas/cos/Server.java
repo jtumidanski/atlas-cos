@@ -8,14 +8,15 @@ import com.atlas.cos.event.consumer.AssignApConsumer;
 import com.atlas.cos.event.consumer.AssignSpConsumer;
 import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
 import com.atlas.cos.event.consumer.CharacterExperienceConsumer;
+import com.atlas.cos.event.consumer.CharacterExpressionCommandConsumer;
 import com.atlas.cos.event.consumer.CharacterLevelConsumer;
 import com.atlas.cos.event.consumer.CharacterMovementConsumer;
 import com.atlas.cos.event.consumer.CharacterStatusConsumer;
 import com.atlas.cos.event.consumer.DropReservationEventConsumer;
-import com.atlas.cos.event.consumer.KillMonsterConsumer;
 import com.atlas.cos.event.consumer.GainMesoConsumer;
+import com.atlas.cos.event.consumer.KillMonsterConsumer;
 import com.atlas.cos.processor.BlockedNameProcessor;
-import com.atlas.kafka.consumer.SimpleEventConsumerFactory;
+import com.atlas.kafka.consumer.SimpleEventConsumerBuilder;
 import com.atlas.shared.rest.RestServerFactory;
 import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
@@ -26,16 +27,19 @@ public class Server {
    public static void main(String[] args) {
       PersistenceManager.construct("atlas-cos");
 
-      SimpleEventConsumerFactory.create(new ChangeMapCommandConsumer());
-      SimpleEventConsumerFactory.create(new CharacterStatusConsumer());
-      SimpleEventConsumerFactory.create(new CharacterMovementConsumer());
-      SimpleEventConsumerFactory.create(new KillMonsterConsumer());
-      SimpleEventConsumerFactory.create(new CharacterExperienceConsumer());
-      SimpleEventConsumerFactory.create(new CharacterLevelConsumer());
-      SimpleEventConsumerFactory.create(new AssignApConsumer());
-      SimpleEventConsumerFactory.create(new AssignSpConsumer());
-      SimpleEventConsumerFactory.create(new DropReservationEventConsumer());
-      SimpleEventConsumerFactory.create(new GainMesoConsumer());
+      SimpleEventConsumerBuilder.builder()
+            .addConsumer(new ChangeMapCommandConsumer())
+            .addConsumer(new CharacterStatusConsumer())
+            .addConsumer(new CharacterMovementConsumer())
+            .addConsumer(new KillMonsterConsumer())
+            .addConsumer(new CharacterExperienceConsumer())
+            .addConsumer(new CharacterLevelConsumer())
+            .addConsumer(new AssignApConsumer())
+            .addConsumer(new AssignSpConsumer())
+            .addConsumer(new DropReservationEventConsumer())
+            .addConsumer(new GainMesoConsumer())
+            .addConsumer(new CharacterExpressionCommandConsumer())
+            .initialize();
 
       List<String> blockedNameList = Arrays.asList("admin", "owner", "moderator", "intern", "donor", "administrator", "FREDRICK",
             "help", "helper", "alert", "notice", "maplestory", "fuck", "wizet", "fucking", "negro", "fuk", "fuc", "penis", "pussy",

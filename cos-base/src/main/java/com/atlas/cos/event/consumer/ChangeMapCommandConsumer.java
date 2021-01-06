@@ -1,15 +1,17 @@
 package com.atlas.cos.event.consumer;
 
+import com.atlas.cos.FacialExpressionRegistry;
 import com.atlas.cos.command.ChangeMapCommand;
 import com.atlas.cos.constant.CommandConstants;
-import com.atlas.cos.constant.EventConstants;
 import com.atlas.cos.processor.CharacterProcessor;
 import com.atlas.cos.processor.TopicDiscoveryProcessor;
 
 public class ChangeMapCommandConsumer extends AbstractEventConsumer<ChangeMapCommand> {
    @Override
    public void handle(Long key, ChangeMapCommand command) {
-      CharacterProcessor.updateMap(command.worldId(), command.channelId(), command.characterId(), command.mapId(), command.portalId());
+      CharacterProcessor
+            .updateMap(command.worldId(), command.channelId(), command.characterId(), command.mapId(), command.portalId());
+      FacialExpressionRegistry.getInstance().cancelChange(command.characterId());
    }
 
    @Override
