@@ -8,4 +8,6 @@ public class CommandConstants {
    public static final String TOPIC_ASSIGN_SP_COMMAND = "TOPIC_ASSIGN_SP_COMMAND";
 
    public static final String TOPIC_GAIN_MESO = "TOPIC_GAIN_MESO";
+
+   public static final String CHANGE_FACIAL_EXPRESSION = "CHANGE_FACIAL_EXPRESSION";
 }
