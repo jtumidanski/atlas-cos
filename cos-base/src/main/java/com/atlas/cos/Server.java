@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
+import com.atlas.cos.constant.RestConstants;
 import com.atlas.cos.event.consumer.AssignApConsumer;
 import com.atlas.cos.event.consumer.AssignSpConsumer;
 import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
@@ -18,7 +19,6 @@ import com.atlas.cos.event.consumer.KillMonsterConsumer;
 import com.atlas.cos.processor.BlockedNameProcessor;
 import com.atlas.kafka.consumer.SimpleEventConsumerBuilder;
 import com.atlas.shared.rest.RestServerFactory;
-import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
 
 import database.PersistenceManager;
@@ -49,7 +49,7 @@ public class Server {
             "AsiaSoft", "henesys");
       BlockedNameProcessor.bulkAddBlockedNames(blockedNameList);
 
-      URI uri = UriBuilder.host(RestService.CHARACTER).uri();
+      URI uri = UriBuilder.host(RestConstants.SERVICE).uri();
       RestServerFactory.create(uri, "com.atlas.cos.rest");
    }
 }
