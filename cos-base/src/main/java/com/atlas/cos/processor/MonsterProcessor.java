@@ -12,8 +12,8 @@ import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.Monster;
 import com.atlas.cos.model.MonsterExperienceDistribution;
 import com.atlas.mis.attribute.MonsterDataAttributes;
+import com.atlas.mis.constant.RestConstants;
 import com.atlas.morg.rest.event.DamageEntry;
-import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
 
 import rest.DataContainer;
@@ -23,7 +23,7 @@ public final class MonsterProcessor {
    }
 
    public static Optional<Monster> getMonster(int monsterId) {
-      return UriBuilder.service(RestService.MAP_INFORMATION)
+      return UriBuilder.service(RestConstants.SERVICE)
             .pathParam("monsters", monsterId)
             .getRestClient(MonsterDataAttributes.class)
             .getWithResponse()

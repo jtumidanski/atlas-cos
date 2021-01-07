@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import com.atlas.cos.model.EquipmentStatistics;
 import com.atlas.eso.attribute.EquipmentAttributes;
-import com.atlas.shared.rest.RestService;
+import com.atlas.eso.constant.RestConstants;
 import com.atlas.shared.rest.UriBuilder;
 
 import rest.DataContainer;
@@ -14,7 +14,7 @@ public final class EquipmentStatisticsProcessor {
    }
 
    public static Optional<EquipmentStatistics> getEquipData(int equipmentId) {
-      return UriBuilder.service(RestService.EQUIPMENT_STORAGE)
+      return UriBuilder.service(RestConstants.SERVICE)
             .pathParam("equipment", equipmentId)
             .getRestClient(EquipmentAttributes.class)
             .getWithResponse()

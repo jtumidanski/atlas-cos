@@ -6,7 +6,7 @@ import java.util.stream.Stream;
 
 import com.atlas.cos.model.Portal;
 import com.atlas.mis.attribute.PortalAttributes;
-import com.atlas.shared.rest.RestService;
+import com.atlas.mis.constant.RestConstants;
 import com.atlas.shared.rest.UriBuilder;
 
 import rest.DataContainer;
@@ -16,7 +16,7 @@ public final class PortalProcessor {
    }
 
    public static Optional<Portal> getMapPortalById(int mapId, int id) {
-      return UriBuilder.service(RestService.MAP_INFORMATION)
+      return UriBuilder.service(RestConstants.SERVICE)
             .pathParam("maps", mapId)
             .pathParam("portals", id)
             .getRestClient(PortalAttributes.class)
@@ -27,7 +27,7 @@ public final class PortalProcessor {
    }
 
    public static Stream<Portal> getMapPortals(int mapId) {
-      return UriBuilder.service(RestService.MAP_INFORMATION)
+      return UriBuilder.service(RestConstants.SERVICE)
             .pathParam("maps", mapId)
             .path("portals")
             .getRestClient(PortalAttributes.class)

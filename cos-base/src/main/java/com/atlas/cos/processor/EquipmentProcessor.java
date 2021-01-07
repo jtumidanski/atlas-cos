@@ -2,7 +2,6 @@ package com.atlas.cos.processor;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -12,8 +11,8 @@ import com.atlas.cos.database.provider.EquipmentProvider;
 import com.atlas.cos.model.EquipmentData;
 import com.atlas.eso.attribute.EquipmentAttributes;
 import com.atlas.eso.builder.EquipmentAttributesBuilder;
+import com.atlas.eso.constant.RestConstants;
 import com.atlas.iis.attribute.EquipmentSlotAttributes;
-import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
 
 import builder.ResultObjectBuilder;
@@ -37,7 +36,7 @@ public final class EquipmentProcessor {
             .element(entityManager -> EquipmentProvider.getNextFreeEquipmentSlot(entityManager, characterId))
             .orElse((short) 0);
 
-      return UriBuilder.service(RestService.EQUIPMENT_STORAGE)
+      return UriBuilder.service(RestConstants.SERVICE)
             .path("equipment")
             .getRestClient(EquipmentAttributes.class)
             .createWithResponse(new ResultObjectBuilder(EquipmentAttributes.class, 0)
@@ -64,7 +63,7 @@ public final class EquipmentProcessor {
    }
 
    protected static Stream<Short> getEquipmentSlotDestination(int itemId) {
-      return UriBuilder.service(RestService.ITEM_INFORMATION)
+      return UriBuilder.service(com.atlas.iis.constant.RestConstants.SERVICE)
             .pathParam("equipment", itemId)
             .path("slots")
             .getRestClient(EquipmentSlotAttributes.class)
@@ -87,7 +86,7 @@ public final class EquipmentProcessor {
    }
 
    protected static Optional<Integer> getItemIdForEquipment(int equipmentId) {
-      return UriBuilder.service(RestService.EQUIPMENT_STORAGE)
+      return UriBuilder.service(RestConstants.SERVICE)
             .pathParam("equipment", equipmentId)
             .getRestClient(EquipmentAttributes.class)
             .getWithResponse()

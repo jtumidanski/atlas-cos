@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.Optional;
 
 import com.atlas.cos.event.producer.CancelDropReservationProducer;
+import com.atlas.cos.event.producer.GainMesoProducer;
 import com.atlas.cos.event.producer.InventoryModificationProducer;
 import com.atlas.cos.event.producer.PickedUpItemProducer;
-import com.atlas.cos.event.producer.GainMesoProducer;
 import com.atlas.cos.event.producer.PickedUpNxProducer;
 import com.atlas.cos.event.producer.PickupDropCommandProducer;
 import com.atlas.cos.model.CharacterData;
@@ -15,8 +15,8 @@ import com.atlas.cos.model.Drop;
 import com.atlas.cos.model.InventoryType;
 import com.atlas.cos.model.ItemData;
 import com.atlas.cos.model.Party;
+import com.atlas.drg.constant.RestConstants;
 import com.atlas.drg.rest.attribute.DropAttributes;
-import com.atlas.shared.rest.RestService;
 import com.atlas.shared.rest.UriBuilder;
 
 import rest.DataContainer;
@@ -182,7 +182,7 @@ public final class DropProcessor {
    }
 
    protected static Optional<Drop> getDrop(int dropId) {
-      return UriBuilder.service(RestService.DROP_REGISTRY)
+      return UriBuilder.service(RestConstants.SERVICE)
             .pathParam("drops", dropId)
             .getRestClient(DropAttributes.class)
             .getWithResponse()
