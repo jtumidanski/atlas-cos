@@ -33,7 +33,7 @@ public class AssignSpConsumer extends AbstractEventConsumer<AssignSpCommand> {
                         if (command.skillId() % 10000000 > 999 && command.skillId() % 10000000 < 1003) {
                            int total = 0;
                            for (int i = 0; i < 3; i++) {
-                              total += SkillProcessor.getSkill(character.id(), command.skillId())
+                              total += SkillProcessor.getSkill(character.id(), character.getJobType() * 10000000 + 1000 + i)
                                     .map(SkillData::skillLevel)
                                     .orElse(0);
                            }
