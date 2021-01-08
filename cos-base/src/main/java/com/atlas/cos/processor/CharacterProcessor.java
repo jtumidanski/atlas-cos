@@ -714,6 +714,7 @@ public final class CharacterProcessor {
                      }
                      CharacterAdministrator.setHealth(entityManager, characterId, adjustedAmount);
                   }));
+      CharacterStatUpdateProducer.statsUpdated(characterId, Collections.singleton(StatUpdateType.HP));
    }
 
    public static void adjustMana(int characterId, int amount) {
@@ -729,5 +730,6 @@ public final class CharacterProcessor {
                      }
                      CharacterAdministrator.setMana(entityManager, characterId, adjustedAmount);
                   }));
+      CharacterStatUpdateProducer.statsUpdated(characterId, Collections.singleton(StatUpdateType.MP));
    }
 }
