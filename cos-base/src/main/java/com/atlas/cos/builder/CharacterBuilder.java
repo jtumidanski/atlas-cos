@@ -1,7 +1,7 @@
 package com.atlas.cos.builder;
 
 import com.atlas.cos.ConfigurationRegistry;
-import com.atlas.cos.attribute.CharacterAttributes;
+import com.atlas.cos.rest.attribute.CharacterAttributes;
 import com.atlas.cos.configuration.Configuration;
 import com.atlas.cos.model.CharacterData;
 

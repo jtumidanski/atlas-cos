@@ -10,9 +10,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.atlas.cos.attribute.CharacterAttributes;
-import com.atlas.cos.attribute.CharacterSeedAttributes;
-import com.atlas.cos.attribute.LocationAttributes;
+import com.atlas.cos.rest.attribute.CharacterAttributes;
+import com.atlas.cos.rest.attribute.CharacterSeedAttributes;
+import com.atlas.cos.rest.attribute.LocationAttributes;
 import com.atlas.cos.rest.processor.CharacterRequestProcessor;
 import com.atlas.cos.rest.processor.CharacterSeedRequestProcessor;
 import com.atlas.cos.rest.processor.DamageProcessor;

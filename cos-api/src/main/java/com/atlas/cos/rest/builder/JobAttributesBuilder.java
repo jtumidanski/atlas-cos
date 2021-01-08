@@ -1,7 +1,7 @@
-package com.atlas.cos.builder;
+package com.atlas.cos.rest.builder;
 
 import com.app.common.builder.RecordBuilder;
-import com.atlas.cos.attribute.JobAttributes;
+import com.atlas.cos.rest.attribute.JobAttributes;
 
 import builder.AttributeResultBuilder;
 

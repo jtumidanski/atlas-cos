@@ -5,6 +5,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.atlas.cos.constant.RestConstants;
+import com.atlas.cos.event.consumer.AdjustHealthConsumer;
+import com.atlas.cos.event.consumer.AdjustManaConsumer;
+import com.atlas.cos.event.consumer.AdjustMesoConsumer;
 import com.atlas.cos.event.consumer.AssignApConsumer;
 import com.atlas.cos.event.consumer.AssignSpConsumer;
 import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
@@ -39,6 +42,9 @@ public class Server {
             .addConsumer(new DropReservationEventConsumer())
             .addConsumer(new GainMesoConsumer())
             .addConsumer(new CharacterExpressionCommandConsumer())
+            .addConsumer(new AdjustMesoConsumer())
+            .addConsumer(new AdjustHealthConsumer())
+            .addConsumer(new AdjustManaConsumer())
             .initialize();
 
       List<String> blockedNameList = Arrays.asList("admin", "owner", "moderator", "intern", "donor", "administrator", "FREDRICK",

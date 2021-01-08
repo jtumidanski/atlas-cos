@@ -1,7 +1,7 @@
 package com.atlas.cos.rest.processor;
 
 import com.app.rest.util.stream.Collectors;
-import com.atlas.cos.attribute.LocationAttributes;
+import com.atlas.cos.rest.attribute.LocationAttributes;
 import com.atlas.cos.database.administrator.SavedLocationAdministrator;
 import com.atlas.cos.database.provider.SavedLocationProvider;
 import com.atlas.cos.entity.LocationType;

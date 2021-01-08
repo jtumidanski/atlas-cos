@@ -1,6 +1,6 @@
 package com.atlas.cos.constant;
 
-public class EventConstants {
+public final class EventConstants {
    @Deprecated
    public static final String TOPIC_CHANGE_MAP_COMMAND = "TOPIC_CHANGE_MAP_COMMAND";
 

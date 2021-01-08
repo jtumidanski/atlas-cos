@@ -1,4 +1,4 @@
-package com.atlas.cos.attribute;
+package com.atlas.cos.rest.attribute;
 
 public enum LocationType {
    FREE_MARKET,

@@ -8,7 +8,6 @@ import java.util.Optional;
 
 import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.ConfigurationRegistry;
-import com.atlas.cos.attribute.CharacterAttributes;
 import com.atlas.cos.builder.CharacterBuilder;
 import com.atlas.cos.builder.StatisticChangeSummaryBuilder;
 import com.atlas.cos.database.administrator.CharacterAdministrator;
@@ -27,6 +26,7 @@ import com.atlas.cos.model.HpMpSummary;
 import com.atlas.cos.model.Job;
 import com.atlas.cos.model.SkillData;
 import com.atlas.cos.model.StatisticChangeSummary;
+import com.atlas.cos.rest.attribute.CharacterAttributes;
 import com.atlas.cos.util.ExpTable;
 import com.atlas.cos.util.Randomizer;
 
@@ -684,10 +684,12 @@ public final class CharacterProcessor {
       CharacterStatUpdateProducer.statsUpdated(character.id(), statUpdateTypes);
    }
 
-   public static void gainMeso(int characterId, int meso) {
-      Connection.instance().with(entityManager -> CharacterAdministrator.increaseMeso(entityManager, characterId, meso));
-      MesoGainedProducer.emit(characterId, meso);
+   public static void adjustMeso(int characterId, int amount, boolean show) {
+      Connection.instance().with(entityManager -> CharacterAdministrator.adjustMeso(entityManager, characterId, amount));
       CharacterStatUpdateProducer.statsUpdated(characterId, Collections.singleton(StatUpdateType.MESO));
+      if (show) {
+         MesoGainedProducer.emit(characterId, amount);
+      }
    }
 
    public static List<SkillData> getSkills(int characterId) {
@@ -697,5 +699,35 @@ public final class CharacterProcessor {
    public static void updateSp(int characterId, int newValue, int skillBookId) {
       Connection.instance()
             .with(entityManager -> CharacterAdministrator.updateSp(entityManager, characterId, newValue, skillBookId));
+   }
+
+   public static void adjustHealth(int characterId, int amount) {
+      Connection.instance().with(entityManager ->
+            CharacterProvider.getById(entityManager, characterId)
+                  .ifPresent(characterData -> {
+                     int adjustedAmount = amount;
+                     if (characterData.hp() + amount < 0) {
+                        adjustedAmount = 0;
+                     }
+                     if (characterData.hp() + amount > characterData.maxHp()) {
+                        adjustedAmount = characterData.maxHp();
+                     }
+                     CharacterAdministrator.setHealth(entityManager, characterId, adjustedAmount);
+                  }));
+   }
+
+   public static void adjustMana(int characterId, int amount) {
+      Connection.instance().with(entityManager ->
+            CharacterProvider.getById(entityManager, characterId)
+                  .ifPresent(characterData -> {
+                     int adjustedAmount = amount;
+                     if (characterData.mp() + amount < 0) {
+                        adjustedAmount = 0;
+                     }
+                     if (characterData.mp() + amount > characterData.maxMp()) {
+                        adjustedAmount = characterData.maxMp();
+                     }
+                     CharacterAdministrator.setMana(entityManager, characterId, adjustedAmount);
+                  }));
    }
 }

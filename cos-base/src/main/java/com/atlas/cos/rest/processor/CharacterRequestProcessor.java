@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 
 import com.app.rest.util.stream.Collectors;
 import com.app.rest.util.stream.Mappers;
-import com.atlas.cos.attribute.CharacterAttributes;
+import com.atlas.cos.rest.attribute.CharacterAttributes;
 import com.atlas.cos.database.provider.CharacterProvider;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.Job;

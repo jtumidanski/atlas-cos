@@ -1,8 +1,8 @@
 package com.atlas.cos.rest.processor;
 
 import com.app.rest.util.stream.Mappers;
-import com.atlas.cos.attribute.JobAttributes;
-import com.atlas.cos.builder.JobAttributesBuilder;
+import com.atlas.cos.rest.attribute.JobAttributes;
+import com.atlas.cos.rest.builder.JobAttributesBuilder;
 import com.atlas.cos.model.Job;
 import com.atlas.cos.processor.JobProcessor;
 

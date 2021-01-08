@@ -1,12 +1,12 @@
 package com.atlas.cos.database.administrator;
 
+import java.util.Optional;
+import javax.persistence.EntityManager;
+
 import com.app.database.util.QueryAdministratorUtil;
 import com.atlas.cos.database.transformer.CharacterDataTransformer;
 import com.atlas.cos.entity.Character;
 import com.atlas.cos.model.CharacterData;
-
-import javax.persistence.EntityManager;
-import java.util.Optional;
 
 public class CharacterAdministrator {
    private CharacterAdministrator() {
@@ -71,7 +71,7 @@ public class CharacterAdministrator {
       });
    }
 
-   public static void increaseMeso(EntityManager entityManager, int characterId, int meso) {
+   public static void adjustMeso(EntityManager entityManager, int characterId, int meso) {
       QueryAdministratorUtil.update(entityManager, Character.class, characterId,
             character -> character.setMeso(character.getMeso() + meso));
    }
@@ -83,5 +83,15 @@ public class CharacterAdministrator {
                sps[skillBookId] = String.valueOf(newValue);
                character.setSp(String.join(",", sps));
             });
+   }
+
+   public static void setHealth(EntityManager entityManager, int characterId, int amount) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId,
+            character -> character.setHp(amount));
+   }
+
+   public static void setMana(EntityManager entityManager, int characterId, int amount) {
+      QueryAdministratorUtil.update(entityManager, Character.class, characterId,
+            character -> character.setMp(amount));
    }
 }
