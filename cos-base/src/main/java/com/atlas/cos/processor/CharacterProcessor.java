@@ -705,11 +705,11 @@ public final class CharacterProcessor {
       Connection.instance().with(entityManager ->
             CharacterProvider.getById(entityManager, characterId)
                   .ifPresent(characterData -> {
-                     int adjustedAmount = amount;
-                     if (characterData.hp() + amount < 0) {
+                     int adjustedAmount = characterData.hp() + amount;
+                     if (adjustedAmount < 0) {
                         adjustedAmount = 0;
                      }
-                     if (characterData.hp() + amount > characterData.maxHp()) {
+                     if (adjustedAmount > characterData.maxHp()) {
                         adjustedAmount = characterData.maxHp();
                      }
                      CharacterAdministrator.setHealth(entityManager, characterId, adjustedAmount);
@@ -721,11 +721,11 @@ public final class CharacterProcessor {
       Connection.instance().with(entityManager ->
             CharacterProvider.getById(entityManager, characterId)
                   .ifPresent(characterData -> {
-                     int adjustedAmount = amount;
-                     if (characterData.mp() + amount < 0) {
+                     int adjustedAmount = characterData.mp() + amount;
+                     if (adjustedAmount < 0) {
                         adjustedAmount = 0;
                      }
-                     if (characterData.mp() + amount > characterData.maxMp()) {
+                     if (adjustedAmount > characterData.maxMp()) {
                         adjustedAmount = characterData.maxMp();
                      }
                      CharacterAdministrator.setMana(entityManager, characterId, adjustedAmount);
