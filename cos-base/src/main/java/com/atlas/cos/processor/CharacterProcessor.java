@@ -1,11 +1,5 @@
 package com.atlas.cos.processor;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
 import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.ConfigurationRegistry;
 import com.atlas.cos.builder.CharacterBuilder;
@@ -29,8 +23,14 @@ import com.atlas.cos.model.StatisticChangeSummary;
 import com.atlas.cos.rest.attribute.CharacterAttributes;
 import com.atlas.cos.util.ExpTable;
 import com.atlas.cos.util.Randomizer;
-
 import database.Connection;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class CharacterProcessor {
    private CharacterProcessor() {
@@ -638,8 +638,8 @@ public final class CharacterProcessor {
    }
 
    public static void gainExperience(int characterId, int gain) {
-      getById(characterId).ifPresent(character -> gainExperience(characterId,
-            character.level(), character.maxClassLevel(), character.experience(), gain));
+      getById(characterId)
+            .ifPresent(character -> gainExperience(characterId, character.level(), character.maxClassLevel(), character.experience(), gain));
    }
 
    protected static void gainExperience(int characterId, int level,
@@ -704,32 +704,27 @@ public final class CharacterProcessor {
    public static void adjustHealth(int characterId, int amount) {
       Connection.instance().with(entityManager ->
             CharacterProvider.getById(entityManager, characterId)
-                  .ifPresent(characterData -> {
-                     int adjustedAmount = characterData.hp() + amount;
-                     if (adjustedAmount < 0) {
-                        adjustedAmount = 0;
-                     }
-                     if (adjustedAmount > characterData.maxHp()) {
-                        adjustedAmount = characterData.maxHp();
-                     }
-                     CharacterAdministrator.setHealth(entityManager, characterId, adjustedAmount);
-                  }));
+                  .map(characterData -> enforceBounds(amount, characterData::hp, characterData::maxHp, () -> 0))
+                  .ifPresent(adjustedChange -> CharacterAdministrator.setHealth(entityManager, characterId, adjustedChange)));
       CharacterStatUpdateProducer.statsUpdated(characterId, Collections.singleton(StatUpdateType.HP));
    }
 
    public static void adjustMana(int characterId, int amount) {
       Connection.instance().with(entityManager ->
             CharacterProvider.getById(entityManager, characterId)
-                  .ifPresent(characterData -> {
-                     int adjustedAmount = characterData.mp() + amount;
-                     if (adjustedAmount < 0) {
-                        adjustedAmount = 0;
-                     }
-                     if (adjustedAmount > characterData.maxMp()) {
-                        adjustedAmount = characterData.maxMp();
-                     }
-                     CharacterAdministrator.setMana(entityManager, characterId, adjustedAmount);
-                  }));
+                  .map(characterData -> enforceBounds(amount, characterData::mp, characterData::maxMp, () -> 0))
+                  .ifPresent(adjustedChange -> CharacterAdministrator.setMana(entityManager, characterId, adjustedChange)));
       CharacterStatUpdateProducer.statsUpdated(characterId, Collections.singleton(StatUpdateType.MP));
+   }
+
+   protected static int enforceBounds(int change, Supplier<Integer> current, Supplier<Integer> upperBound, Supplier<Integer> lowerBound) {
+      int adjusted = current.get() + change;
+      if (adjusted < lowerBound.get()) {
+         return lowerBound.get();
+      }
+      if (adjusted > upperBound.get()) {
+         return upperBound.get();
+      }
+      return adjusted;
    }
 }

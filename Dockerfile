@@ -15,7 +15,7 @@ COPY cos-model/src cos-model/src
 COPY cos-base/src cos-base/src
 COPY cos-database/src cos-database/src
 
-RUN mvn install
+RUN mvn install -Prunnable
 
 FROM openjdk:14-ea-jdk-alpine
 USER root
