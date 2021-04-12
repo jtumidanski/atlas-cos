@@ -1,24 +1,6 @@
 package com.atlas.cos.rest;
 
 import com.atlas.cos.CharacterTemporalRegistry;
-import com.atlas.cos.rest.attribute.BlockedNameAttributes;
-import com.atlas.cos.rest.attribute.CharacterAttributes;
-import com.atlas.cos.rest.attribute.EquipmentAttributes;
-import com.atlas.cos.rest.attribute.EquipmentStatisticsAttributes;
-import com.atlas.cos.rest.attribute.InventoryAttributes;
-import com.atlas.cos.rest.attribute.ItemAttributes;
-import com.atlas.cos.rest.attribute.LocationAttributes;
-import com.atlas.cos.rest.attribute.LocationType;
-import com.atlas.cos.rest.attribute.SkillAttributes;
-import com.atlas.cos.rest.builder.BlockedNameAttributesBuilder;
-import com.atlas.cos.rest.builder.CharacterAttributesBuilder;
-import com.atlas.cos.rest.builder.EquipmentAttributesBuilder;
-import com.atlas.cos.rest.builder.EquipmentStatisticsAttributesBuilder;
-import com.atlas.cos.rest.builder.InventoryAttributesBuilder;
-import com.atlas.cos.rest.builder.ItemAttributesBuilder;
-import com.atlas.cos.rest.builder.LocationAttributesBuilder;
-import com.atlas.cos.rest.builder.SkillAttributesBuilder;
-import com.atlas.cos.model.BlockedNameData;
 import com.atlas.cos.model.CharacterData;
 import com.atlas.cos.model.CharacterTemporalData;
 import com.atlas.cos.model.EquipmentData;
@@ -31,6 +13,21 @@ import com.atlas.cos.model.SavedLocationData;
 import com.atlas.cos.model.SkillData;
 import com.atlas.cos.processor.EquipmentProcessor;
 import com.atlas.cos.processor.ItemProcessor;
+import com.atlas.cos.rest.attribute.CharacterAttributes;
+import com.atlas.cos.rest.attribute.EquipmentAttributes;
+import com.atlas.cos.rest.attribute.EquipmentStatisticsAttributes;
+import com.atlas.cos.rest.attribute.InventoryAttributes;
+import com.atlas.cos.rest.attribute.ItemAttributes;
+import com.atlas.cos.rest.attribute.LocationAttributes;
+import com.atlas.cos.rest.attribute.LocationType;
+import com.atlas.cos.rest.attribute.SkillAttributes;
+import com.atlas.cos.rest.builder.CharacterAttributesBuilder;
+import com.atlas.cos.rest.builder.EquipmentAttributesBuilder;
+import com.atlas.cos.rest.builder.EquipmentStatisticsAttributesBuilder;
+import com.atlas.cos.rest.builder.InventoryAttributesBuilder;
+import com.atlas.cos.rest.builder.ItemAttributesBuilder;
+import com.atlas.cos.rest.builder.LocationAttributesBuilder;
+import com.atlas.cos.rest.builder.SkillAttributesBuilder;
 
 import builder.LinkDataBuilder;
 import builder.RelationshipBuilder;
@@ -39,11 +36,6 @@ import builder.ResultObjectBuilder;
 import rest.AttributeResult;
 
 public class ResultObjectFactory {
-   public static ResultObjectBuilder create(BlockedNameData blockedNameData) {
-      return new ResultObjectBuilder(BlockedNameAttributes.class, blockedNameData.name())
-            .setAttribute(new BlockedNameAttributesBuilder().setName(blockedNameData.name()));
-   }
-
    public static ResultObjectBuilder create(CharacterData data) {
 
       CharacterTemporalData temporalData = CharacterTemporalRegistry.getInstance()

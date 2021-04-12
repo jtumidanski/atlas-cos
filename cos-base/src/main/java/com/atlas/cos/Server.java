@@ -19,7 +19,6 @@ import com.atlas.cos.event.consumer.CharacterStatusConsumer;
 import com.atlas.cos.event.consumer.DropReservationEventConsumer;
 import com.atlas.cos.event.consumer.GainMesoConsumer;
 import com.atlas.cos.event.consumer.KillMonsterConsumer;
-import com.atlas.cos.processor.BlockedNameProcessor;
 import com.atlas.kafka.consumer.SimpleEventConsumerBuilder;
 import com.atlas.shared.rest.RestServerFactory;
 import com.atlas.shared.rest.UriBuilder;
@@ -46,14 +45,6 @@ public class Server {
             .addConsumer(new AdjustHealthConsumer())
             .addConsumer(new AdjustManaConsumer())
             .initialize();
-
-      List<String> blockedNameList = Arrays.asList("admin", "owner", "moderator", "intern", "donor", "administrator", "FREDRICK",
-            "help", "helper", "alert", "notice", "maplestory", "fuck", "wizet", "fucking", "negro", "fuk", "fuc", "penis", "pussy",
-            "asshole", "gay", "nigger", "homo", "suck", "cum", "shit", "shitty", "condom", "security", "official", "rape", "nigga",
-            "sex", "tit", "boner", "orgy", "clit", "asshole", "fatass", "bitch", "support", "gamemaster", "cock", "gaay", "gm",
-            "operate", "master", "sysop", "party", "GameMaster", "community", "message", "event", "test", "meso", "Scania", "yata",
-            "AsiaSoft", "henesys");
-      BlockedNameProcessor.bulkAddBlockedNames(blockedNameList);
 
       URI uri = UriBuilder.host(RestConstants.SERVICE).uri();
       RestServerFactory.create(uri, "com.atlas.cos.rest");
