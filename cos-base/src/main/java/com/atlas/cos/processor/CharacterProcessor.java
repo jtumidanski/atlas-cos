@@ -1,5 +1,12 @@
 package com.atlas.cos.processor;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
+
 import com.atlas.cos.CharacterTemporalRegistry;
 import com.atlas.cos.ConfigurationRegistry;
 import com.atlas.cos.builder.CharacterBuilder;
@@ -23,14 +30,8 @@ import com.atlas.cos.model.StatisticChangeSummary;
 import com.atlas.cos.rest.attribute.CharacterAttributes;
 import com.atlas.cos.util.ExpTable;
 import com.atlas.cos.util.Randomizer;
-import database.Connection;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
+import database.Connection;
 
 public final class CharacterProcessor {
    private CharacterProcessor() {
@@ -55,7 +56,7 @@ public final class CharacterProcessor {
                   original.accountId(), original.worldId(), original.name(), original.level(),
                   original.strength(), original.dexterity(), original.luck(), original.intelligence(),
                   original.maxHp(), original.maxMp(), original.jobId(), original.gender(), original.hair(),
-                  original.face(), original.mapId())
+                  original.face(), original.skinColor(), original.mapId())
       );
 
       result.ifPresent(CharacterCreatedProducer::notifyCharacterCreated);
@@ -639,7 +640,9 @@ public final class CharacterProcessor {
 
    public static void gainExperience(int characterId, int gain) {
       getById(characterId)
-            .ifPresent(character -> gainExperience(characterId, character.level(), character.maxClassLevel(), character.experience(), gain));
+            .ifPresent(
+                  character -> gainExperience(characterId, character.level(), character.maxClassLevel(), character.experience(),
+                        gain));
    }
 
    protected static void gainExperience(int characterId, int level,
@@ -717,7 +720,8 @@ public final class CharacterProcessor {
       CharacterStatUpdateProducer.statsUpdated(characterId, Collections.singleton(StatUpdateType.MP));
    }
 
-   protected static int enforceBounds(int change, Supplier<Integer> current, Supplier<Integer> upperBound, Supplier<Integer> lowerBound) {
+   protected static int enforceBounds(int change, Supplier<Integer> current, Supplier<Integer> upperBound,
+                                      Supplier<Integer> lowerBound) {
       int adjusted = current.get() + change;
       if (adjusted < lowerBound.get()) {
          return lowerBound.get();
