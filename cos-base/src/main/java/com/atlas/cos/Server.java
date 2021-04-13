@@ -1,8 +1,6 @@
 package com.atlas.cos;
 
 import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
 
 import com.atlas.cos.constant.RestConstants;
 import com.atlas.cos.event.consumer.AdjustHealthConsumer;
@@ -12,7 +10,6 @@ import com.atlas.cos.event.consumer.AssignApConsumer;
 import com.atlas.cos.event.consumer.AssignSpConsumer;
 import com.atlas.cos.event.consumer.ChangeMapCommandConsumer;
 import com.atlas.cos.event.consumer.CharacterExperienceConsumer;
-import com.atlas.cos.event.consumer.CharacterExpressionCommandConsumer;
 import com.atlas.cos.event.consumer.CharacterLevelConsumer;
 import com.atlas.cos.event.consumer.CharacterMovementConsumer;
 import com.atlas.cos.event.consumer.CharacterStatusConsumer;
@@ -40,7 +37,6 @@ public class Server {
             .addConsumer(new AssignSpConsumer())
             .addConsumer(new DropReservationEventConsumer())
             .addConsumer(new GainMesoConsumer())
-            .addConsumer(new CharacterExpressionCommandConsumer())
             .addConsumer(new AdjustMesoConsumer())
             .addConsumer(new AdjustHealthConsumer())
             .addConsumer(new AdjustManaConsumer())

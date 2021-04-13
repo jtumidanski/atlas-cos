@@ -9,8 +9,6 @@ public final class CommandConstants {
 
    public static final String TOPIC_GAIN_MESO = "TOPIC_GAIN_MESO";
 
-   public static final String CHANGE_FACIAL_EXPRESSION = "CHANGE_FACIAL_EXPRESSION";
-
    public static final String TOPIC_ADJUST_MESO = "TOPIC_ADJUST_MESO";
 
    public static final String TOPIC_ADJUST_HEALTH = "TOPIC_ADJUST_HEALTH";
