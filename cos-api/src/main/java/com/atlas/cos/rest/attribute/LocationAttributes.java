@@ -1,4 +1,4 @@
-package com.atlas.cos.rest.attribute;
+package v;
 
 import rest.AttributeResult;
 

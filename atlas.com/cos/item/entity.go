@@ -7,10 +7,10 @@ func Migration(db *gorm.DB) {
 }
 
 type entity struct {
-	ID            uint32 `gorm:"primaryKey;autoIncrement;not null"`
-	CharacterId   uint32 `gorm:"not null"`
-	InventoryType byte   `gorm:"not null"`
-	ItemId        uint32 `gorm:"not null"`
-	Quantity      uint32 `gorm:"not null"`
-	Slot          int16  `gorm:"not null"`
+	id            uint32 `gorm:"primaryKey;autoIncrement;not null"`
+	characterId   uint32 `gorm:"not null"`
+	inventoryType byte   `gorm:"not null"`
+	itemId        uint32 `gorm:"not null"`
+	quantity      uint32 `gorm:"not null"`
+	slot          int16  `gorm:"not null"`
 }

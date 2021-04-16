@@ -11,6 +11,32 @@ func GetById(db *gorm.DB, characterId uint32) (*Model, error) {
 	return makeCharacter(&result), nil
 }
 
+func listGet(db *gorm.DB, query interface{}, args ...interface{}) ([]*Model, error) {
+	var results []entity
+	err := db.First(&results).Where(query, args).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var character = make([]*Model, 0)
+	for _, e := range results {
+		character = append(character, makeCharacter(&e))
+	}
+	return character, nil
+}
+
+func GetForAccountInWorld(db *gorm.DB, accountId uint32, worldId byte) ([]*Model, error) {
+	return listGet(db, "accountId = ? AND worldId = ?", accountId, worldId)
+}
+
+func GetForMapInWorld(db *gorm.DB, worldId byte, mapId uint32) ([]*Model, error) {
+	return listGet(db, "worldId = ? AND mapId = ?", worldId, mapId)
+}
+
+func GetForName(db *gorm.DB, name string) ([]*Model, error) {
+	return listGet(db, "name = ?", name)
+}
+
 func makeCharacter(e *entity) *Model {
 	r := NewModelBuilder().
 		SetId(e.ID).

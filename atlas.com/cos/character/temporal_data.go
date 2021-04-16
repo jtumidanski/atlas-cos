@@ -32,6 +32,18 @@ func (d *temporalData) UpdateStance(stance byte) *temporalData {
 	}
 }
 
+func (d *temporalData) X() int16 {
+	return d.x
+}
+
+func (d *temporalData) Y() int16 {
+	return d.y
+}
+
+func (d *temporalData) Stance() byte {
+	return d.stance
+}
+
 type temporalRegistry struct {
 	data           map[uint32]*temporalData
 	mutex          *sync.RWMutex
@@ -64,9 +76,27 @@ func (r temporalRegistry) lockCharacter(characterId uint32) {
 	}
 }
 
+func (r temporalRegistry) readLockCharacter(characterId uint32) {
+	if val, ok := r.characterLocks[characterId]; ok {
+		val.RLock()
+	} else {
+		r.mutex.Lock()
+		lock := sync.RWMutex{}
+		r.characterLocks[characterId] = &lock
+		r.mutex.Unlock()
+		lock.RLock()
+	}
+}
+
 func (r temporalRegistry) unlockCharacter(characterId uint32) {
 	if val, ok := r.characterLocks[characterId]; ok {
 		val.Unlock()
+	}
+}
+
+func (r temporalRegistry) readUnlockCharacter(characterId uint32) {
+	if val, ok := r.characterLocks[characterId]; ok {
+		val.RUnlock()
 	}
 }
 
@@ -96,6 +126,14 @@ func (r temporalRegistry) UpdateStance(characterId uint32, stance byte) {
 		}
 	}
 	r.unlockCharacter(characterId)
+}
+
+func (r temporalRegistry) GetById(characterId uint32) *temporalData {
+	var result *temporalData
+	r.readLockCharacter(characterId)
+	result = r.data[characterId]
+	r.readUnlockCharacter(characterId)
+	return result
 }
 
 var t *temporalRegistry

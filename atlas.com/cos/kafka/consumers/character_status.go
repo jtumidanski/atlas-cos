@@ -1,6 +1,7 @@
 package consumers
 
 import (
+	"atlas-cos/character"
 	"gorm.io/gorm"
 	"log"
 )
@@ -23,7 +24,7 @@ func HandleCharacterStatusEvent(db *gorm.DB) EventProcessor {
 	return func(l *log.Logger, e interface{}) {
 		if event, ok := e.(*characterStatusEvent); ok {
 			if event.Type == "LOGIN" {
-
+				character.Processor(l, db).UpdateLoginPosition(event.CharacterId)
 			}
 		} else {
 			l.Printf("[ERROR] unable to cast event provided to handler [CharacterStatusEvent]")

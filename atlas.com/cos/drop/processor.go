@@ -2,6 +2,9 @@ package drop
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/equipment"
+	"atlas-cos/inventory"
+	"atlas-cos/item"
 	"atlas-cos/kafka/producers"
 	"atlas-cos/party"
 	"atlas-cos/rest/attributes"
@@ -9,6 +12,7 @@ import (
 	"context"
 	"gorm.io/gorm"
 	"log"
+	"math"
 	"strconv"
 	"time"
 )
@@ -101,8 +105,8 @@ func (p processor) attemptPickup(c *character.Model, d *Model) {
 			// TODO handle scripted item
 		}
 
-		if val, ok := p.getInventoryType(d.ItemId()); ok {
-			if val == "EQUIP" {
+		if val, ok := inventory.GetInventoryType(d.ItemId()); ok {
+			if val == inventory.TypeValueEquip {
 				p.pickupEquip(c, d)
 			} else {
 				p.pickupItem(c, d, val)
@@ -167,29 +171,57 @@ func (p processor) scriptedItem(itemId uint32) bool {
 	return itemId/10000 == 243
 }
 
-func (p processor) getInventoryType(itemId uint32) (string, bool) {
-	t := itemId / 1000000
-	if t >= 1 && t <= 5 {
-		switch t {
-		case 1:
-			return "EQUIP", true
-		case 2:
-			return "USE", true
-		case 3:
-			return "SETUP", true
-		case 4:
-			return "ETC", true
-		case 5:
-			return "CASH", true
+func (p processor) pickupEquip(c *character.Model, d *Model) {
+	e, err := equipment.Processor(p.l, p.db).CreateForCharacter(c.Id(), d.ItemId(), false)
+	if err != nil {
+		p.l.Printf("[ERROR] unable to create equipment %d that character %d picked up.", d.ItemId(), c.Id())
+		return
+	}
+	producers.InventoryModificationReservation(p.l, context.Background()).
+		Emit(c.Id(), true, 1, d.ItemId(), 1, d.Quantity(), e.Slot())
+}
+
+func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
+	slotMax := p.maxInSlot(c, d)
+	runningQuantity := d.Quantity()
+
+	existingItems := item.Processor(p.l, p.db).GetItemsForCharacter(c.Id(), it, d.ItemId())
+	// breaks for a rechargeable item.
+	if len(existingItems) > 0 {
+		index := 0
+		for runningQuantity > 0 {
+			if index < len(existingItems) {
+				i := existingItems[index]
+				oldQuantity := i.Quantity()
+				if oldQuantity < slotMax {
+					newQuantity := uint32(math.Min(float64(oldQuantity+runningQuantity), float64(slotMax)))
+					runningQuantity = runningQuantity - (newQuantity - oldQuantity)
+					err := item.Processor(p.l, p.db).UpdateItemQuantity(i.Id(), newQuantity)
+					if err != nil {
+						p.l.Printf("[ERROR] updating the quantity of item %d to value %d.", i.Id(), newQuantity)
+					} else {
+						producers.InventoryModificationReservation(p.l, context.Background()).
+							Emit(c.Id(), true, 1, d.ItemId(), i.InventoryType(), newQuantity, i.Slot())
+					}
+				}
+			} else {
+				break
+			}
 		}
 	}
-	return "", false
+	for runningQuantity > 0 {
+		newQuantity := uint32(math.Min(float64(runningQuantity), float64(slotMax)))
+		runningQuantity = runningQuantity - newQuantity
+		i, err := item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), it, d.ItemId(), newQuantity)
+		if err != nil {
+			p.l.Printf("[ERROR] unable to create item %d that character %d picked up.", d.ItemId(), c.Id())
+			return
+		}
+		producers.InventoryModificationReservation(p.l, context.Background()).
+			Emit(c.Id(), true, 1, d.ItemId(), 1, d.Quantity(), i.Slot())
+	}
 }
 
-func (p processor) pickupEquip(c *character.Model, d *Model) {
-
-}
-
-func (p processor) pickupItem(c *character.Model, d *Model, it string) {
-
+func (p processor) maxInSlot(c *character.Model, d *Model) uint32 {
+	return 200
 }

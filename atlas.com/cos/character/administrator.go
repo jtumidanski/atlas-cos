@@ -1,163 +1,167 @@
 package character
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"math/rand"
+	"strconv"
+	"strings"
+)
 
-func SetHealth(db *gorm.DB, characterId uint32, amount uint16) error {
+type EntityUpdateFunction func(e entity)
+
+func Update(db *gorm.DB, characterId uint32, modifiers ...EntityUpdateFunction) error {
 	c := entity{ID: characterId}
 	err := db.Where(&c).First(&c).Error
 	if err != nil {
 		return err
 	}
 
-	c.HP = amount
+	for _, modifier := range modifiers {
+		modifier(c)
+	}
+
 	err = db.Save(&c).Error
 	return err
 }
 
-func SetMana(db *gorm.DB, characterId uint32, amount uint16) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func SetHealth(amount uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.HP = amount
 	}
-
-	c.MP = amount
-	err = db.Save(&c).Error
-	return err
 }
 
-func AdjustMeso(db *gorm.DB, characterId uint32, amount uint32) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func SetMana(amount uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.MP = amount
 	}
-
-	c.Meso = c.Meso + amount
-	err = db.Save(&c).Error
-	return err
 }
 
-func SpendOnStrength(db *gorm.DB, characterId uint32, strength uint16, ap uint16) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func IncreaseMeso(amount uint32) EntityUpdateFunction {
+	return func(e entity) {
+		e.Meso += amount
 	}
-
-	c.Strength = strength
-	c.AP = ap
-	err = db.Save(&c).Error
-	return err
 }
 
-func SpendOnDexterity(db *gorm.DB, characterId uint32, dexterity uint16, ap uint16) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func SetAP(amount uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.AP = amount
 	}
-
-	c.Dexterity = dexterity
-	c.AP = ap
-	err = db.Save(&c).Error
-	return err
 }
 
-func SpendOnIntelligence(db *gorm.DB, characterId uint32, intelligence uint16, ap uint16) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func IncreaseAP(amount uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.AP += amount
 	}
-
-	c.Intelligence = intelligence
-	c.AP = ap
-	err = db.Save(&c).Error
-	return err
 }
 
-func SpendOnLuck(db *gorm.DB, characterId uint32, luck uint16, ap uint16) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func SetStrength(amount uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.Strength = amount
 	}
-
-	c.Luck = luck
-	c.AP = ap
-	err = db.Save(&c).Error
-	return err
 }
 
-func SetMaxHP(db *gorm.DB, characterId uint32, hp uint16) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func SetDexterity(amount uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.Dexterity = amount
 	}
-
-	c.HP = hp
-	err = db.Save(&c).Error
-	return err
 }
 
-func SetMaxMP(db *gorm.DB, characterId uint32, mp uint16) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func SetIntelligence(amount uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.Intelligence = amount
 	}
-
-	c.MP = mp
-	err = db.Save(&c).Error
-	return err
 }
 
-func SetMapId(db *gorm.DB, characterId uint32, mapId uint32) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func SetLuck(amount uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.Luck = amount
 	}
-
-	c.MapId = mapId
-	err = db.Save(&c).Error
-	return err
 }
 
-func SetExperience(db *gorm.DB, characterId uint32, experience uint32) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func IncreaseHP(amount uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.HP += amount
+		e.MaxHP += amount
 	}
-
-	c.Experience = experience
-	err = db.Save(&c).Error
-	return err
 }
 
-func IncreaseExperience(db *gorm.DB, characterId uint32, gain uint32) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func IncreaseHPRange(lowerBound uint16, upperBound uint16) EntityUpdateFunction {
+	return func(e entity) {
+		amount := uint16(rand.Int31n(int32(upperBound-lowerBound))) + lowerBound
+		IncreaseHP(amount)(e)
 	}
-
-	c.Experience = c.Experience + gain
-	err = db.Save(&c).Error
-	return err
 }
 
-func UpdateSpawnPoint(db *gorm.DB, characterId uint32, spawnPoint uint32) error {
-	c := entity{ID: characterId}
-	err := db.Where(&c).First(&c).Error
-	if err != nil {
-		return err
+func IncreaseMP(amount uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.MP += amount
+		e.MaxMP += amount
 	}
+}
 
-	c.SpawnPoint = spawnPoint
-	err = db.Save(&c).Error
-	return err
+func IncreaseMPRange(lowerBound uint16, upperBound uint16) EntityUpdateFunction {
+	return func(e entity) {
+		amount := uint16(rand.Int31n(int32(upperBound-lowerBound))) + lowerBound
+		IncreaseMP(amount)(e)
+	}
+}
+
+func SpendOnStrength(strength uint16, ap uint16) []EntityUpdateFunction {
+	return []EntityUpdateFunction{SetStrength(strength), SetAP(ap)}
+}
+
+func SpendOnDexterity(dexterity uint16, ap uint16) []EntityUpdateFunction {
+	return []EntityUpdateFunction{SetDexterity(dexterity), SetAP(ap)}
+}
+
+func SpendOnIntelligence(intelligence uint16, ap uint16) []EntityUpdateFunction {
+	return []EntityUpdateFunction{SetIntelligence(intelligence), SetAP(ap)}
+}
+
+func SpendOnLuck(luck uint16, ap uint16) []EntityUpdateFunction {
+	return []EntityUpdateFunction{SetLuck(luck), SetAP(ap)}
+}
+
+func SetMaxHP(hp uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.MaxHP = hp
+	}
+}
+
+func SetMaxMP(mp uint16) EntityUpdateFunction {
+	return func(e entity) {
+		e.MaxMP = mp
+	}
+}
+
+func SetMapId(mapId uint32) EntityUpdateFunction {
+	return func(e entity) {
+		e.MapId = mapId
+	}
+}
+
+func SetExperience(experience uint32) EntityUpdateFunction {
+	return func(e entity) {
+		e.Experience = experience
+	}
+}
+
+func IncreaseExperience(gain uint32) EntityUpdateFunction {
+	return func(e entity) {
+		e.Experience += gain
+	}
+}
+
+func UpdateSpawnPoint(spawnPoint uint32) EntityUpdateFunction {
+	return func(e entity) {
+		e.SpawnPoint = spawnPoint
+	}
+}
+
+func SetSP(amount uint32, bookId uint32) EntityUpdateFunction {
+	return func(e entity) {
+		sps := strings.Split(e.SP, ",")
+		sps[bookId] = strconv.Itoa(int(amount))
+		e.SP = strings.Join(sps, ",")
+	}
 }

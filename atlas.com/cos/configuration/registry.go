@@ -33,6 +33,18 @@ func (c *Configuration) MaxAp() uint16 {
 	return c.maxAp
 }
 
+func (c *Configuration) ExpSplitCommonMod() float32 {
+	return c.expSplitCommonMod
+}
+
+func (c *Configuration) ExpSplitMvpMod() float32 {
+	return c.expSplitMvpMod
+}
+
+func (c *Configuration) UseAutoAssignStartersAp() bool {
+	return c.useAutoAssignStartersAp
+}
+
 var configurationRegistryOnce sync.Once
 var configurationRegistry *Registry
 
@@ -54,6 +66,14 @@ func GetBool(getter func(c *Configuration) bool, def bool) bool {
 }
 
 func GetUINT16(getter func(c *Configuration) uint16, def uint16) uint16 {
+	c, err := Get()
+	if err != nil {
+		return def
+	}
+	return getter(c)
+}
+
+func GetFLOAT32(getter func(c *Configuration) float32, def float32) float32 {
 	c, err := Get()
 	if err != nil {
 		return def

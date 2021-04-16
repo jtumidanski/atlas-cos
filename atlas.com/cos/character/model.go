@@ -1,5 +1,11 @@
 package character
 
+import (
+	"atlas-cos/job"
+	"strconv"
+	"strings"
+)
+
 type Model struct {
 	id                 uint32
 	accountId          uint32
@@ -27,7 +33,7 @@ type Model struct {
 	ap                 uint16
 	sp                 string
 	mapId              uint32
-	spawnPoint         byte
+	spawnPoint         uint32
 	gm                 int
 }
 
@@ -99,6 +105,91 @@ func (m Model) Id() uint32 {
 	return m.id
 }
 
+func (m Model) IsBeginner() bool {
+	return m.jobId == job.Beginner || m.jobId == job.Noblesse || m.jobId == job.Legend
+}
+
+func (m Model) AP() uint16 {
+	return m.ap
+}
+
+func (m Model) SP(i int) uint32 {
+	sps := m.SPs()
+	if len(sps) == 0 || i >= len(sps) {
+		return 0
+	}
+	return sps[i]
+}
+
+func (m Model) SPs() []uint32 {
+	sps := strings.Split(m.sp, ",")
+	r := make([]uint32, 0)
+	for _, sp := range sps {
+		i, err := strconv.Atoi(sp)
+		if err != nil {
+			return r
+		}
+		r = append(r, uint32(i))
+	}
+	return r
+}
+
+func (m Model) SpawnPoint() uint32 {
+	return m.spawnPoint
+}
+
+func (m Model) AccountId() uint32 {
+	return m.accountId
+}
+
+func (m Model) WorldId() byte {
+	return m.worldId
+}
+
+func (m Model) Name() string {
+	return m.name
+}
+
+func (m Model) GachaponExperience() uint32 {
+	return m.gachaponExperience
+}
+
+func (m Model) Meso() uint32 {
+	return m.meso
+}
+
+func (m Model) SkinColor() byte {
+	return m.skinColor
+}
+
+func (m Model) Gender() byte {
+	return m.gender
+}
+
+func (m Model) Fame() int16 {
+	return m.fame
+}
+
+func (m Model) Hair() uint32 {
+	return m.hair
+}
+
+func (m Model) Face() uint32 {
+	return m.face
+}
+
+func (m Model) SPString() string {
+	return m.sp
+}
+
+func (m Model) GM() int {
+	return m.gm
+}
+
+func (m Model) HPMPUsed() int {
+	return m.hpMpUsed
+}
+
 type modelBuilder struct {
 	id                 uint32
 	accountId          uint32
@@ -125,7 +216,7 @@ type modelBuilder struct {
 	fame               int16
 	gachaponExperience uint32
 	mapId              uint32
-	spawnPoint         byte
+	spawnPoint         uint32
 	gm                 int
 	meso               uint32
 }
@@ -254,7 +345,7 @@ func (c *modelBuilder) SetMapId(mapId uint32) *modelBuilder {
 	return c
 }
 
-func (c *modelBuilder) SetSpawnPoint(spawnPoint byte) *modelBuilder {
+func (c *modelBuilder) SetSpawnPoint(spawnPoint uint32) *modelBuilder {
 	c.spawnPoint = spawnPoint
 	return c
 }

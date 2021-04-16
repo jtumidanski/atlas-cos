@@ -110,7 +110,7 @@ public class CharacterResource {
    @Consumes(MediaType.APPLICATION_JSON)
    @Produces(MediaType.APPLICATION_JSON)
    public Response addSavedLocation(@PathParam("characterId") Integer characterId,
-                                    InputBody<LocationAttributes> inputBody) {
+                                       InputBody<LocationAttributes> inputBody) {
       return SavedLocationProcessor.addSavedLocation(characterId, inputBody.attributes()).build();
    }
 
