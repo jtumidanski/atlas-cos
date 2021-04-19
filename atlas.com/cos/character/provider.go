@@ -11,13 +11,10 @@ func GetById(db *gorm.DB, characterId uint32) (*Model, error) {
 	return makeCharacter(&result), nil
 }
 
-func listGet(db *gorm.DB, query interface{}, args ...interface{}) ([]*Model, error) {
+func listGet(db *gorm.DB, query interface{}) ([]*Model, error) {
 	var results []entity
-	err := db.First(&results).Where(query, args).Error
+	err := db.Where(query).Find(&results).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return make([]*Model, 0), nil
-		}
 		return nil, err
 	}
 
@@ -29,15 +26,15 @@ func listGet(db *gorm.DB, query interface{}, args ...interface{}) ([]*Model, err
 }
 
 func GetForAccountInWorld(db *gorm.DB, accountId uint32, worldId byte) ([]*Model, error) {
-	return listGet(db, "accountId = ? AND worldId = ?", accountId, worldId)
+	return listGet(db, &entity{AccountId: accountId, World: worldId})
 }
 
 func GetForMapInWorld(db *gorm.DB, worldId byte, mapId uint32) ([]*Model, error) {
-	return listGet(db, "worldId = ? AND mapId = ?", worldId, mapId)
+	return listGet(db, &entity{World: worldId, MapId: mapId})
 }
 
 func GetForName(db *gorm.DB, name string) ([]*Model, error) {
-	return listGet(db, "name = ?", name)
+	return listGet(db, &entity{Name: name})
 }
 
 func makeCharacter(e *entity) *Model {

@@ -30,7 +30,7 @@ type MonsterAttributes struct {
 	ExplosiveReward     bool   `json:"explosiveReward"`
 	FFALoot             bool   `json:"FFALoot"`
 	Undead              bool   `json:"undead"`
-	BuffToGive          uint32 `json:"buffToGive"`
+	BuffToGive          int32  `json:"buffToGive"`
 	CarnivalPoint       uint32 `json:"carnivalPoint"`
 	RemoveOnMiss        bool   `json:"removeOnMiss"`
 	Changeable          bool   `json:"changeable"`

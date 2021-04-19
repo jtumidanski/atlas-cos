@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 func GetSavedLocations(db *gorm.DB, characterId uint32) ([]*Model, error) {
 	var results []entity
-	err := db.First(&results).Where("characterId = ?", characterId).Error
+	err := db.Where(&entity{CharacterId: characterId}).Find(&results).Error
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func makeLocation(e *entity) *Model {
 
 func GetSavedLocationsByType(db *gorm.DB, characterId uint32, theType string) ([]*Model, error) {
 	var results []entity
-	err := db.First(&results).Where("characterId = ? AND locationType = ?", characterId, theType).Error
+	err := db.Where(&entity{CharacterId: characterId, LocationType: theType}).Find(&results).Error
 	if err != nil {
 		return nil, err
 	}

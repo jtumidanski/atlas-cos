@@ -172,7 +172,7 @@ func (p *processor) changeMapSuccess(worldId byte, channelId byte, mapId uint32,
 
 // GainExperience - Updates the character based on the experience gained, may trigger level updates depending on amount gained.
 func (p *processor) GainExperience(characterId uint32, amount uint32) {
-	p.characterUpdate(characterId, p.performGainExperience(amount), nil)
+	p.characterUpdate(characterId, p.performGainExperience(amount))
 }
 
 func (p *processor) performGainExperience(amount uint32) characterFunc {

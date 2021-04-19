@@ -12,7 +12,6 @@ import (
 	"context"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"log"
 	"os"
 	"os/signal"
@@ -27,7 +26,7 @@ func connectToDatabase(attempt int) (bool, interface{}, error) {
 		DontSupportRenameIndex:    true,
 		DontSupportRenameColumn:   true,
 		SkipInitializeWithVersion: false,
-	}), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
+	}), &gorm.Config{})
 	if err != nil {
 		return true, nil, err
 	}

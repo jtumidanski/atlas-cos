@@ -7,7 +7,7 @@ import (
 
 func GetById(db *gorm.DB, id uint32) (*Model, error) {
 	var result entity
-	err := db.First(&result).Where("Id = ?", id).Error
+	err := db.Where(&entity{Id: id}).First(&result).Error
 	if err != nil {
 		return nil, err
 	}
@@ -17,7 +17,7 @@ func GetById(db *gorm.DB, id uint32) (*Model, error) {
 
 func GetItemsForCharacter(db *gorm.DB, characterId uint32, inventoryType byte, itemId uint32) ([]*Model, error) {
 	var results []entity
-	err := db.First(&results).Where("CharacterId = ? AND InventoryType = ? AND ItemId = ?", characterId, inventoryType, itemId).Error
+	err := db.Where(&entity{CharacterId: characterId, InventoryType: inventoryType, ItemId: itemId}).Find(&results).Error
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func GetItemsForCharacter(db *gorm.DB, characterId uint32, inventoryType byte, i
 
 func GetForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType byte) ([]*Model, error) {
 	var results []entity
-	err := db.First(&results).Where("CharacterId = ? AND InventoryType = ?", characterId, inventoryType).Error
+	err := db.Where(&entity{CharacterId: characterId, InventoryType: inventoryType}).Find(&results).Error
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func GetForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType b
 
 func GetItemsForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType byte) ([]*Model, error) {
 	var results []entity
-	err := db.First(&results).Where("CharacterId = ? AND InventoryType = ?", characterId, inventoryType).Error
+	err := db.Where(&entity{CharacterId: characterId, InventoryType: inventoryType}).Find(&results).Error
 	if err != nil {
 		return nil, err
 	}

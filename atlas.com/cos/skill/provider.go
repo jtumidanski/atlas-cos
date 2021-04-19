@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 func GetById(db *gorm.DB, characterId uint32, skillId uint32) (*Model, error) {
 	var result entity
-	err := db.First(&result).Where("characterId = ? AND skillId = ?", characterId, skillId).Error
+	err := db.Where(&entity{CharacterId: characterId, SkillId: skillId}).First(&result).Error
 	if err != nil {
 		return nil, err
 	}
@@ -13,7 +13,7 @@ func GetById(db *gorm.DB, characterId uint32, skillId uint32) (*Model, error) {
 
 func GetForCharacter(db *gorm.DB, characterId uint32) ([]*Model, error) {
 	var result []entity
-	err := db.First(&result).Where("characterId = ?", characterId).Error
+	err := db.Where(&entity{CharacterId: characterId}).Find(&result).Error
 	if err != nil {
 		return nil, err
 	}
