@@ -14,3 +14,7 @@ type entity struct {
 	MasterLevel uint32 `gorm:"not null"`
 	Expiration  uint64 `gorm:"not null;default=-1"`
 }
+
+func (e entity) TableName() string {
+	return "skills"
+}

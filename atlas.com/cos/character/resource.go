@@ -1,6 +1,10 @@
 package character
 
 import (
+	"atlas-cos/equipment"
+	"atlas-cos/equipment/statistics"
+	"atlas-cos/inventory"
+	"atlas-cos/item"
 	"atlas-cos/location"
 	"atlas-cos/rest/attributes"
 	"atlas-cos/skill"
@@ -9,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 // GenericError is a generic error message returned by a server
@@ -108,7 +113,7 @@ func GetCharactersByName(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *
 
 func CreateCharacter(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-
+		l.Printf("[ERROR] unhandled request to create character.")
 	}
 }
 
@@ -180,7 +185,138 @@ func makeCharacterData(c *Model) attributes.CharacterData {
 
 func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
+		if err != nil {
+			l.Printf("[ERROR] unable to properly parse characterId from path.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		include := mux.Vars(r)["include"]
+		inventoryType := mux.Vars(r)["type"]
+		if inventoryType == "" {
+			l.Printf("[ERROR] unable to retrieve requested inventory type.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 
+		inv, err := inventory.Processor(l, db).GetInventoryByType(uint32(characterId), inventoryType)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		var result = &attributes.InventoryDataContainer{
+			Data: attributes.InventoryData{
+				Id:   strconv.Itoa(int(inv.Id())),
+				Type: "com.atlas.cos.rest.attribute.InventoryAttributes",
+				Attributes: attributes.InventoryAttributes{
+					Type:     inv.Type(),
+					Capacity: inv.Capacity(),
+				},
+			},
+		}
+
+		for _, i := range inv.Items() {
+			var inventoryItem = attributes.Relationship{
+				Id:   strconv.Itoa(int(i.Id())),
+				Type: getInventoryItemType(i.Type()),
+			}
+
+			result.Data.Relationships.InventoryItems = append(result.Data.Relationships.InventoryItems, inventoryItem)
+		}
+
+		if strings.Contains(include, "inventoryItems") {
+			inv, err := inventory.Processor(l, db).GetInventoryByType(uint32(characterId), inventoryType)
+			if err != nil {
+			} else {
+				for _, inventoryItem := range inv.Items() {
+					if inventoryItem.Type() == inventory.ItemTypeEquip {
+						e, err := equipment.Processor(l, db).GetEquipmentById(inventoryItem.Id())
+						if err != nil {
+						} else {
+							result.Included = append(result.Included, attributes.InventoryEquipmentData{
+								Id:   strconv.Itoa(int(e.Id())),
+								Type: "com.atlas.cos.rest.attribute.EquipmentAttributes",
+								Attributes: attributes.InventoryEquipmentAttributes{
+									EquipmentId: e.EquipmentId(),
+									Slot:        e.Slot(),
+								},
+								Relationships: attributes.Relationships{
+									EquipmentStatistics: []attributes.Relationship{{
+										Id:   strconv.Itoa(int(e.EquipmentId())),
+										Type: "com.atlas.cos.rest.attribute.EquipmentStatisticsAttributes",
+									}},
+								},
+							})
+						}
+					} else {
+						i, err := item.Processor(l, db).GetItemById(inventoryItem.Id())
+						if err != nil {
+						} else {
+							result.Included = append(result.Included, attributes.InventoryItemData{
+								Id:   strconv.Itoa(int(i.Id())),
+								Type: "com.atlas.cos.rest.attribute.ItemAttributes",
+								Attributes: attributes.InventoryItemAttributes{
+									ItemId:   i.ItemId(),
+									Quantity: i.Quantity(),
+									Slot:     i.Slot(),
+								},
+							})
+						}
+
+					}
+				}
+			}
+		}
+		if strings.Contains(include, "equipmentStatistics") {
+			e, err := equipment.Processor(l, db).GetEquipmentForCharacter(uint32(characterId))
+			if err != nil {
+			} else {
+				for _, equip := range e {
+					es, err := statistics.Processor(l, db).GetEquipmentStatistics(equip.EquipmentId())
+					if err != nil {
+					} else {
+						result.Included = append(result.Included, attributes.InventoryEquipmentStatisticsData{
+							Id:   strconv.Itoa(int(es.Id())),
+							Type: "com.atlas.cos.rest.attribute.EquipmentStatisticsAttributes",
+							Attributes: attributes.InventoryEquipmentStatisticsAttributes{
+								ItemId:        es.ItemId(),
+								Strength:      es.Strength(),
+								Dexterity:     es.Dexterity(),
+								Intelligence:  es.Intelligence(),
+								Luck:          es.Luck(),
+								HP:            es.HP(),
+								MP:            es.MP(),
+								WeaponAttack:  es.WeaponAttack(),
+								MagicAttack:   es.MagicAttack(),
+								WeaponDefense: es.WeaponDefense(),
+								MagicDefense:  es.MagicDefense(),
+								Accuracy:      es.Accuracy(),
+								Avoidability:  es.Avoidability(),
+								Hands:         es.Hands(),
+								Speed:         es.Speed(),
+								Jump:          es.Jump(),
+								Slots:         es.Slots(),
+							},
+						})
+					}
+				}
+			}
+		}
+
+		w.WriteHeader(http.StatusOK)
+		err = attributes.ToJSON(result, w)
+		if err != nil {
+			l.Printf("[ERROR] %s.", err.Error())
+		}
+	}
+}
+
+func getInventoryItemType(inventoryType string) string {
+	if inventoryType == inventory.ItemTypeEquip {
+		return "com.atlas.cos.rest.attribute.EquipmentAttributes"
+	} else {
+		return "com.atlas.cos.rest.attribute.ItemAttributes"
 	}
 }
 
@@ -192,7 +328,27 @@ func GetInventoryForCharacter(l *log.Logger, db *gorm.DB) func(http.ResponseWrit
 
 func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		li := &attributes.CharacterSeedInputDataContainer{}
+		err := attributes.FromJSON(li, r.Body)
+		if err != nil {
+			l.Println("[ERROR] deserializing input", err)
+			w.WriteHeader(http.StatusBadRequest)
+			attributes.ToJSON(&GenericError{Message: err.Error()}, w)
+			return
+		}
 
+		attr := li.Data.Attributes
+		c, err := Processor(l, db).CreateFromSeed(attr.AccountId, attr.WorldId, attr.Name, attr.JobIndex, attr.Face, attr.Hair, attr.HairColor, attr.Skin, attr.Gender, attr.Top, attr.Bottom, attr.Shoes, attr.Weapon)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		var result = &attributes.CharacterDataContainer{}
+		result.Data = makeCharacterData(c)
+
+		w.WriteHeader(http.StatusOK)
+		attributes.ToJSON(result, w)
 	}
 }
 
@@ -252,7 +408,7 @@ func AddSavedLocation(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *htt
 		li := &attributes.LocationInputDataContainer{}
 		err = attributes.FromJSON(li, r.Body)
 		if err != nil {
-			l.Println("[ERROR] deserializing instruction", err)
+			l.Println("[ERROR] deserializing input", err)
 			w.WriteHeader(http.StatusBadRequest)
 			attributes.ToJSON(&GenericError{Message: err.Error()}, w)
 			return

@@ -31,11 +31,15 @@ type entity struct {
 	Hair               uint32 `gorm:"not null;default=0"`
 	Face               uint32 `gorm:"not null;default=0"`
 	AP                 uint16 `gorm:"not null;default=0"`
-	SP                 string `gorm:"not null;default='0,0,0,0,0,0,0,0,0,0'"`
+	SP                 string `gorm:"not null;default=0,0,0,0,0,0,0,0,0,0"`
 	MapId              uint32 `gorm:"not null;default=0"`
 	SpawnPoint         uint32 `gorm:"not null;default=0"`
 	GM                 int    `gorm:"not null;default=0"`
 	X                  int16  `gorm:"not null;default=0"`
 	Y                  int16  `gorm:"not null;default=0"`
 	Stance             byte   `gorm:"not null;default=0"`
+}
+
+func (e entity) TableName() string {
+	return "characters"
 }

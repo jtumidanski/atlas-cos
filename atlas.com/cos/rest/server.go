@@ -16,7 +16,7 @@ type Server struct {
 }
 
 func NewServer(l *log.Logger, db *gorm.DB) *Server {
-	router := mux.NewRouter().PathPrefix("/ms/cos").Subrouter()
+	router := mux.NewRouter().PathPrefix("/ms/cos").Subrouter().StrictSlash(true)
 	router.Use(commonHeader)
 
 	csr := router.PathPrefix("/characters").Subrouter()
@@ -24,27 +24,15 @@ func NewServer(l *log.Logger, db *gorm.DB) *Server {
 	csr.HandleFunc("", character.GetCharactersByMap(l, db)).Methods(http.MethodGet).Queries("worldId", "{worldId}", "mapId", "{mapId}")
 	csr.HandleFunc("", character.GetCharactersByName(l, db)).Methods(http.MethodGet).Queries("name", "{name}")
 	csr.HandleFunc("", character.CreateCharacter(l, db)).Methods(http.MethodPost)
-
-	cr := csr.PathPrefix("/{characterId}").Subrouter()
-	cr.HandleFunc("/{characterId}", character.GetCharacter(l, db)).Methods(http.MethodGet)
-
-	ir := cr.PathPrefix("/inventories").Subrouter()
-	ir.HandleFunc("", character.GetInventoryForCharacterByType(l, db)).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}")
-	ir.HandleFunc("", character.GetInventoryForCharacter(l, db)).Methods(http.MethodGet).Queries("include", "{include}")
-
-	seedR := cr.PathPrefix("/seeds").Subrouter()
-	seedR.HandleFunc("", character.CreateCharacterFromSeed(l, db)).Methods(http.MethodPost)
-
-	lr := cr.PathPrefix("/locations").Subrouter()
-	lr.HandleFunc("", character.GetSavedLocations(l, db)).Methods(http.MethodGet).Queries("type", "{type}")
-	lr.HandleFunc("", character.GetSavedLocations(l, db)).Methods(http.MethodGet)
-	lr.HandleFunc("", character.AddSavedLocation(l, db)).Methods(http.MethodPost)
-
-	dr := cr.PathPrefix("/damage").Subrouter()
-	dr.HandleFunc("weapon", character.GetCharacterDamage(l, db)).Methods(http.MethodGet)
-
-	sr := cr.PathPrefix("/skills").Subrouter()
-	sr.HandleFunc("", character.GetCharacterSkills(l, db)).Methods(http.MethodGet)
+	csr.HandleFunc("/{characterId}", character.GetCharacter(l, db)).Methods(http.MethodGet)
+	csr.HandleFunc("/{characterId}/inventories", character.GetInventoryForCharacterByType(l, db)).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}")
+	csr.HandleFunc("/{characterId}/inventories", character.GetInventoryForCharacter(l, db)).Methods(http.MethodGet).Queries("include", "{include}")
+	csr.HandleFunc("/seeds", character.CreateCharacterFromSeed(l, db)).Methods(http.MethodPost)
+	csr.HandleFunc("/{characterId}/locations", character.GetSavedLocations(l, db)).Methods(http.MethodGet).Queries("type", "{type}")
+	csr.HandleFunc("/{characterId}/locations", character.GetSavedLocations(l, db)).Methods(http.MethodGet)
+	csr.HandleFunc("/{characterId}/locations", character.AddSavedLocation(l, db)).Methods(http.MethodPost)
+	csr.HandleFunc("/{characterId}/damage/weapon", character.GetCharacterDamage(l, db)).Methods(http.MethodGet)
+	csr.HandleFunc("/{characterId}/skills", character.GetCharacterSkills(l, db)).Methods(http.MethodGet)
 
 	hs := http.Server{
 		Addr:         ":8080",

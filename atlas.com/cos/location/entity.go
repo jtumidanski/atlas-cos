@@ -13,3 +13,7 @@ type entity struct {
 	MapId        uint32 `gorm:"not null"`
 	PortalId     uint32 `gorm:"not null"`
 }
+
+func (e entity) TableName() string {
+	return "locations"
+}

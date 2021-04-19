@@ -12,6 +12,7 @@ import (
 	"context"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"log"
 	"os"
 	"os/signal"
@@ -26,7 +27,7 @@ func connectToDatabase(attempt int) (bool, interface{}, error) {
 		DontSupportRenameIndex:    true,
 		DontSupportRenameColumn:   true,
 		SkipInitializeWithVersion: false,
-	}), &gorm.Config{})
+	}), &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
 	if err != nil {
 		return true, nil, err
 	}
@@ -73,7 +74,7 @@ func createEventConsumers(l *log.Logger, db *gorm.DB) {
 	cec("TOPIC_CHANGE_MAP_COMMAND", consumers.ChangeMapCommandCreator(), consumers.HandleChangeMapCommand(db))
 	cec("TOPIC_CHARACTER_EXPERIENCE_EVENT", consumers.GainExperienceEventCreator(), consumers.HandleGainExperienceEvent(db))
 	cec("TOPIC_CHARACTER_LEVEL_EVENT", consumers.GainLevelEventCreator(), consumers.HandleGainLevelEvent(db))
-	cec("TOPIC_CHARACTER_MOVEMENT", consumers.CharacterMovementEventCreator(), consumers.HandleCharacterMovementEvent())
+	cec("TOPIC_CHARACTER_MOVEMENT", consumers.CharacterMovementEventCreator(), consumers.HandleCharacterMovementEvent(db))
 	cec("TOPIC_CHARACTER_STATUS", consumers.CharacterStatusEventCreator(), consumers.HandleCharacterStatusEvent(db))
 	cec("TOPIC_DROP_RESERVATION_EVENT", consumers.DropReservationEventCreator(), consumers.HandleDropReservationEvent(db))
 	cec("TOPIC_MONSTER_KILLED_EVENT", consumers.MonsterKilledEventCreator(), consumers.HandleMonsterKilledEvent(db))

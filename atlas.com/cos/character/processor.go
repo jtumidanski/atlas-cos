@@ -4,6 +4,7 @@ import (
 	"atlas-cos/configuration"
 	"atlas-cos/equipment"
 	"atlas-cos/equipment/statistics"
+	"atlas-cos/inventory"
 	"atlas-cos/item"
 	"atlas-cos/job"
 	"atlas-cos/kafka/producers"
@@ -12,6 +13,7 @@ import (
 	"atlas-cos/skill"
 	"atlas-cos/skill/information"
 	"context"
+	"errors"
 	"gorm.io/gorm"
 	"log"
 	"math"
@@ -265,12 +267,12 @@ func (p *processor) InMap(characterId uint32, mapId uint32) bool {
 }
 
 func (p *processor) outOfRange(new uint16, change uint16) bool {
-	return new < 4 && change != 0 || new > configuration.GetUINT16(configuration.Configuration.MaxAp, 9999)
+	return new < 4 && change != 0 || new > configuration.GetUINT16((*configuration.Configuration).MaxAp, 9999)
 }
 
-func (p *processor) persistAttributeUpdate(getter func(Model) uint16, modifierGetter func(uint16, uint16) []EntityUpdateFunction) characterFunc {
+func (p *processor) persistAttributeUpdate(getter func(*Model) uint16, modifierGetter func(uint16, uint16) []EntityUpdateFunction) characterFunc {
 	return func(c *Model) error {
-		value := getter(*c) + 1
+		value := getter(c) + 1
 		if p.outOfRange(value, 1) {
 			return nil
 		}
@@ -283,7 +285,7 @@ func (p *processor) AssignStrength(characterId uint32) {
 }
 
 func (p *processor) persistStrengthUpdate() characterFunc {
-	return p.persistAttributeUpdate(Model.Strength, SpendOnStrength)
+	return p.persistAttributeUpdate((*Model).Strength, SpendOnStrength)
 }
 
 func (p *processor) strengthUpdateSuccess() characterFunc {
@@ -295,7 +297,7 @@ func (p *processor) AssignDexterity(characterId uint32) {
 }
 
 func (p *processor) persistDexterityUpdate() characterFunc {
-	return p.persistAttributeUpdate(Model.Dexterity, SpendOnDexterity)
+	return p.persistAttributeUpdate((*Model).Dexterity, SpendOnDexterity)
 }
 
 func (p *processor) dexterityUpdateSuccess() characterFunc {
@@ -307,7 +309,7 @@ func (p *processor) AssignIntelligence(characterId uint32) {
 }
 
 func (p *processor) persistIntelligenceUpdate() characterFunc {
-	return p.persistAttributeUpdate(Model.Intelligence, SpendOnIntelligence)
+	return p.persistAttributeUpdate((*Model).Intelligence, SpendOnIntelligence)
 }
 
 func (p *processor) intelligenceUpdateSuccess() characterFunc {
@@ -319,7 +321,7 @@ func (p *processor) AssignLuck(characterId uint32) {
 }
 
 func (p *processor) persistLuckUpdate() characterFunc {
-	return p.persistAttributeUpdate(Model.Luck, SpendOnLuck)
+	return p.persistAttributeUpdate((*Model).Luck, SpendOnLuck)
 }
 
 func (p *processor) luckUpdateSuccess() characterFunc {
@@ -360,7 +362,7 @@ func (p *processor) calculateHPChange(c *Model, usedAPReset bool) uint16 {
 }
 
 func (p *processor) adjustHPMPGain(usedAPReset bool, maxHP uint16, apResetAmount uint16, upperBound uint16, lowerBound uint16, floor uint16, staticAmount uint16) uint16 {
-	if configuration.GetBool(configuration.Configuration.UseRandomizeHPMPGain, true) {
+	if configuration.GetBool((*configuration.Configuration).UseRandomizeHPMPGain, true) {
 		if usedAPReset {
 			maxHP = maxHP + apResetAmount
 		} else {
@@ -413,23 +415,23 @@ func (p *processor) mpUpdateSuccess() characterFunc {
 }
 
 func (p *processor) TotalIntelligence(c *Model) uint16 {
-	return p.totalStat(*c, Model.Intelligence, statistics.Model.Intelligence)
+	return p.totalStat(*c, (*Model).Intelligence, (*statistics.Model).Intelligence)
 }
 
 func (p *processor) TotalDexterity(c *Model) uint16 {
-	return p.totalStat(*c, Model.Dexterity, statistics.Model.Dexterity)
+	return p.totalStat(*c, (*Model).Dexterity, (*statistics.Model).Dexterity)
 }
 
 func (p *processor) TotalStrength(c *Model) uint16 {
-	return p.totalStat(*c, Model.Strength, statistics.Model.Strength)
+	return p.totalStat(*c, (*Model).Strength, (*statistics.Model).Strength)
 }
 
 func (p *processor) TotalLuck(c *Model) uint16 {
-	return p.totalStat(*c, Model.Luck, statistics.Model.Luck)
+	return p.totalStat(*c, (*Model).Luck, (*statistics.Model).Luck)
 }
 
-func (p *processor) totalStat(c Model, baseGetter func(model Model) uint16, equipGetter func(model *statistics.Model) uint16) uint16 {
-	value := baseGetter(c)
+func (p *processor) totalStat(c Model, baseGetter func(*Model) uint16, equipGetter func(*statistics.Model) uint16) uint16 {
+	value := baseGetter(&c)
 
 	//TODO apply MapleWarrior
 
@@ -463,7 +465,7 @@ func (p *processor) persistLevelUpdate() characterFunc {
 
 func (p *processor) onLevelAdjustAP(c *Model) []EntityUpdateFunction {
 	var modifiers = make([]EntityUpdateFunction, 0)
-	autoAssignStarterAp := configuration.GetBool(configuration.Configuration.UseAutoAssignStartersAp, false)
+	autoAssignStarterAp := configuration.GetBool((*configuration.Configuration).UseAutoAssignStartersAp, false)
 	if autoAssignStarterAp && c.IsBeginner() && c.Level() <= 10 {
 		if c.Level() <= 5 {
 			modifiers = append(modifiers, SetStrength(5))
@@ -513,7 +515,7 @@ func (p *processor) onLevelAdjustHealthAndMana(c *Model) []EntityUpdateFunction 
 		modifiers = append(modifiers, IncreaseMP(uint16(mpSeed)+uint16(math.Floor(float64(mpSeed)*0.1))))
 	}
 
-	if configuration.GetBool(configuration.Configuration.UseRandomizeHPMPGain, false) {
+	if configuration.GetBool((*configuration.Configuration).UseRandomizeHPMPGain, false) {
 		if job.GetJobStyle(c.JobId(), c.Strength(), c.Dexterity()) == job.Magician {
 			modifiers = append(modifiers, IncreaseMP(p.TotalIntelligence(c)/20))
 		} else {
@@ -582,8 +584,8 @@ func (p *processor) assignSP(skillId uint32) characterFunc {
 	}
 }
 
-func (p *processor) adjustSP(c *Model, amount uint32, bookId uint32) error {
-	nv := uint32(math.Max(0, float64(c.SP(int(bookId))+amount)))
+func (p *processor) adjustSP(c *Model, amount int32, bookId uint32) error {
+	nv := uint32(math.Max(0, float64(int32(c.SP(int(bookId)))+amount)))
 	err := p.characterDatabaseUpdate(SetSP(nv, bookId))(c)
 	if err != nil {
 		return err
@@ -708,4 +710,93 @@ func (p *processor) getMaximumBaseDamageNoWeapon(c *Model) uint32 {
 		return uint32(math.Ceil((float64(strength) * wm * float64(dexterity)) * float64(attack) / 100.0))
 	}
 	return 1
+}
+
+type BuilderCreator func(*builder) (*Model, error)
+
+func (p *processor) CreateFromSeed(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (*Model, error) {
+	if jobId, ok := job.GetJobFromIndex(jobIndex); ok {
+		if bc, ok := p.getCreator(jobId); ok {
+			config := builderConfiguration{
+				useStarting4AP:          configuration.GetBool((*configuration.Configuration).UseStarting4AP, false),
+				useAutoAssignStartersAP: configuration.GetBool((*configuration.Configuration).UseAutoAssignStartersAp, false),
+			}
+			c, err := bc(NewBuilder(config, accountId, worldId, name, skinColor, gender, hair+hairColor, face))
+			if err != nil {
+				return nil, err
+			}
+			p.addEquippedItems(c, top, bottom, shoes, weapon)
+			p.addOtherItems(c)
+			p.addSkills(c)
+			return c, nil
+		}
+		return nil, errors.New("creator not available for job")
+	}
+	return nil, errors.New("invalid job creator index")
+}
+
+func (p *processor) getCreator(jobId uint16) (BuilderCreator, bool) {
+	if jobId == job.Beginner {
+		return p.createBeginner, true
+	} else if jobId == job.Noblesse {
+		return p.createNoblesse, true
+	} else if jobId == job.Legend {
+		return p.createLegend, true
+	}
+	return nil, false
+}
+
+func (p *processor) createBeginner(b *builder) (*Model, error) {
+	b.setJobId(job.Beginner)
+	b.setMapId(10000)
+	return p.create(b)
+}
+
+func (p *processor) createNoblesse(b *builder) (*Model, error) {
+	b.setJobId(job.Noblesse)
+	b.setMapId(130030000)
+	return p.create(b)
+}
+
+func (p *processor) createLegend(b *builder) (*Model, error) {
+	b.setJobId(job.Legend)
+	b.setMapId(914000000)
+	return p.create(b)
+}
+
+func (p *processor) create(b *builder) (*Model, error) {
+	c := b.Build()
+	c, err := Create(p.db, c.AccountId(), c.WorldId(), c.Name(), c.Level(), c.Strength(), c.Dexterity(), c.Intelligence(), c.Luck(), c.MaxHP(), c.MaxMP(), c.JobId(), c.Gender(), c.Hair(), c.Face(), c.SkinColor(), c.MapId())
+	if err != nil {
+		return nil, err
+	}
+	producers.CharacterCreated(p.l, context.Background()).Emit(c.Id(), c.WorldId(), c.Name())
+	return c, nil
+}
+
+func (p *processor) addEquippedItems(c *Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
+	equipment.Processor(p.l, p.db).CreateAndEquip(c.Id(), top, bottom, shoes, weapon)
+}
+
+func (p *processor) addOtherItems(c *Model) {
+	if job.IsA(c.JobId(), job.Beginner) {
+		_, _ = item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161001, 1)
+	} else if job.IsA(c.JobId(), job.Noblesse) {
+		_, _ = item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161047, 1)
+	} else if job.IsA(c.JobId(), job.Legend) {
+		_, _ = item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161048, 1)
+	}
+}
+
+func (p *processor) addSkills(c *Model) {
+	if job.IsA(c.JobId(), job.Beginner) {
+		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.BeginnerRecovery)
+		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.BeginnerNimbleFeet)
+		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.BeginnerThreeSnails)
+	} else if job.IsA(c.JobId(), job.Noblesse) {
+		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.NoblesseRecovery)
+		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.NoblesseNimbleFeet)
+		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.NoblesseThreeSnails)
+	} else if job.IsA(c.JobId(), job.Legend) {
+	}
 }

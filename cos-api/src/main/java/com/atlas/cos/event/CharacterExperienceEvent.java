@@ -1,4 +1,0 @@
-package com.atlas.cos.event;
-
-public record CharacterExperienceEvent(int characterId, int personalGain, int partyGain, boolean show, boolean chat, boolean white) {
-}

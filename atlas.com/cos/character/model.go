@@ -37,47 +37,47 @@ type Model struct {
 	gm                 int
 }
 
-func (m Model) HP() uint16 {
+func (m *Model) HP() uint16 {
 	return m.hp
 }
 
-func (m Model) MaxHP() uint16 {
+func (m *Model) MaxHP() uint16 {
 	return m.maxHp
 }
 
-func (m Model) MP() uint16 {
+func (m *Model) MP() uint16 {
 	return m.mp
 }
 
-func (m Model) MaxMP() uint16 {
+func (m *Model) MaxMP() uint16 {
 	return m.maxMp
 }
 
-func (m Model) Strength() uint16 {
+func (m *Model) Strength() uint16 {
 	return m.strength
 }
 
-func (m Model) Dexterity() uint16 {
+func (m *Model) Dexterity() uint16 {
 	return m.dexterity
 }
 
-func (m Model) Intelligence() uint16 {
+func (m *Model) Intelligence() uint16 {
 	return m.intelligence
 }
 
-func (m Model) Luck() uint16 {
+func (m *Model) Luck() uint16 {
 	return m.luck
 }
 
-func (m Model) JobId() uint16 {
+func (m *Model) JobId() uint16 {
 	return m.jobId
 }
 
-func (m Model) Level() byte {
+func (m *Model) Level() byte {
 	return m.level
 }
 
-func (m Model) MaxClassLevel() byte {
+func (m *Model) MaxClassLevel() byte {
 	if m.Cygnus() {
 		return 120
 	} else {
@@ -85,35 +85,35 @@ func (m Model) MaxClassLevel() byte {
 	}
 }
 
-func (m Model) Cygnus() bool {
+func (m *Model) Cygnus() bool {
 	return m.JobType() == 1
 }
 
-func (m Model) JobType() uint16 {
+func (m *Model) JobType() uint16 {
 	return m.jobId / 1000
 }
 
-func (m Model) Experience() uint32 {
+func (m *Model) Experience() uint32 {
 	return m.experience
 }
 
-func (m Model) MapId() uint32 {
+func (m *Model) MapId() uint32 {
 	return m.mapId
 }
 
-func (m Model) Id() uint32 {
+func (m *Model) Id() uint32 {
 	return m.id
 }
 
-func (m Model) IsBeginner() bool {
+func (m *Model) IsBeginner() bool {
 	return m.jobId == job.Beginner || m.jobId == job.Noblesse || m.jobId == job.Legend
 }
 
-func (m Model) AP() uint16 {
+func (m *Model) AP() uint16 {
 	return m.ap
 }
 
-func (m Model) SP(i int) uint32 {
+func (m *Model) SP(i int) uint32 {
 	sps := m.SPs()
 	if len(sps) == 0 || i >= len(sps) {
 		return 0
@@ -121,7 +121,7 @@ func (m Model) SP(i int) uint32 {
 	return sps[i]
 }
 
-func (m Model) SPs() []uint32 {
+func (m *Model) SPs() []uint32 {
 	sps := strings.Split(m.sp, ",")
 	r := make([]uint32, 0)
 	for _, sp := range sps {
@@ -134,59 +134,59 @@ func (m Model) SPs() []uint32 {
 	return r
 }
 
-func (m Model) SpawnPoint() uint32 {
+func (m *Model) SpawnPoint() uint32 {
 	return m.spawnPoint
 }
 
-func (m Model) AccountId() uint32 {
+func (m *Model) AccountId() uint32 {
 	return m.accountId
 }
 
-func (m Model) WorldId() byte {
+func (m *Model) WorldId() byte {
 	return m.worldId
 }
 
-func (m Model) Name() string {
+func (m *Model) Name() string {
 	return m.name
 }
 
-func (m Model) GachaponExperience() uint32 {
+func (m *Model) GachaponExperience() uint32 {
 	return m.gachaponExperience
 }
 
-func (m Model) Meso() uint32 {
+func (m *Model) Meso() uint32 {
 	return m.meso
 }
 
-func (m Model) SkinColor() byte {
+func (m *Model) SkinColor() byte {
 	return m.skinColor
 }
 
-func (m Model) Gender() byte {
+func (m *Model) Gender() byte {
 	return m.gender
 }
 
-func (m Model) Fame() int16 {
+func (m *Model) Fame() int16 {
 	return m.fame
 }
 
-func (m Model) Hair() uint32 {
+func (m *Model) Hair() uint32 {
 	return m.hair
 }
 
-func (m Model) Face() uint32 {
+func (m *Model) Face() uint32 {
 	return m.face
 }
 
-func (m Model) SPString() string {
+func (m *Model) SPString() string {
 	return m.sp
 }
 
-func (m Model) GM() int {
+func (m *Model) GM() int {
 	return m.gm
 }
 
-func (m Model) HPMPUsed() int {
+func (m *Model) HPMPUsed() int {
 	return m.hpMpUsed
 }
 

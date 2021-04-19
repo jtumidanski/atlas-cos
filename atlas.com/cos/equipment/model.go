@@ -14,3 +14,7 @@ func (m Model) Slot() int16 {
 func (m Model) EquipmentId() uint32 {
 	return m.equipmentId
 }
+
+func (m Model) Id() uint32 {
+	return m.id
+}

@@ -15,9 +15,9 @@ type SkillData struct {
 }
 
 type SkillAttributes struct {
-	Action        bool                 `json:"action"`
-	Element       string               `json:"element"`
-	AnimationTime uint32               `json:"animationTime"`
+	Action        bool                   `json:"action"`
+	Element       string                 `json:"element"`
+	AnimationTime uint32                 `json:"animationTime"`
 	Effects       []StatEffectAttributes `json:"effects"`
 }
 
@@ -48,7 +48,7 @@ type StatEffectAttributes struct {
 	Mob           uint32  `json:"mob"`
 	OverTime      bool    `json:"overTime"`
 	RepeatEffect  bool    `json:"repeatEffect"`
-	MoveTo        uint32  `json:"moveTo"`
+	MoveTo        int32   `json:"moveTo"`
 	CP            uint32  `json:"cp"`
 	NuffSkill     uint32  `json:"nuffSkill"`
 	Skill         bool    `json:"skill"`
@@ -67,7 +67,7 @@ type StatEffectAttributes struct {
 	ItemConNo     uint32  `json:"itemConNo"`
 	Damage        uint32  `json:"damage"`
 	AttackCount   uint32  `json:"attackCount"`
-	FixDamage     uint32  `json:"fixDamage"`
+	FixDamage     int32   `json:"fixDamage"`
 	//LT Point
 	//RB Point
 	BulletCount          uint16                     `json:"bulletCount"`

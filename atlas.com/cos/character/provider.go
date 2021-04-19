@@ -15,6 +15,9 @@ func listGet(db *gorm.DB, query interface{}, args ...interface{}) ([]*Model, err
 	var results []entity
 	err := db.First(&results).Where(query, args).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return make([]*Model, 0), nil
+		}
 		return nil, err
 	}
 

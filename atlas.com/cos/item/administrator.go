@@ -6,11 +6,11 @@ type EntityUpdateFunction func(e entity)
 
 func CreateItemForCharacter(db *gorm.DB, characterId uint32, inventoryType byte, itemId uint32, quantity uint32, slot int16) (*Model, error) {
 	e := &entity{
-		characterId:   characterId,
-		inventoryType: inventoryType,
-		itemId:        itemId,
-		quantity:      quantity,
-		slot:          slot,
+		CharacterId:   characterId,
+		InventoryType: inventoryType,
+		ItemId:        itemId,
+		Quantity:      quantity,
+		Slot:          slot,
 	}
 
 	err := db.Create(e).Error
@@ -21,7 +21,7 @@ func CreateItemForCharacter(db *gorm.DB, characterId uint32, inventoryType byte,
 }
 
 func Update(db *gorm.DB, uniqueId uint32, modifiers ...EntityUpdateFunction) error {
-	c := entity{id: uniqueId}
+	c := entity{Id: uniqueId}
 	err := db.Where(&c).First(&c).Error
 	if err != nil {
 		return err
@@ -37,6 +37,6 @@ func Update(db *gorm.DB, uniqueId uint32, modifiers ...EntityUpdateFunction) err
 
 func SetQuantity(quantity uint32) EntityUpdateFunction {
 	return func(e entity) {
-		e.quantity = quantity
+		e.Quantity = quantity
 	}
 }

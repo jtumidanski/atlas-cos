@@ -133,7 +133,14 @@ func (r temporalRegistry) GetById(characterId uint32) *temporalData {
 	r.readLockCharacter(characterId)
 	result = r.data[characterId]
 	r.readUnlockCharacter(characterId)
-	return result
+	if result != nil {
+		return result
+	}
+	return &temporalData{
+		x:      0,
+		y:      0,
+		stance: 0,
+	}
 }
 
 var t *temporalRegistry

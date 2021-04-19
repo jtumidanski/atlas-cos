@@ -5,9 +5,33 @@ import (
 	"sort"
 )
 
+func GetById(db *gorm.DB, id uint32) (*Model, error) {
+	var result entity
+	err := db.First(&result).Where("Id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return makeItem(&result), nil
+}
+
 func GetItemsForCharacter(db *gorm.DB, characterId uint32, inventoryType byte, itemId uint32) ([]*Model, error) {
 	var results []entity
-	err := db.First(&results).Where("characterId = ? AND inventoryType = ? AND itemId = ?", characterId, inventoryType, itemId).Error
+	err := db.First(&results).Where("CharacterId = ? AND InventoryType = ? AND ItemId = ?", characterId, inventoryType, itemId).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var items = make([]*Model, 0)
+	for _, e := range results {
+		items = append(items, makeItem(&e))
+	}
+	return items, nil
+}
+
+func GetForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType byte) ([]*Model, error) {
+	var results []entity
+	err := db.First(&results).Where("CharacterId = ? AND InventoryType = ?", characterId, inventoryType).Error
 	if err != nil {
 		return nil, err
 	}
@@ -21,7 +45,7 @@ func GetItemsForCharacter(db *gorm.DB, characterId uint32, inventoryType byte, i
 
 func GetItemsForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType byte) ([]*Model, error) {
 	var results []entity
-	err := db.First(&results).Where("characterId = ? AND inventoryType = ?", characterId, inventoryType).Error
+	err := db.First(&results).Where("CharacterId = ? AND InventoryType = ?", characterId, inventoryType).Error
 	if err != nil {
 		return nil, err
 	}
@@ -68,11 +92,11 @@ func minFreeSlot(items []*Model) int16 {
 
 func makeItem(e *entity) *Model {
 	return &Model{
-		id:            e.id,
-		characterId:   e.characterId,
-		inventoryType: e.inventoryType,
-		itemId:        e.itemId,
-		quantity:      e.quantity,
-		slot:          e.slot,
+		id:            e.Id,
+		characterId:   e.CharacterId,
+		inventoryType: e.InventoryType,
+		itemId:        e.ItemId,
+		quantity:      e.Quantity,
+		slot:          e.Slot,
 	}
 }

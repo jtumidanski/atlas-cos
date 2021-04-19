@@ -3,6 +3,7 @@ package _map
 import (
 	"atlas-cos/portal"
 	"log"
+	"math"
 )
 
 type processor struct {
@@ -23,7 +24,7 @@ func (p processor) FindClosestSpawnPoint(mapId uint32, x int16, y int16) (*porta
 
 func (p processor) findClosestSpawnPoint(portals []*portal.Model, x int16, y int16) (*portal.Model, error) {
 	var closest *portal.Model = nil
-	var closestDistance int16
+	var closestDistance = int16(math.MaxInt16)
 
 	for _, port := range portals {
 		if port.IsSpawnPoint() {

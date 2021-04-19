@@ -142,10 +142,10 @@ func (p processor) isWhiteExperienceGain(characterId uint32, personalRatio map[u
 }
 
 func (p processor) distributeCharacterExperience(characterId uint32, level byte, experience float64, partyBonusMod float64, totalPartyLevel byte, hightestPartyDamage bool, whiteExperienceGain bool, hasPartySharers bool) {
-	expSplitCommonMod := configuration.GetFLOAT32(configuration.Configuration.ExpSplitCommonMod, 0.0)
+	expSplitCommonMod := configuration.GetFLOAT32((*configuration.Configuration).ExpSplitCommonMod, 0.0)
 	characterExperience := (float64(expSplitCommonMod) * float64(level)) / float64(totalPartyLevel)
 	if hightestPartyDamage {
-		characterExperience += float64(configuration.GetFLOAT32(configuration.Configuration.ExpSplitMvpMod, 0.0))
+		characterExperience += float64(configuration.GetFLOAT32((*configuration.Configuration).ExpSplitMvpMod, 0.0))
 	}
 	characterExperience *= experience
 	bonusExperience := partyBonusMod * characterExperience

@@ -2,6 +2,7 @@ package skill
 
 import (
 	"atlas-cos/job"
+	"atlas-cos/skill/information"
 	"gorm.io/gorm"
 	"log"
 )
@@ -53,4 +54,14 @@ func (p processor) UpdateSkill(characterId uint32, skillId uint32, level uint32,
 
 func (p processor) GetSkills(characterId uint32) ([]*Model, error) {
 	return GetForCharacter(p.db, characterId)
+}
+
+func (p processor) AwardSkill(characterId uint32, skillId uint32) {
+	if i, ok := information.Processor(p.l, p.db).GetSkillInformation(skillId); ok {
+		maxLevel := len(i.Effects())
+		_, err := Create(p.db, characterId, skillId, 0, uint32(maxLevel), 0)
+		if err != nil {
+			p.l.Printf("[ERROR] unable to award skill %d to character %d.", skillId, characterId)
+		}
+	}
 }

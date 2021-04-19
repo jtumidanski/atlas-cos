@@ -8,14 +8,11 @@ FROM golang:alpine3.12 AS build-env
 # (You may fetch or manage dependencies here,
 # either manually or with a tool like "godep".)
 RUN apk add --no-cache git
-RUN apk add make
 
 ADD ./atlas.com/cos /atlas.com/cos
 WORKDIR /atlas.com/cos
 
 RUN go build -o /server
-
-RUN make swagger
 
 FROM alpine:3.12
 
@@ -27,7 +24,6 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /
 
 COPY --from=build-env /server /
-COPY --from=build-env /atlas.com/cos/swagger.yaml /
 COPY /atlas.com/cos/config.yaml /
 
 CMD ["/server"]

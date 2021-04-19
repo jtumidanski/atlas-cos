@@ -1,5 +1,7 @@
 package inventory
 
+import "strings"
+
 const (
 	TypeValueEquip byte = 1
 	TypeValueUse   byte = 2
@@ -11,6 +13,9 @@ const (
 	TypeSetup           = "SETUP"
 	TypeETC             = "ETC"
 	TypeCash            = "CASH"
+
+	ItemTypeEquip = "EQUIPMENT"
+	ItemTypeItem  = "ITEM"
 )
 
 func GetInventoryType(itemId uint32) (byte, bool) {
@@ -37,4 +42,19 @@ func GetTypeFromByte(opt byte) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func GetByteFromName(name string) (byte, bool) {
+	if strings.EqualFold(name, TypeEquip) {
+		return TypeValueEquip, true
+	} else if strings.EqualFold(name, TypeUse) {
+		return TypeValueUse, true
+	} else if strings.EqualFold(name, TypeSetup) {
+		return TypeValueSetup, true
+	} else if strings.EqualFold(name, TypeETC) {
+		return TypeValueETC, true
+	} else if strings.EqualFold(name, TypeCash) {
+		return TypeValueCash, true
+	}
+	return 0, false
 }

@@ -5,6 +5,7 @@ import (
 	"atlas-cos/rest/requests"
 	"gorm.io/gorm"
 	"log"
+	"strconv"
 )
 
 type processor struct {
@@ -26,12 +27,30 @@ func (p processor) GetEquipmentStatistics(equipmentId uint32) (*Model, error) {
 }
 
 func makeEquipment(resp attributes.EquipmentData) *Model {
+	id, err := strconv.Atoi(resp.Id)
+	if err != nil {
+		return nil
+	}
+
+	attr := resp.Attributes
 	return &Model{
-		itemId:       resp.Attributes.ItemId,
-		weaponAttack: resp.Attributes.WeaponAttack,
-		strength:     resp.Attributes.Strength,
-		dexterity:    resp.Attributes.Dexterity,
-		intelligence: resp.Attributes.Intelligence,
-		luck:         resp.Attributes.Luck,
+		id:            uint32(id),
+		itemId:        attr.ItemId,
+		strength:      attr.Strength,
+		dexterity:     attr.Dexterity,
+		intelligence:  attr.Intelligence,
+		luck:          attr.Luck,
+		hp:            attr.HP,
+		mp:            attr.MP,
+		weaponAttack:  attr.WeaponAttack,
+		magicAttack:   attr.MagicAttack,
+		weaponDefense: attr.WeaponDefense,
+		magicDefense:  attr.MagicDefense,
+		accuracy:      attr.Accuracy,
+		avoidability:  attr.Avoidability,
+		hands:         attr.Hands,
+		speed:         attr.Speed,
+		jump:          attr.Jump,
+		slots:         attr.Slots,
 	}
 }

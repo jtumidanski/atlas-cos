@@ -18,6 +18,10 @@ func (p processor) GetItemsForCharacter(characterId uint32, inventoryType byte, 
 	return items
 }
 
+func (p processor) GetForCharacterByInventory(characterId uint32, inventoryType byte) ([]*Model, error) {
+	return GetForCharacterByInventory(p.db, characterId, inventoryType)
+}
+
 func (p processor) UpdateItemQuantity(id uint32, quantity uint32) error {
 	return Update(p.db, id, SetQuantity(quantity))
 }
@@ -28,6 +32,10 @@ func (p processor) CreateItemForCharacter(characterId uint32, inventoryType byte
 		return nil, err
 	}
 	return CreateItemForCharacter(p.db, characterId, inventoryType, itemId, quantity, slot)
+}
+
+func (p processor) GetItemById(id uint32) (*Model, error) {
+	return GetById(p.db, id)
 }
 
 var Processor = func(l *log.Logger, db *gorm.DB) *processor {

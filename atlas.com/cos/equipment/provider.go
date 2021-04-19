@@ -5,6 +5,26 @@ import (
 	"sort"
 )
 
+func GetByEquipmentId(db *gorm.DB, equipmentId uint32) (*Model, error) {
+	var result entity
+	err := db.Where(&entity{EquipmentId: equipmentId}).Find(&result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return makeEquipment(&result), nil
+}
+
+func GetById(db *gorm.DB, id uint32) (*Model, error) {
+	var result entity
+	err := db.Where(&entity{Id: id}).Find(&result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return makeEquipment(&result), nil
+}
+
 func GetNextFreeEquipmentSlot(db *gorm.DB, characterId uint32) (int16, error) {
 	equipment, err := GetEquipmentForCharacter(db, characterId)
 	if err != nil {
@@ -40,7 +60,7 @@ func minFreeSlot(items []*Model) int16 {
 
 func GetEquipmentForCharacter(db *gorm.DB, characterId uint32) ([]*Model, error) {
 	var results []entity
-	err := db.Find(&results).Where("characterId = ?", characterId).Error
+	err := db.Where(&entity{CharacterId: characterId}).Find(&results).Error
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +74,7 @@ func GetEquipmentForCharacter(db *gorm.DB, characterId uint32) ([]*Model, error)
 
 func GetEquipmentForCharacterBySlot(db *gorm.DB, characterId uint32, slot int16) (*Model, error) {
 	var results entity
-	err := db.First(&results).Where("characterId = ? AND slot = ?", characterId, slot).Error
+	err := db.Where(&entity{CharacterId: characterId, Slot: slot}, characterId, slot).First(&results).Error
 	if err != nil {
 		return nil, err
 	}

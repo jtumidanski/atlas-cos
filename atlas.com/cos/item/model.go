@@ -24,3 +24,7 @@ func (m Model) Slot() int16 {
 func (m Model) InventoryType() byte {
 	return m.inventoryType
 }
+
+func (m Model) ItemId() uint32 {
+	return m.itemId
+}

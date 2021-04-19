@@ -4,9 +4,9 @@ import "gorm.io/gorm"
 
 func Create(db *gorm.DB, characterId uint32, equipmentId uint32, slot int16) (*Model, error) {
 	e := &entity{
-		characterId: characterId,
-		equipmentId: equipmentId,
-		slot:        slot,
+		CharacterId: characterId,
+		EquipmentId: equipmentId,
+		Slot:        slot,
 	}
 
 	err := db.Create(e).Error
@@ -16,11 +16,29 @@ func Create(db *gorm.DB, characterId uint32, equipmentId uint32, slot int16) (*M
 	return makeEquipment(e), nil
 }
 
+func UpdateSlot(db *gorm.DB, equipmentId uint32, slot int16) error {
+	equip, err := GetByEquipmentId(db, equipmentId)
+	if err != nil {
+		return err
+	}
+
+	e := entity{Id: equip.id}
+	err = db.Where(&e).First(&e).Error
+	if err != nil {
+		return err
+	}
+
+	e.Slot = slot
+
+	err = db.Save(&e).Error
+	return err
+}
+
 func makeEquipment(e *entity) *Model {
 	return &Model{
-		id:          e.id,
-		characterId: e.characterId,
-		equipmentId: e.equipmentId,
-		slot:        e.slot,
+		id:          e.Id,
+		characterId: e.CharacterId,
+		equipmentId: e.EquipmentId,
+		slot:        e.Slot,
 	}
 }

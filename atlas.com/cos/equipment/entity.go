@@ -7,8 +7,12 @@ func Migration(db *gorm.DB) {
 }
 
 type entity struct {
-	id          uint32 `gorm:"primaryKey;autoIncrement;not null"`
-	characterId uint32 `gorm:"not null"`
-	equipmentId uint32 `gorm:"not null"`
-	slot        int16  `gorm:"not null"`
+	Id          uint32 `gorm:"primaryKey;autoIncrement;not null"`
+	CharacterId uint32 `gorm:"not null"`
+	EquipmentId uint32 `gorm:"not null"`
+	Slot        int16  `gorm:"not null"`
+}
+
+func (e entity) TableName() string {
+	return "equipment"
 }
