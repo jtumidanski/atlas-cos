@@ -30,14 +30,13 @@ func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) http.HandlerFunc
 			return
 		}
 
-		var result = &attributes.CharacterDataListContainer{}
-		result.Data = make([]attributes.CharacterData, 0)
-		for _, c := range cs {
-			result.Data = append(result.Data, makeCharacterData(c))
-		}
+		result := createCharacterDataListContainer(cs)
 
 		w.WriteHeader(http.StatusOK)
-		attributes.ToJSON(result, w)
+		err = attributes.ToJSON(result, w)
+		if err != nil {
+			l.Printf("[ERROR] writing response for GetCharactersForAccountInWorld.")
+		}
 	}
 }
 
@@ -62,14 +61,13 @@ func GetCharactersByMap(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		var result = &attributes.CharacterDataListContainer{}
-		result.Data = make([]attributes.CharacterData, 0)
-		for _, c := range cs {
-			result.Data = append(result.Data, makeCharacterData(c))
-		}
+		result := createCharacterDataListContainer(cs)
 
 		w.WriteHeader(http.StatusOK)
-		attributes.ToJSON(result, w)
+		err = attributes.ToJSON(result, w)
+		if err != nil {
+			l.Printf("[ERROR] writing response for GetCharactersByMap.")
+		}
 	}
 }
 
@@ -88,15 +86,23 @@ func GetCharactersByName(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		var result = &attributes.CharacterDataListContainer{}
-		result.Data = make([]attributes.CharacterData, 0)
-		for _, c := range cs {
-			result.Data = append(result.Data, makeCharacterData(c))
-		}
+		result := createCharacterDataListContainer(cs)
 
 		w.WriteHeader(http.StatusOK)
-		attributes.ToJSON(result, w)
+		err = attributes.ToJSON(result, w)
+		if err != nil {
+			l.Printf("[ERROR] writing response for GetCharactersByName.")
+		}
 	}
+}
+
+func createCharacterDataListContainer(cs []*Model) *attributes.CharacterDataListContainer {
+	var result = &attributes.CharacterDataListContainer{}
+	result.Data = make([]attributes.CharacterData, 0)
+	for _, c := range cs {
+		result.Data = append(result.Data, createCharacterData(c))
+	}
+	return result
 }
 
 func CreateCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
@@ -124,14 +130,17 @@ func GetCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		}
 
 		var result = &attributes.CharacterDataContainer{}
-		result.Data = makeCharacterData(c)
+		result.Data = createCharacterData(c)
 
 		w.WriteHeader(http.StatusOK)
-		attributes.ToJSON(result, w)
+		err = attributes.ToJSON(result, w)
+		if err != nil {
+			l.Printf("[ERROR] writing response for GetCharacter.")
+		}
 	}
 }
 
-func makeCharacterData(c *Model) attributes.CharacterData {
+func createCharacterData(c *Model) attributes.CharacterData {
 	td := GetTemporalRegistry().GetById(c.Id())
 	return attributes.CharacterData{
 		Id:   strconv.Itoa(int(c.Id())),
@@ -194,6 +203,9 @@ func GetCharacterDamage(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		attributes.ToJSON(result, w)
+		err = attributes.ToJSON(result, w)
+		if err != nil {
+			l.Printf("[ERROR] writing response for GetCharacterDamage.")
+		}
 	}
 }
