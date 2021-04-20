@@ -40,18 +40,11 @@ func Create(db *gorm.DB, accountId uint32, worldId byte, name string, level byte
 }
 
 func Update(db *gorm.DB, characterId uint32, modifiers ...EntityUpdateFunction) error {
-	c := &entity{ID: characterId}
-	err := db.Where(c).First(c).Error
-	if err != nil {
-		return err
-	}
-
+	e := &entity{}
 	for _, modifier := range modifiers {
-		modifier(c)
+		modifier(e)
 	}
-
-	err = db.Save(c).Error
-	return err
+	return db.Model(&entity{ID: characterId}).Updates(e).Error
 }
 
 func SetHealth(amount uint16) EntityUpdateFunction {

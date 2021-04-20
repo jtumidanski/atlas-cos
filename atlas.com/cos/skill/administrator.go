@@ -26,17 +26,10 @@ func create(db *gorm.DB, characterId uint32, skillId uint32, modifiers ...Entity
 // update a skill, applying EntityFunction's to modify the attributes of the skill. Returns an error if one occurred.
 func update(db *gorm.DB, id uint32, modifiers ...EntityFunction) error {
 	e := &entity{}
-	err := db.Where(&entity{ID: id}).First(e).Error
-	if err != nil {
-		return err
-	}
-
 	for _, modifier := range modifiers {
 		modifier(e)
 	}
-
-	err = db.Save(&e).Error
-	return err
+	return db.Model(&entity{ID: id}).Updates(e).Error
 }
 
 // setExpiration Sets the expiration of the skill.

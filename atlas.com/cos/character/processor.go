@@ -55,6 +55,7 @@ func (p *processor) characterUpdate(characterId uint32, functions ...characterFu
 	for _, f := range functions {
 		err = f(c)
 		if err != nil {
+			p.l.Errorln("Unable to complete character update.", err.Error())
 			break
 		}
 	}
@@ -69,6 +70,7 @@ func (p *processor) AdjustHealth(characterId uint32, amount int16) {
 func (p *processor) persistHealthUpdate(amount int16) characterFunc {
 	return func(c *Model) error {
 		adjustedAmount := p.enforceBounds(amount, c.HP(), c.MaxHP(), 0)
+		p.l.Debugf("Adjusting health of character %d by %d to %d.", c.Id(), amount, adjustedAmount)
 		return p.characterDatabaseUpdate(SetHealth(adjustedAmount))(c)
 	}
 }
@@ -87,6 +89,7 @@ func (p *processor) AdjustMana(characterId uint32, amount int16) {
 func (p *processor) persistManaUpdate(amount int16) characterFunc {
 	return func(c *Model) error {
 		adjustedAmount := p.enforceBounds(amount, c.MP(), c.MaxMP(), 0)
+		p.l.Debugf("Adjusting mana of character %d by %d to %d.", c.Id(), amount, adjustedAmount)
 		return p.characterDatabaseUpdate(SetMana(adjustedAmount))(c)
 	}
 }

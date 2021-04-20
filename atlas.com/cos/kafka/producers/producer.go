@@ -22,18 +22,21 @@ func produceEvent(l log.FieldLogger, topicToken string, key []byte, event interf
 	td, err := requests.Topic(l).GetTopic(topicToken)
 	if err != nil {
 		l.Fatal("Unable to retrieve topic %s for producer.", topicToken)
+		return
 	}
+	name := td.Attributes.Name
 
 	w := &kafka.Writer{
 		Addr:         kafka.TCP(os.Getenv("BOOTSTRAP_SERVERS")),
-		Topic:        td.Attributes.Name,
+		Topic:        name,
 		Balancer:     &kafka.LeastBytes{},
 		BatchTimeout: 50 * time.Millisecond,
 	}
 
 	r, err := json.Marshal(event)
+	l.WithField("message", string(r)).Debugf("Writing message to topic %s.", name)
 	if err != nil {
-		l.Fatal("Unable to marshall event for topic %s with reason %s", td.Attributes.Name, err.Error())
+		l.Fatal("Unable to marshall event for topic %s with reason %s", name, err.Error())
 	}
 
 	writeMessage := func(attempt int) (bool, error) {

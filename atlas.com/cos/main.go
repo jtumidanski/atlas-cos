@@ -10,7 +10,7 @@ import (
 	"atlas-cos/retry"
 	"atlas-cos/skill"
 	"context"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"os"
@@ -18,31 +18,33 @@ import (
 	"syscall"
 )
 
-func connectToDatabase(attempt int) (bool, interface{}, error) {
-	db, err := gorm.Open(mysql.New(mysql.Config{
-		DSN:                       "root:the@tcp(atlas-db:3306)/atlas-cos?charset=utf8&parseTime=True&loc=Local",
-		DefaultStringSize:         256,
-		DisableDatetimePrecision:  true,
-		DontSupportRenameIndex:    true,
-		DontSupportRenameColumn:   true,
-		SkipInitializeWithVersion: false,
-	}), &gorm.Config{})
-	if err != nil {
-		return true, nil, err
+func connectToDatabase() retry.RetryResponseFunc {
+	return func(attempt int) (bool, interface{}, error) {
+		db, err := gorm.Open(mysql.New(mysql.Config{
+			DSN:                       "root:the@tcp(atlas-db:3306)/atlas-cos?charset=utf8&parseTime=True&loc=Local",
+			DefaultStringSize:         256,
+			DisableDatetimePrecision:  true,
+			DontSupportRenameIndex:    true,
+			DontSupportRenameColumn:   true,
+			SkipInitializeWithVersion: false,
+		}), &gorm.Config{})
+		if err != nil {
+			return true, nil, err
+		}
+		return false, db, err
 	}
-	return false, db, err
 }
 
 func main() {
-	l := log.New()
+	l := logrus.New()
 	l.SetOutput(os.Stdout)
 	if val, ok := os.LookupEnv("LOG_LEVEL"); ok {
-		if level, err := log.ParseLevel(val); err == nil {
+		if level, err := logrus.ParseLevel(val); err == nil {
 			l.SetLevel(level)
 		}
 	}
 
-	r, err := retry.RetryResponse(connectToDatabase, 10)
+	r, err := retry.RetryResponse(connectToDatabase(), 10)
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -67,7 +69,7 @@ func main() {
 	l.Infoln("Shutting down via signal:", sig)
 }
 
-func createEventConsumers(l *log.Logger, db *gorm.DB) {
+func createEventConsumers(l *logrus.Logger, db *gorm.DB) {
 	cec := func(topicToken string, emptyEventCreator consumers.EmptyEventCreator, processor consumers.EventProcessor) {
 		createEventConsumer(l, topicToken, emptyEventCreator, processor)
 	}
@@ -85,8 +87,8 @@ func createEventConsumers(l *log.Logger, db *gorm.DB) {
 	cec("TOPIC_MONSTER_KILLED_EVENT", consumers.MonsterKilledEventCreator(), consumers.HandleMonsterKilledEvent(db))
 }
 
-func createEventConsumer(l *log.Logger, topicToken string, emptyEventCreator consumers.EmptyEventCreator, processor consumers.EventProcessor) {
-	h := func(logger log.FieldLogger, event interface{}) {
+func createEventConsumer(l *logrus.Logger, topicToken string, emptyEventCreator consumers.EmptyEventCreator, processor consumers.EventProcessor) {
+	h := func(logger logrus.FieldLogger, event interface{}) {
 		processor(logger, event)
 	}
 
@@ -97,7 +99,7 @@ func createEventConsumer(l *log.Logger, topicToken string, emptyEventCreator con
 	go c.Init()
 }
 
-func createRestService(l *log.Logger, db *gorm.DB) {
+func createRestService(l *logrus.Logger, db *gorm.DB) {
 	rs := rest.NewServer(l, db)
 	go rs.Run()
 }

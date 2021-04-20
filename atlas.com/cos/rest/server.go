@@ -7,7 +7,7 @@ import (
 	"atlas-cos/seed"
 	"atlas-cos/skill"
 	"github.com/gorilla/mux"
-	logrus "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
