@@ -1,19 +1,26 @@
 package character
 
-type builderConfiguration struct {
+type BuilderConfiguration struct {
 	useStarting4AP          bool
 	useAutoAssignStartersAP bool
 }
 
-func (b *builderConfiguration) UseStarting4AP() bool {
+func NewBuilderConfiguration(useStarting4AP bool, useAutoAssignStartersAP bool) BuilderConfiguration {
+	return BuilderConfiguration{
+		useStarting4AP:          useStarting4AP,
+		useAutoAssignStartersAP: useAutoAssignStartersAP,
+	}
+}
+
+func (b *BuilderConfiguration) UseStarting4AP() bool {
 	return b.useStarting4AP
 }
 
-func (b *builderConfiguration) UseAutoAssignStartersAP() bool {
+func (b *BuilderConfiguration) UseAutoAssignStartersAP() bool {
 	return b.useAutoAssignStartersAP
 }
 
-type builder struct {
+type Builder struct {
 	accountId    uint32
 	worldId      byte
 	name         string
@@ -33,15 +40,15 @@ type builder struct {
 	mapId        uint32
 }
 
-func (b *builder) setJobId(jobId uint16) {
+func (b *Builder) SetJobId(jobId uint16) {
 	b.jobId = jobId
 }
 
-func (b *builder) setMapId(mapId uint32) {
+func (b *Builder) SetMapId(mapId uint32) {
 	b.mapId = mapId
 }
 
-func (b *builder) Build() *Model {
+func (b *Builder) Build() *Model {
 	return &Model{
 		accountId:          b.accountId,
 		worldId:            b.worldId,
@@ -73,8 +80,8 @@ func (b *builder) Build() *Model {
 	}
 }
 
-func NewBuilder(c builderConfiguration, accountId uint32, worldId byte, name string, skinColor byte, gender byte, hair uint32, face uint32) *builder {
-	b := &builder{
+func NewBuilder(c BuilderConfiguration, accountId uint32, worldId byte, name string, skinColor byte, gender byte, hair uint32, face uint32) *Builder {
+	b := &Builder{
 		accountId: accountId,
 		worldId:   worldId,
 		name:      name,
@@ -113,14 +120,14 @@ func NewBuilder(c builderConfiguration, accountId uint32, worldId byte, name str
 	return b
 }
 
-func NewBuilder2(c builderConfiguration, accountId uint32, worldId byte, name string, skinColor byte, gender byte, hair uint32, face uint32, level byte, mapId uint32) *builder {
+func NewBuilder2(c BuilderConfiguration, accountId uint32, worldId byte, name string, skinColor byte, gender byte, hair uint32, face uint32, level byte, mapId uint32) *Builder {
 	b := NewBuilder(c, accountId, worldId, name, skinColor, gender, hair, face)
 	b.level = level
 	b.mapId = mapId
 	return b
 }
 
-func NewBuilder3(c builderConfiguration, accountId uint32, worldId byte, name string, skinColor byte, gender byte, hair uint32, face uint32, level byte, mapId uint32, jobId uint16) *builder {
+func NewBuilder3(c BuilderConfiguration, accountId uint32, worldId byte, name string, skinColor byte, gender byte, hair uint32, face uint32, level byte, mapId uint32, jobId uint16) *Builder {
 	b := NewBuilder2(c, accountId, worldId, name, skinColor, gender, hair, face, level, mapId)
 	b.jobId = jobId
 	return b

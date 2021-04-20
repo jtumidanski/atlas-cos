@@ -26,11 +26,7 @@ func GetCharacterSkills(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		var result = attributes.CharacterSkillDataListContainer{}
-		result.Data = make([]attributes.CharacterSkillData, 0)
-		for _, s := range sl {
-			result.Data = append(result.Data, createCharacterSkillData(s))
-		}
+		result := createDataContainer(sl)
 
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
@@ -40,7 +36,16 @@ func GetCharacterSkills(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-func createCharacterSkillData(model *Model) attributes.CharacterSkillData {
+func createDataContainer(sl []*Model) attributes.CharacterSkillDataListContainer {
+	var result = attributes.CharacterSkillDataListContainer{}
+	result.Data = make([]attributes.CharacterSkillData, 0)
+	for _, s := range sl {
+		result.Data = append(result.Data, createData(s))
+	}
+	return result
+}
+
+func createData(model *Model) attributes.CharacterSkillData {
 	return attributes.CharacterSkillData{
 		Id:   strconv.Itoa(int(model.Id())),
 		Type: "com.atlas.cos.rest.attribute.SkillAttributes",

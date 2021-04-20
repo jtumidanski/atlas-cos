@@ -2,39 +2,41 @@ package location
 
 import "gorm.io/gorm"
 
-func GetSavedLocations(db *gorm.DB, characterId uint32) ([]*Model, error) {
-	var results []entity
-	err := db.Where(&entity{CharacterId: characterId}).Find(&results).Error
+type Transformer func(e *entity) *Model
+
+// getArray queries the database for the entities which meets the provided query criteria, then applies the
+// Transformer function to produce a array of results.
+func getArray(db *gorm.DB, query interface{}, transformer Transformer) ([]*Model, error) {
+	var result []entity
+	err := db.Where(query).Find(&result).Error
 	if err != nil {
 		return nil, err
 	}
 
-	var locations = make([]*Model, 0)
-	for _, e := range results {
-		locations = append(locations, makeLocation(&e))
+	var skills = make([]*Model, 0)
+	for _, r := range result {
+		skills = append(skills, transformer(&r))
 	}
-	return locations, nil
+	return skills, nil
 }
 
-func makeLocation(e *entity) *Model {
+// getSavedLocations retrieves all saved locations for the character, or an error if one occurred.
+func getSavedLocations(db *gorm.DB, characterId uint32) ([]*Model, error) {
+	return getArray(db, &entity{CharacterId: characterId}, transform)
+}
+
+// getSavedLocationsByType retrieves all saved locations for the character for the given type, or an error if one
+// occurred.
+func getSavedLocationsByType(db *gorm.DB, characterId uint32, theType string) ([]*Model, error) {
+	return getArray(db, &entity{CharacterId: characterId, LocationType: theType}, transform)
+}
+
+// transform produces a immutable location structure
+func transform(e *entity) *Model {
 	return &Model{
 		id:       e.ID,
 		theType:  e.LocationType,
 		mapId:    e.MapId,
 		portalId: e.PortalId,
 	}
-}
-
-func GetSavedLocationsByType(db *gorm.DB, characterId uint32, theType string) ([]*Model, error) {
-	var results []entity
-	err := db.Where(&entity{CharacterId: characterId, LocationType: theType}).Find(&results).Error
-	if err != nil {
-		return nil, err
-	}
-
-	var locations = make([]*Model, 0)
-	for _, e := range results {
-		locations = append(locations, makeLocation(&e))
-	}
-	return locations, nil
 }

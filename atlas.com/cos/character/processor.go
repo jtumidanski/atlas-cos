@@ -4,7 +4,6 @@ import (
 	"atlas-cos/configuration"
 	"atlas-cos/equipment"
 	"atlas-cos/equipment/statistics"
-	"atlas-cos/inventory"
 	"atlas-cos/item"
 	"atlas-cos/job"
 	"atlas-cos/kafka/producers"
@@ -13,7 +12,6 @@ import (
 	"atlas-cos/skill"
 	"atlas-cos/skill/information"
 	"context"
-	"errors"
 	"gorm.io/gorm"
 	"log"
 	"math"
@@ -712,59 +710,9 @@ func (p *processor) getMaximumBaseDamageNoWeapon(c *Model) uint32 {
 	return 1
 }
 
-type BuilderCreator func(*builder) (*Model, error)
 
-func (p *processor) CreateFromSeed(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (*Model, error) {
-	if jobId, ok := job.GetJobFromIndex(jobIndex); ok {
-		if bc, ok := p.getCreator(jobId); ok {
-			config := builderConfiguration{
-				useStarting4AP:          configuration.Get().UseStarting4Ap,
-				useAutoAssignStartersAP: configuration.Get().UseAutoAssignStartersAp,
-			}
-			c, err := bc(NewBuilder(config, accountId, worldId, name, skinColor, gender, hair+hairColor, face))
-			if err != nil {
-				return nil, err
-			}
-			p.addEquippedItems(c, top, bottom, shoes, weapon)
-			p.addOtherItems(c)
-			p.addSkills(c)
-			return c, nil
-		}
-		return nil, errors.New("creator not available for job")
-	}
-	return nil, errors.New("invalid job creator index")
-}
 
-func (p *processor) getCreator(jobId uint16) (BuilderCreator, bool) {
-	if jobId == job.Beginner {
-		return p.createBeginner, true
-	} else if jobId == job.Noblesse {
-		return p.createNoblesse, true
-	} else if jobId == job.Legend {
-		return p.createLegend, true
-	}
-	return nil, false
-}
-
-func (p *processor) createBeginner(b *builder) (*Model, error) {
-	b.setJobId(job.Beginner)
-	b.setMapId(10000)
-	return p.create(b)
-}
-
-func (p *processor) createNoblesse(b *builder) (*Model, error) {
-	b.setJobId(job.Noblesse)
-	b.setMapId(130030000)
-	return p.create(b)
-}
-
-func (p *processor) createLegend(b *builder) (*Model, error) {
-	b.setJobId(job.Legend)
-	b.setMapId(914000000)
-	return p.create(b)
-}
-
-func (p *processor) create(b *builder) (*Model, error) {
+func (p *processor) Create(b *Builder) (*Model, error) {
 	c := b.Build()
 	c, err := Create(p.db, c.AccountId(), c.WorldId(), c.Name(), c.Level(), c.Strength(), c.Dexterity(), c.Intelligence(), c.Luck(), c.MaxHP(), c.MaxMP(), c.JobId(), c.Gender(), c.Hair(), c.Face(), c.SkinColor(), c.MapId())
 	if err != nil {
@@ -772,31 +720,4 @@ func (p *processor) create(b *builder) (*Model, error) {
 	}
 	producers.CharacterCreated(p.l, context.Background()).Emit(c.Id(), c.WorldId(), c.Name())
 	return c, nil
-}
-
-func (p *processor) addEquippedItems(c *Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
-	equipment.Processor(p.l, p.db).CreateAndEquip(c.Id(), top, bottom, shoes, weapon)
-}
-
-func (p *processor) addOtherItems(c *Model) {
-	if job.IsA(c.JobId(), job.Beginner) {
-		_, _ = item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161001, 1)
-	} else if job.IsA(c.JobId(), job.Noblesse) {
-		_, _ = item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161047, 1)
-	} else if job.IsA(c.JobId(), job.Legend) {
-		_, _ = item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161048, 1)
-	}
-}
-
-func (p *processor) addSkills(c *Model) {
-	if job.IsA(c.JobId(), job.Beginner) {
-		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.BeginnerRecovery)
-		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.BeginnerNimbleFeet)
-		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.BeginnerThreeSnails)
-	} else if job.IsA(c.JobId(), job.Noblesse) {
-		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.NoblesseRecovery)
-		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.NoblesseNimbleFeet)
-		skill.Processor(p.l, p.db).AwardSkill(c.Id(), skill.NoblesseThreeSnails)
-	} else if job.IsA(c.JobId(), job.Legend) {
-	}
 }

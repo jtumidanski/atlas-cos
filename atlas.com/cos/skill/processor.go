@@ -39,6 +39,17 @@ func (p processor) GetSkills(characterId uint32) ([]*Model, error) {
 	return getForCharacter(p.db, characterId)
 }
 
+// AwardSkills awards the given character the designated skills. Returns an error if one occurred.
+func (p processor) AwardSkills(characterId uint32, skills ...uint32) error {
+	for _, skillId := range skills {
+		err := p.AwardSkill(characterId, skillId)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // AwardSkill awards the given character the designated skill. Returns an error if one occurred.
 func (p processor) AwardSkill(characterId uint32, skillId uint32) error {
 	if i, ok := information.Processor(p.l, p.db).GetSkillInformation(skillId); ok {

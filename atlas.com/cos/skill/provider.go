@@ -41,7 +41,7 @@ func getForCharacter(db *gorm.DB, characterId uint32) ([]*Model, error) {
 	return getArray(db, &entity{CharacterId: characterId}, transform)
 }
 
-// Produces a immutable skill structure
+// transform produces a immutable skill structure
 func transform(e *entity) *Model {
 	return &Model{
 		id:          e.ID,

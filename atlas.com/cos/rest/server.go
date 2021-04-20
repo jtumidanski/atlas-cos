@@ -2,6 +2,9 @@ package rest
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/inventory"
+	"atlas-cos/location"
+	"atlas-cos/seed"
 	"atlas-cos/skill"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
@@ -26,12 +29,12 @@ func NewServer(l *log.Logger, db *gorm.DB) *Server {
 	csr.HandleFunc("", character.GetCharactersByName(l, db)).Methods(http.MethodGet).Queries("name", "{name}")
 	csr.HandleFunc("", character.CreateCharacter(l, db)).Methods(http.MethodPost)
 	csr.HandleFunc("/{characterId}", character.GetCharacter(l, db)).Methods(http.MethodGet)
-	csr.HandleFunc("/{characterId}/inventories", character.GetInventoryForCharacterByType(l, db)).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}")
-	csr.HandleFunc("/{characterId}/inventories", character.GetInventoryForCharacter(l, db)).Methods(http.MethodGet).Queries("include", "{include}")
-	csr.HandleFunc("/seeds", character.CreateCharacterFromSeed(l, db)).Methods(http.MethodPost)
-	csr.HandleFunc("/{characterId}/locations", character.GetSavedLocations(l, db)).Methods(http.MethodGet).Queries("type", "{type}")
-	csr.HandleFunc("/{characterId}/locations", character.GetSavedLocations(l, db)).Methods(http.MethodGet)
-	csr.HandleFunc("/{characterId}/locations", character.AddSavedLocation(l, db)).Methods(http.MethodPost)
+	csr.HandleFunc("/{characterId}/inventories", inventory.GetInventoryForCharacterByType(l, db)).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}")
+	csr.HandleFunc("/{characterId}/inventories", inventory.GetInventoryForCharacter(l, db)).Methods(http.MethodGet).Queries("include", "{include}")
+	csr.HandleFunc("/seeds", seed.CreateCharacterFromSeed(l, db)).Methods(http.MethodPost)
+	csr.HandleFunc("/{characterId}/locations", location.GetSavedLocationsByType(l, db)).Methods(http.MethodGet).Queries("type", "{type}")
+	csr.HandleFunc("/{characterId}/locations", location.GetSavedLocations(l, db)).Methods(http.MethodGet)
+	csr.HandleFunc("/{characterId}/locations", location.AddSavedLocation(l, db)).Methods(http.MethodPost)
 	csr.HandleFunc("/{characterId}/damage/weapon", character.GetCharacterDamage(l, db)).Methods(http.MethodGet)
 	csr.HandleFunc("/{characterId}/skills", skill.GetCharacterSkills(l, db)).Methods(http.MethodGet)
 
