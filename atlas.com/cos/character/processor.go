@@ -123,13 +123,14 @@ func (p *processor) statisticsUpdateSuccess(statistics ...string) characterFunc 
 
 // AdjustMeso - Adjusts the Meso count for a character, and emits a MesoGainedEvent when successful.
 func (p *processor) AdjustMeso(characterId uint32, amount uint32, show bool) {
-	p.characterUpdate(characterId, p.persistMesoUpdate(amount), p.mesoUpdateSuccess(amount, show))
+	p.characterUpdate(characterId, p.persistMesoUpdate(amount), p.statisticUpdateSuccess("MESO"), p.mesoUpdateSuccess(amount, show))
 }
 
 // Produces a function which persists a character meso update, given the amount.
 func (p *processor) persistMesoUpdate(amount uint32) characterFunc {
 	return func(c *Model) error {
-		return p.characterDatabaseUpdate(IncreaseMeso(amount))(c)
+		p.l.Debugf("Adjusting meso of character %d by %d to %d.", c.Id(), amount, amount+c.Meso())
+		return p.characterDatabaseUpdate(SetMeso(amount + c.Meso()))(c)
 	}
 }
 
@@ -186,21 +187,31 @@ func (p *processor) performGainExperience(amount uint32) characterFunc {
 
 func (p *processor) gainExperience(characterId uint32, level byte, masterLevel byte, experience uint32, gain uint32) {
 	if level < masterLevel {
-		toNext := GetExperienceNeededForLevel(level) - experience
+		p.l.Debugf("Character %d received experience, and is not max level.", characterId)
+		maxNext := GetExperienceNeededForLevel(level)
+		toNext := maxNext - experience
+		p.l.Debugf("Character %d needs a total of %d experience for their level. They have %d, and gained %d.", characterId, maxNext, experience, gain)
 		if toNext <= gain {
+			p.l.Debugf("Character %d leveled. Set experience to 0 during the level, and perform level.", characterId)
 			p.setExperience(characterId, 0)
 			producers.CharacterLevel(p.l, context.Background()).Emit(characterId)
-			p.gainExperience(characterId, level+1, masterLevel, 0, gain-toNext)
+			if gain-toNext > 0 {
+				p.l.Debugf("Character %d has %d experience left to process.", characterId, gain-toNext)
+				p.gainExperience(characterId, level+1, masterLevel, 0, gain-toNext)
+			}
 		} else {
+			p.l.Debugf("Character %d received less experience than what is needed to level.", characterId)
 			p.increaseExperience(characterId, gain)
 		}
 	} else {
+		p.l.Debugf("Character %d received experience while at max level, retain 0 experience.", characterId)
 		p.setExperience(characterId, 0)
 	}
 }
 
 func (p *processor) persistSetExperience(experience uint32) characterFunc {
 	return func(c *Model) error {
+		p.l.Debugf("Setting character %d experience to %d from %d.", c.Id(), experience, c.Experience())
 		return p.characterDatabaseUpdate(SetExperience(experience))(c)
 	}
 }
@@ -215,7 +226,8 @@ func (p *processor) setExperience(characterId uint32, experience uint32) {
 
 func (p *processor) persistIncreaseExperience(experience uint32) characterFunc {
 	return func(c *Model) error {
-		return p.characterDatabaseUpdate(IncreaseExperience(experience))(c)
+		p.l.Debugf("Increasing character %d experience by %d to %d.", c.Id(), experience, experience+c.Experience())
+		return p.characterDatabaseUpdate(SetExperience(experience + c.Experience()))(c)
 	}
 }
 
@@ -459,6 +471,7 @@ func (p *processor) GainLevel(characterId uint32) {
 func (p *processor) persistLevelUpdate() characterFunc {
 	return func(c *Model) error {
 		var modifiers = make([]EntityUpdateFunction, 0)
+		modifiers = append(modifiers, SetLevel(c.Level()+1))
 		modifiers = append(modifiers, p.onLevelAdjustAP(c)...)
 		modifiers = append(modifiers, p.onLevelAdjustHealthAndMana(c)...)
 		return p.characterDatabaseUpdate(modifiers...)(c)
@@ -476,52 +489,59 @@ func (p *processor) onLevelAdjustAP(c *Model) []EntityUpdateFunction {
 			modifiers = append(modifiers, SetDexterity(1))
 		}
 	} else {
-		modifiers = append(modifiers, SetAP(5))
+		ap := uint16(5)
 		if c.Cygnus() && c.Level() > 10 {
 			if c.Level() <= 17 {
-				modifiers = append(modifiers, IncreaseAP(2))
+				ap += 2
 			} else if c.Level() < 77 {
-				modifiers = append(modifiers, IncreaseAP(1))
+				ap += 1
 			}
 		}
+		modifiers = append(modifiers, SetAP(ap))
 	}
 	return modifiers
 }
 
+func randRange(lowerBound uint16, upperBound uint16) uint16 {
+	return uint16(rand.Int31n(int32(upperBound-lowerBound))) + lowerBound
+}
+
 func (p *processor) onLevelAdjustHealthAndMana(c *Model) []EntityUpdateFunction {
 	var modifiers = make([]EntityUpdateFunction, 0)
+	hp := c.HP()
+	mp := c.MP()
 	if c.IsBeginner() {
-		modifiers = append(modifiers, IncreaseHPRange(12, 16))
-		modifiers = append(modifiers, IncreaseMPRange(10, 12))
+		hp += randRange(12, 16)
+		mp += randRange(10, 12)
 	} else if job.IsA(c.JobId(), job.Warrior, job.DawnWarrior1) {
 		//TODO process DawnWarrior.MAX_HP_INCREASE : Warrior.IMPROVED_MAX_HP
-		modifiers = append(modifiers, IncreaseHPRange(24, 28))
-		modifiers = append(modifiers, IncreaseMPRange(4, 6))
+		hp += randRange(24, 28)
+		mp += randRange(4, 6)
 	} else if job.IsA(c.JobId(), job.Magician, job.BlazeWizard1) {
 		//TODO process BlazeWizard.INCREASING_MAX_MP : Magician.IMPROVED_MAX_MP_INCREASE
-		modifiers = append(modifiers, IncreaseHPRange(10, 14))
-		modifiers = append(modifiers, IncreaseMPRange(22, 24))
+		hp += randRange(10, 14)
+		mp += randRange(22, 24)
 	} else if job.IsA(c.JobId(), job.Bowman, job.WindArcher1, job.Thief, job.NightWalker1) {
-		modifiers = append(modifiers, IncreaseHPRange(20, 24))
-		modifiers = append(modifiers, IncreaseMPRange(14, 16))
+		hp += randRange(20, 24)
+		mp += randRange(14, 16)
 	} else if job.IsA(c.JobId(), job.GM) {
-		modifiers = append(modifiers, IncreaseHP(30000))
-		modifiers = append(modifiers, IncreaseMP(30000))
+		hp += 30000
+		mp += 30000
 	} else if job.IsA(c.JobId(), job.Pirate, job.ThunderBreaker1) {
 		//TODO process ThunderBreaker.IMPROVE_MAX_HP : Brawler.IMPROVE_MAX_HP
-		modifiers = append(modifiers, IncreaseHPRange(22, 28))
-		modifiers = append(modifiers, IncreaseMPRange(18, 23))
+		hp += randRange(22, 28)
+		mp += randRange(18, 23)
 	} else if job.IsA(c.JobId(), job.Aran1) {
 		mpSeed := rand.Int31n(8-4) + 4
-		modifiers = append(modifiers, IncreaseHPRange(44, 48))
-		modifiers = append(modifiers, IncreaseMP(uint16(mpSeed)+uint16(math.Floor(float64(mpSeed)*0.1))))
+		hp += randRange(44, 48)
+		mp += uint16(mpSeed) + uint16(math.Floor(float64(mpSeed)*0.1))
 	}
 
 	if configuration.Get().UseRandomizeHpMpGain {
 		if job.GetJobStyle(c.JobId(), c.Strength(), c.Dexterity()) == job.Magician {
-			modifiers = append(modifiers, IncreaseMP(p.TotalIntelligence(c)/20))
+			mp += p.TotalIntelligence(c) / 20
 		} else {
-			modifiers = append(modifiers, IncreaseMP(p.TotalIntelligence(c)/10))
+			mp += p.TotalIntelligence(c) / 10
 		}
 	}
 	return modifiers

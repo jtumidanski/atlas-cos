@@ -67,36 +67,46 @@ func (p processor) makeDrop(dc attributes.DropData) *Model {
 }
 
 func (p processor) attemptPickup(c *character.Model, d *Model) {
-	if time.Now().Sub(time.Unix(int64(d.DropTime()), 0)) < 400 {
+	now := time.Now().UnixNano() / int64(time.Millisecond)
+	elapsed := now - int64(d.DropTime())
+	if elapsed < 400 {
+		p.l.Debugf("Cancelling drop for character %d, drop %d, the drop has not yet met minimum time. Time elapsed %d", c.Id(), d.Id(), elapsed)
+		p.l.Debugf("Now %d, DropTime %d, Elapsed %d.", now, d.DropTime(), elapsed)
 		producers.CancelDropReservation(p.l, context.Background()).Emit(d.Id(), c.Id())
 		return
 	}
 
 	if !p.canBePickedBy(c, d) {
+		p.l.Debugf("Cancelling drop for character %d, drop %d, the drop cannot be picked up by character.", c.Id(), d.Id())
 		producers.CancelDropReservation(p.l, context.Background()).Emit(d.Id(), c.Id())
 		return
 	}
 
 	if p.isOwnerLockedMap(c.MapId()) && d.CharacterDrop() && d.OwnerId() != c.Id() {
+		p.l.Debugf("Cancelling drop for character %d, drop %d, the drop is not owned by this character, in a owner locked map.", c.Id(), d.Id())
 		producers.CancelDropReservation(p.l, context.Background()).Emit(d.Id(), c.Id())
 		// emit item unavailable.
 		return
 	}
 
 	if d.ItemId() == 4031865 || d.ItemId() == 4031866 {
+		p.l.Debugf("Picking up NX item %d for character %d.", d.ItemId(), c.Id())
 		p.pickupNX(c, d)
 	} else if d.Meso() > 0 {
+		p.l.Debugf("Picking up meso drop for character %d.", c.Id())
 		p.pickupMeso(c, d)
 	} else if p.consumeOnPickup(d.ItemId()) {
 	} else {
 
 		if !p.needsQuestItem(c, d) {
+			p.l.Debugf("Cancelling drop for character %d, drop %d, the character does not need this quest item.", c.Id(), d.Id())
 			producers.CancelDropReservation(p.l, context.Background()).Emit(d.Id(), c.Id())
 			// emit item unavailable.
 			return
 		}
 
 		if !p.hasInventorySpace(c, d) {
+			p.l.Debugf("Cancelling drop for character %d, drop %d, the character does not have inventory space.", c.Id(), d.Id())
 			producers.CancelDropReservation(p.l, context.Background()).Emit(d.Id(), c.Id())
 			// emit inventory full.
 			// emit show inventory full.
@@ -109,8 +119,10 @@ func (p processor) attemptPickup(c *character.Model, d *Model) {
 
 		if val, ok := inventory.GetInventoryType(d.ItemId()); ok {
 			if val == inventory.TypeValueEquip {
+				p.l.Debugf("Picking up equip item %d for character %d.", d.ItemId(), c.Id())
 				p.pickupEquip(c, d)
 			} else {
+				p.l.Debugf("Picking up item %d for character %d.", d.ItemId(), c.Id())
 				p.pickupItem(c, d, val)
 			}
 			// TODO update ariant score if 4031868
@@ -180,7 +192,7 @@ func (p processor) pickupEquip(c *character.Model, d *Model) {
 		return
 	}
 	producers.InventoryModificationReservation(p.l, context.Background()).
-		Emit(c.Id(), true, 1, d.ItemId(), 1, d.Quantity(), e.Slot())
+		Emit(c.Id(), true, 0, d.ItemId(), 1, d.Quantity(), e.Slot())
 }
 
 func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
@@ -220,7 +232,7 @@ func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
 			return
 		}
 		producers.InventoryModificationReservation(p.l, context.Background()).
-			Emit(c.Id(), true, 1, d.ItemId(), 1, d.Quantity(), i.Slot())
+			Emit(c.Id(), true, 0, d.ItemId(), it, d.Quantity(), i.Slot())
 	}
 }
 

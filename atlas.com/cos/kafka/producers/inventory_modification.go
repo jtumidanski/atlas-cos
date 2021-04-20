@@ -47,5 +47,5 @@ func (e *inventoryModificationReservation) Emit(characterId uint32, updateTick b
 			},
 		},
 	}
-	produceEvent(e.l, "TOPIC_CANCEL_DROP_RESERVATION_COMMAND", createKey(int(characterId)), event)
+	produceEvent(e.l, "TOPIC_INVENTORY_MODIFICATION", createKey(int(characterId)), event)
 }
