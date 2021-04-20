@@ -571,6 +571,7 @@ func (p *processor) assignSP(skillId uint32) characterFunc {
 				}
 				remainingSP = uint32(math.Min(float64(c.Level()-1), 6)) - total
 				beginnerSkill = true
+				p.l.Debugf("Skill %d was identified as a beginner skill.", skillId)
 			}
 
 			skillMaxLevel := uint32(20)
@@ -584,23 +585,33 @@ func (p *processor) assignSP(skillId uint32) characterFunc {
 				maxLevel = skillMaxLevel
 			}
 
-			if remainingSP > 0 && uint32(c.Level()+1) <= maxLevel {
-				if !beginnerSkill {
-					err := p.adjustSP(c, -1, skillBookId)
-					if err != nil {
-						return err
-					}
-				} else {
-					producers.EnableActions(p.l, context.Background()).Emit(c.Id())
-				}
+			if remainingSP <= 0 {
+				p.l.Debugf("Skill %d update for character %d skipped. Needs more SP.")
+				return nil
+			}
 
-				//TODO special handling for aran full swing and over swing.
-				err := skill.Processor(p.l, p.db).UpdateSkill(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
+			if s.Level()+1 > maxLevel {
+				p.l.Debugf("Skill %d update for character %d skipped. Increasing level would push above max level.")
+				return nil
+			}
+
+			if !beginnerSkill {
+				err := p.adjustSP(c, -1, skillBookId)
 				if err != nil {
 					return err
 				}
-				producers.CharacterSkillUpdate(p.l, context.Background()).Emit(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
+			} else {
+				producers.EnableActions(p.l, context.Background()).Emit(c.Id())
 			}
+
+			//TODO special handling for aran full swing and over swing.
+			err := skill.Processor(p.l, p.db).UpdateSkill(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
+			if err != nil {
+				return err
+			}
+			producers.CharacterSkillUpdate(p.l, context.Background()).Emit(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
+		} else {
+			p.l.Warnf("Received a skill %d assignment for character %d who does not have the skill.", skillId, c.Id())
 		}
 		return nil
 	}

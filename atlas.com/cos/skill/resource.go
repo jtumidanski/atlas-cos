@@ -49,7 +49,7 @@ func createDataContainer(sl []*Model) attributes.CharacterSkillDataListContainer
 
 func createData(model *Model) attributes.CharacterSkillData {
 	return attributes.CharacterSkillData{
-		Id:   strconv.Itoa(int(model.Id())),
+		Id:   strconv.Itoa(int(model.SkillId())),
 		Type: "com.atlas.cos.rest.attribute.SkillAttributes",
 		Attributes: attributes.CharacterSkillAttributes{
 			Level:       model.Level(),

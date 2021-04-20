@@ -45,6 +45,7 @@ func getForCharacter(db *gorm.DB, characterId uint32) ([]*Model, error) {
 func transform(e *entity) *Model {
 	return &Model{
 		id:          e.ID,
+		skillId:     e.SkillId,
 		level:       e.SkillLevel,
 		masterLevel: e.MasterLevel,
 		expiration:  e.Expiration,
