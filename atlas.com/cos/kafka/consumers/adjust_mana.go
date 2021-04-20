@@ -2,8 +2,8 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type adjustManaCommand struct {
@@ -18,11 +18,13 @@ func AdjustManaCommandCreator() EmptyEventCreator {
 }
 
 func HandleAdjustManaCommand(db *gorm.DB) EventProcessor {
-	return func(l *log.Logger, e interface{}) {
+	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*adjustManaCommand); ok {
+			l.Debugf("Begin event handling.")
 			character.Processor(l, db).AdjustMana(event.CharacterId, event.Amount)
+			l.Debugf("Complete event handling.")
 		} else {
-			l.Printf("[ERROR] unable to cast event provided to handler [AdjustManaCommand]")
+			l.Errorf("Unable to cast event provided to handler")
 		}
 	}
 }

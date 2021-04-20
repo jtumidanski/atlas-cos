@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type mesoGainedEvent struct {
@@ -10,7 +10,7 @@ type mesoGainedEvent struct {
 	Gain        uint32 `json:"gain"`
 }
 
-var MesoGained = func(l *log.Logger, ctx context.Context) *mesoGained {
+var MesoGained = func(l log.FieldLogger, ctx context.Context) *mesoGained {
 	return &mesoGained{
 		l:   l,
 		ctx: ctx,
@@ -18,7 +18,7 @@ var MesoGained = func(l *log.Logger, ctx context.Context) *mesoGained {
 }
 
 type mesoGained struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

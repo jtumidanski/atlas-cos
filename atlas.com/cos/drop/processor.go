@@ -10,19 +10,19 @@ import (
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/requests"
 	"context"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 	"math"
 	"strconv"
 	"time"
 )
 
 type processor struct {
-	l  *log.Logger
+	l  log.FieldLogger
 	db *gorm.DB
 }
 
-var Processor = func(l *log.Logger, db *gorm.DB) *processor {
+var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 	return &processor{l, db}
 }
 
@@ -174,7 +174,7 @@ func (p processor) scriptedItem(itemId uint32) bool {
 func (p processor) pickupEquip(c *character.Model, d *Model) {
 	e, err := equipment.Processor(p.l, p.db).CreateForCharacter(c.Id(), d.ItemId(), false)
 	if err != nil {
-		p.l.Printf("[ERROR] unable to create equipment %d that character %d picked up.", d.ItemId(), c.Id())
+		p.l.Errorf("Unable to create equipment %d that character %d picked up.", d.ItemId(), c.Id())
 		return
 	}
 	producers.InventoryModificationReservation(p.l, context.Background()).
@@ -198,7 +198,7 @@ func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
 					runningQuantity = runningQuantity - (newQuantity - oldQuantity)
 					err := item.Processor(p.l, p.db).UpdateItemQuantity(i.Id(), newQuantity)
 					if err != nil {
-						p.l.Printf("[ERROR] updating the quantity of item %d to value %d.", i.Id(), newQuantity)
+						p.l.Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
 					} else {
 						producers.InventoryModificationReservation(p.l, context.Background()).
 							Emit(c.Id(), true, 1, d.ItemId(), i.InventoryType(), newQuantity, i.Slot())
@@ -214,7 +214,7 @@ func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
 		runningQuantity = runningQuantity - newQuantity
 		i, err := item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), it, d.ItemId(), newQuantity)
 		if err != nil {
-			p.l.Printf("[ERROR] unable to create item %d that character %d picked up.", d.ItemId(), c.Id())
+			p.l.Errorf("Unable to create item %d that character %d picked up.", d.ItemId(), c.Id())
 			return
 		}
 		producers.InventoryModificationReservation(p.l, context.Background()).

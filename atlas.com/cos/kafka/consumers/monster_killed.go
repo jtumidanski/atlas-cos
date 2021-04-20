@@ -2,8 +2,8 @@ package consumers
 
 import (
 	"atlas-cos/monster"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type monsterKilledEvent struct {
@@ -30,8 +30,9 @@ func MonsterKilledEventCreator() EmptyEventCreator {
 }
 
 func HandleMonsterKilledEvent(db *gorm.DB) EventProcessor {
-	return func(l *log.Logger, e interface{}) {
+	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*monsterKilledEvent); ok {
+			l.Debugf("Begin event handling.")
 			if m, ok := monster.Processor(l, db).GetMonster(event.MonsterId); ok {
 				var damageEntries = make([]*monster.DamageEntry, 0)
 				for _, entry := range event.DamageEntries {
@@ -39,8 +40,9 @@ func HandleMonsterKilledEvent(db *gorm.DB) EventProcessor {
 				}
 				monster.Processor(l, db).DistributeExperience(event.WorldId, event.ChannelId, event.MapId, m, damageEntries)
 			}
+			l.Debugf("Complete event handling.")
 		} else {
-			l.Printf("[ERROR] unable to cast event provided to handler [MonsterKilledEvent]")
+			l.Errorln("Unable to cast event provided to handler")
 		}
 	}
 }

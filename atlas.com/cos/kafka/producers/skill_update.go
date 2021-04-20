@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type characterSkillUpdateEvent struct {
@@ -13,7 +13,7 @@ type characterSkillUpdateEvent struct {
 	Expiration  int64  `json:"expiration"`
 }
 
-var CharacterSkillUpdate = func(l *log.Logger, ctx context.Context) *characterSkillUpdate {
+var CharacterSkillUpdate = func(l log.FieldLogger, ctx context.Context) *characterSkillUpdate {
 	return &characterSkillUpdate{
 		l:   l,
 		ctx: ctx,
@@ -21,7 +21,7 @@ var CharacterSkillUpdate = func(l *log.Logger, ctx context.Context) *characterSk
 }
 
 type characterSkillUpdate struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

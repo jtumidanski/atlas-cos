@@ -5,7 +5,7 @@ import (
 	"atlas-cos/retry"
 	"errors"
 	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -15,19 +15,19 @@ const (
 	topicById                  = topicsService + "topics/%s"
 )
 
-var Topic = func(l *log.Logger) *topic {
+var Topic = func(l log.FieldLogger) *topic {
 	return &topic{l: l}
 }
 
 type topic struct {
-	l *log.Logger
+	l log.FieldLogger
 }
 
 func (t *topic) GetTopic(topic string) (*attributes.TopicData, error) {
 	get := func(attempt int) (bool, interface{}, error) {
 		r, err := http.Get(fmt.Sprintf(topicById, topic))
 		if err != nil {
-			t.l.Printf("[WARN] unable to retrieve topic data for %s, will retry.", topic)
+			t.l.Warningln("Unable to retrieve topic data for %s, will retry.", topic)
 			return true, r, err
 		}
 		return false, r, nil
@@ -35,7 +35,7 @@ func (t *topic) GetTopic(topic string) (*attributes.TopicData, error) {
 
 	r, err := retry.RetryResponse(get, 10)
 	if err != nil {
-		t.l.Printf("[ERROR] unable to retrieve topic data for %s", topic)
+		t.l.Errorf("Unable to retrieve topic data for %s", topic)
 		return nil, err
 	}
 	if val, ok := r.(*http.Response); ok {
@@ -48,7 +48,7 @@ func (t *topic) decodeResponse(topic string, err error, val *http.Response) (*at
 	td := &attributes.TopicDataContainer{}
 	err = attributes.FromJSON(td, val.Body)
 	if err != nil {
-		t.l.Printf("[ERROR] decoding topic data for %s", topic)
+		t.l.Errorf("Decoding topic data for %s", topic)
 		return nil, err
 	}
 	return &td.Data, nil

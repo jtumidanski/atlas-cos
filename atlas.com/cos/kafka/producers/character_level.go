@@ -2,14 +2,14 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type characterLevelEvent struct {
 	CharacterId uint32   `json:"characterId"`
 }
 
-var CharacterLevel = func(l *log.Logger, ctx context.Context) *characterLevel {
+var CharacterLevel = func(l log.FieldLogger, ctx context.Context) *characterLevel {
 	return &characterLevel{
 		l:   l,
 		ctx: ctx,
@@ -17,7 +17,7 @@ var CharacterLevel = func(l *log.Logger, ctx context.Context) *characterLevel {
 }
 
 type characterLevel struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

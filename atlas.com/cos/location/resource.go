@@ -4,8 +4,8 @@ import (
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/resource"
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -13,6 +13,8 @@ import (
 // GetSavedLocationsByType is a REST resource handler for retrieving the saved locations of a type for a character.
 func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -21,7 +23,7 @@ func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 
 		theType := mux.Vars(r)["type"]
 
-		locations, err := Processor(l, db).GetSavedLocationsByType(uint32(characterId), theType)
+		locations, err := Processor(fl, db).GetSavedLocationsByType(uint32(characterId), theType)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -32,7 +34,7 @@ func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			l.Printf("[ERROR] writing GetSavedLocations response. %s", err.Error())
+			fl.Errorf("Writing GetSavedLocations response. %s", err.Error())
 		}
 	}
 }
@@ -40,13 +42,15 @@ func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 // GetSavedLocations is a REST resource handler for retrieving the saved locations for a character.
 func GetSavedLocations(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		locations, err := Processor(l, db).GetSavedLocations(uint32(characterId))
+		locations, err := Processor(fl, db).GetSavedLocations(uint32(characterId))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -57,7 +61,7 @@ func GetSavedLocations(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			l.Printf("[ERROR] writing GetSavedLocations response. %s", err.Error())
+			fl.Errorf("Writing GetSavedLocations response. %s", err.Error())
 		}
 	}
 }
@@ -86,6 +90,8 @@ func createData(loc *Model) attributes.LocationData {
 // AddSavedLocation is a REST resource handler for adding a saved location for a character.
 func AddSavedLocation(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -95,17 +101,17 @@ func AddSavedLocation(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		li := &attributes.LocationInputDataContainer{}
 		err = attributes.FromJSON(li, r.Body)
 		if err != nil {
-			l.Println("[ERROR] deserializing input", err)
+			fl.Errorln("Deserializing input", err)
 			w.WriteHeader(http.StatusBadRequest)
 			err = attributes.ToJSON(&resource.GenericError{Message: err.Error()}, w)
 			if err != nil {
-				l.Fatalf("[ERROR] writing error message.")
+				fl.Fatalf("Writing error message.")
 			}
 			return
 		}
 
 		att := li.Data.Attributes
-		err = Processor(l, db).AddSavedLocation(uint32(characterId), att.Type, att.MapId, att.PortalId)
+		err = Processor(fl, db).AddSavedLocation(uint32(characterId), att.Type, att.MapId, att.PortalId)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

@@ -3,24 +3,24 @@ package statistics
 import (
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/requests"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 	"strconv"
 )
 
 type processor struct {
-	l  *log.Logger
+	l  log.FieldLogger
 	db *gorm.DB
 }
 
-var Processor = func(l *log.Logger, db *gorm.DB) *processor {
+var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 	return &processor{l, db}
 }
 
 func (p processor) GetEquipmentStatistics(equipmentId uint32) (*Model, error) {
 	resp, err := requests.EquipmentRegistry().GetById(equipmentId)
 	if err != nil {
-		p.l.Printf("[ERROR] retrieving equipment %d information.", equipmentId)
+		p.l.Errorf("Retrieving equipment %d information.", equipmentId)
 		return nil, err
 	}
 	return makeEquipment(resp.Data), nil

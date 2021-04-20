@@ -1,7 +1,7 @@
 package configuration
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -16,7 +16,7 @@ func Get() *Configuration {
 	once.Do(func() {
 		c, err := loadConfiguration()
 		if err != nil {
-			log.Fatalf("[ERROR] retrieving configuration for service. %s.", err.Error())
+			log.Fatalf("Retrieving configuration for service. %s.", err.Error())
 		}
 		registry = &Registry{
 			c: c,

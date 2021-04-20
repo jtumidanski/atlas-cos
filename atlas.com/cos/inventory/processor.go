@@ -5,15 +5,15 @@ import (
 	"atlas-cos/item"
 	"errors"
 	"gorm.io/gorm"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type processor struct {
-	l  *log.Logger
+	l  log.FieldLogger
 	db *gorm.DB
 }
 
-var Processor = func(l *log.Logger, db *gorm.DB) *processor {
+var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 	return &processor{l, db}
 }
 

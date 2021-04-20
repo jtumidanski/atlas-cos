@@ -6,8 +6,8 @@ import (
 	"atlas-cos/item"
 	"atlas-cos/rest/attributes"
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,9 +15,11 @@ import (
 
 func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetInventoryForCharacterByType", "type": "rest_handler"})
+
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
-			l.Printf("[ERROR] unable to properly parse characterId from path.")
+			fl.Errorf("Unable to properly parse characterId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -26,12 +28,12 @@ func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc
 
 		inventoryType := mux.Vars(r)["type"]
 		if inventoryType == "" {
-			l.Printf("[ERROR] unable to retrieve requested inventory type.")
+			fl.Errorf("Unable to retrieve requested inventory type.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		inv, err := Processor(l, db).GetInventoryByType(uint32(characterId), inventoryType)
+		inv, err := Processor(fl, db).GetInventoryByType(uint32(characterId), inventoryType)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -50,29 +52,31 @@ func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			l.Printf("[ERROR] %s.", err.Error())
+			fl.Errorf("%s.", err.Error())
 		}
 	}
 }
 
 func GetInventoryForCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+		fl.Errorln("Unhandled request.")
 		//TODO
 	}
 }
 
-func createIncludedEquipmentStatistics(l *log.Logger, db *gorm.DB, characterId uint32) []interface{} {
+func createIncludedEquipmentStatistics(fl log.FieldLogger, db *gorm.DB, characterId uint32) []interface{} {
 	var results = make([]interface{}, 0)
-	e, err := equipment.Processor(l, db).GetEquipmentForCharacter(characterId)
+	e, err := equipment.Processor(fl, db).GetEquipmentForCharacter(characterId)
 	if err != nil {
-		l.Printf("[ERROR] unable to retrieve equipment for character %d.", characterId)
+		fl.Errorf("Unable to retrieve equipment for character %d.", characterId)
 		return results
 	}
 
 	for _, equip := range e {
-		es, err := statistics.Processor(l, db).GetEquipmentStatistics(equip.EquipmentId())
+		es, err := statistics.Processor(fl, db).GetEquipmentStatistics(equip.EquipmentId())
 		if err != nil {
-			l.Printf("[ERROR] retrieving equipment %d statistics for character %d.", equip.EquipmentId(), characterId)
+			fl.Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), characterId)
 		} else {
 			results = append(results, createEquipmentStatisticsData(es))
 		}
@@ -80,25 +84,25 @@ func createIncludedEquipmentStatistics(l *log.Logger, db *gorm.DB, characterId u
 	return results
 }
 
-func createIncludedInventoryItems(l *log.Logger, db *gorm.DB, characterId uint32, inventoryType string) []interface{} {
+func createIncludedInventoryItems(fl log.FieldLogger, db *gorm.DB, characterId uint32, inventoryType string) []interface{} {
 	var results = make([]interface{}, 0)
-	inv, err := Processor(l, db).GetInventoryByType(characterId, inventoryType)
+	inv, err := Processor(fl, db).GetInventoryByType(characterId, inventoryType)
 	if err != nil {
-		l.Printf("[ERROR] unable to retrieve inventory items for character %d.", characterId)
+		fl.Errorf("Unable to retrieve inventory items for character %d.", characterId)
 		return results
 	}
 	for _, inventoryItem := range inv.Items() {
 		if inventoryItem.Type() == ItemTypeEquip {
-			e, err := equipment.Processor(l, db).GetEquipmentById(inventoryItem.Id())
+			e, err := equipment.Processor(fl, db).GetEquipmentById(inventoryItem.Id())
 			if err != nil {
-				l.Printf("[ERROR] unable to retrieve equipment %d for character %d.", inventoryItem.Id(), characterId)
+				fl.Errorf("Unable to retrieve equipment %d for character %d.", inventoryItem.Id(), characterId)
 			} else {
 				results = append(results, createEquipmentData(e))
 			}
 		} else {
-			i, err := item.Processor(l, db).GetItemById(inventoryItem.Id())
+			i, err := item.Processor(fl, db).GetItemById(inventoryItem.Id())
 			if err != nil {
-				l.Printf("[ERROR] unable to retrieve item %d for character %d.", inventoryItem.Id(), characterId)
+				fl.Errorf("Unable to retrieve item %d for character %d.", inventoryItem.Id(), characterId)
 			} else {
 				results = append(results, createItemData(i))
 			}

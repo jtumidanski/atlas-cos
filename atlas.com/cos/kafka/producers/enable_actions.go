@@ -2,14 +2,14 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type enableActionsEvent struct {
 	CharacterId uint32 `json:"characterId"`
 }
 
-var EnableActions = func(l *log.Logger, ctx context.Context) *enableActions {
+var EnableActions = func(l log.FieldLogger, ctx context.Context) *enableActions {
 	return &enableActions{
 		l:   l,
 		ctx: ctx,
@@ -17,7 +17,7 @@ var EnableActions = func(l *log.Logger, ctx context.Context) *enableActions {
 }
 
 type enableActions struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

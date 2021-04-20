@@ -3,22 +3,22 @@ package portal
 import (
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/requests"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 )
 
 type processor struct {
-	l *log.Logger
+	l log.FieldLogger
 }
 
-var Processor = func(l *log.Logger) *processor {
+var Processor = func(l log.FieldLogger) *processor {
 	return &processor{l}
 }
 
 func (p *processor) GetMapPortalById(mapId uint32, portalId uint32) (*Model, error) {
 	data, err := requests.MapInformation().GetPortalById(mapId, portalId)
 	if err != nil {
-		p.l.Printf("[ERROR] unable to get map %d portal %d.", mapId, portalId)
+		p.l.Errorf("Unable to get map %d portal %d.", mapId, portalId)
 		return nil, err
 	}
 	return makePortal(data.Data()), nil
@@ -27,7 +27,7 @@ func (p *processor) GetMapPortalById(mapId uint32, portalId uint32) (*Model, err
 func (p *processor) GetMapPortals(mapId uint32) ([]*Model, error) {
 	data, err := requests.MapInformation().GetPortals(mapId)
 	if err != nil {
-		p.l.Printf("[ERROR] unable to get map %d portals.", mapId)
+		p.l.Errorf("Unable to get map %d portals.", mapId)
 		return nil, err
 	}
 

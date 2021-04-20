@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type characterExperienceGainEvent struct {
@@ -14,7 +14,7 @@ type characterExperienceGainEvent struct {
 	White        bool   `json:"white"`
 }
 
-var CharacterExperienceGain = func(l *log.Logger, ctx context.Context) *characterExperienceGain {
+var CharacterExperienceGain = func(l log.FieldLogger, ctx context.Context) *characterExperienceGain {
 	return &characterExperienceGain{
 		l:   l,
 		ctx: ctx,
@@ -22,7 +22,7 @@ var CharacterExperienceGain = func(l *log.Logger, ctx context.Context) *characte
 }
 
 type characterExperienceGain struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

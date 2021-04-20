@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type cancelDropReservationEvent struct {
@@ -10,7 +10,7 @@ type cancelDropReservationEvent struct {
 	DropId      uint32 `json:"dropId"`
 }
 
-var CancelDropReservation = func(l *log.Logger, ctx context.Context) *cancelDropReservation {
+var CancelDropReservation = func(l log.FieldLogger, ctx context.Context) *cancelDropReservation {
 	return &cancelDropReservation{
 		l:   l,
 		ctx: ctx,
@@ -18,7 +18,7 @@ var CancelDropReservation = func(l *log.Logger, ctx context.Context) *cancelDrop
 }
 
 type cancelDropReservation struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

@@ -6,14 +6,15 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/segmentio/kafka-go"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"time"
 )
 
 type Consumer struct {
-	l                 *log.Logger
+	l                 log.FieldLogger
 	ctx               context.Context
+	name              string
 	groupId           string
 	topicToken        string
 	emptyEventCreator EmptyEventCreator
@@ -22,18 +23,25 @@ type Consumer struct {
 
 func NewConsumer(l *log.Logger, ctx context.Context, h EventProcessor, options ...ConsumerOption) Consumer {
 	c := &Consumer{}
-	c.l = l
 	c.ctx = ctx
 	c.h = h
 	for _, option := range options {
 		option(c)
 	}
+
+	td, err := requests.Topic(l).GetTopic(c.topicToken)
+	if err != nil {
+		l.Fatal("Unable to retrieve topic for consumer.")
+		return *c
+	}
+	c.name = td.Attributes.Name
+	c.l = l.WithFields(log.Fields{"originator": c.name, "type": "kafka_consumer"})
 	return *c
 }
 
 type EmptyEventCreator func() interface{}
 
-type EventProcessor func(*log.Logger, interface{})
+type EventProcessor func(log.FieldLogger, interface{})
 
 type ConsumerOption func(c *Consumer)
 
@@ -56,17 +64,11 @@ func SetEmptyEventCreator(f EmptyEventCreator) func(c *Consumer) {
 }
 
 func (c Consumer) Init() {
-	td, err := requests.Topic(c.l).GetTopic(c.topicToken)
-	if err != nil {
-		c.l.Fatal("[ERROR] Unable to retrieve topic for consumer.")
-		return
-	}
-
-	c.l.Printf("[INFO] creating topic consumer for %s", td.Attributes.Name)
+	c.l.Infof("Creating topic consumer.")
 
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{os.Getenv("BOOTSTRAP_SERVERS")},
-		Topic:   td.Attributes.Name,
+		Topic:   c.name,
 		GroupID: c.groupId,
 		MaxWait: 50 * time.Millisecond,
 	})
@@ -74,25 +76,28 @@ func (c Consumer) Init() {
 	for {
 		msg, err := retry.RetryResponse(consumerReader(c.l, r, c.ctx), 10)
 		if err != nil {
-			c.l.Fatalf("[ERROR] could not successfully read message " + err.Error())
-		}
-		if val, ok := msg.(*kafka.Message); ok {
-			event := c.emptyEventCreator()
-			err = json.Unmarshal(val.Value, &event)
-			if err != nil {
-				c.l.Println("[ERROR] could not unmarshal event into event class ", val.Value)
+			c.l.Errorf("Could not successfully read message " + err.Error())
+		} else {
+			if val, ok := msg.(*kafka.Message); ok {
+				event := c.emptyEventCreator()
+				err = json.Unmarshal(val.Value, &event)
+				if err != nil {
+					c.l.Errorf("Could not unmarshal event into %s. Error %s.", val.Value, err.Error())
+				} else {
+					c.h(c.l, event)
+				}
 			} else {
-				c.h(c.l, event)
+				c.l.Errorf("Message received not a valid kafka message.")
 			}
 		}
 	}
 }
 
-func consumerReader(l *log.Logger, r *kafka.Reader, ctx context.Context) retry.RetryResponseFunc {
+func consumerReader(l log.FieldLogger, r *kafka.Reader, ctx context.Context) retry.RetryResponseFunc {
 	return func(attempt int) (bool, interface{}, error) {
 		msg, err := r.ReadMessage(ctx)
 		if err != nil {
-			l.Printf("[WARN] could not successfully read message on topic %s, will retry", r.Config().Topic)
+			l.Warnf("Could not read message on topic %s, will retry. Error %s.", r.Config().Topic, err.Error())
 			return true, nil, err
 		}
 		return false, &msg, err

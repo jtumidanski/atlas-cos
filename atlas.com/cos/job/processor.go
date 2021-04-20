@@ -2,14 +2,14 @@ package job
 
 import (
 	"errors"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type processor struct {
-	l *log.Logger
+	l log.FieldLogger
 }
 
-var Processor = func(l *log.Logger) *processor {
+var Processor = func(l log.FieldLogger) *processor {
 	return &processor{l}
 }
 

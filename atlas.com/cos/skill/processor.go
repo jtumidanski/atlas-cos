@@ -3,16 +3,16 @@ package skill
 import (
 	"atlas-cos/skill/information"
 	"errors"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type processor struct {
-	l  *log.Logger
+	l  log.FieldLogger
 	db *gorm.DB
 }
 
-var Processor = func(l *log.Logger, db *gorm.DB) *processor {
+var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 	return &processor{l, db}
 }
 

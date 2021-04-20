@@ -1,13 +1,17 @@
 package item
 
 import (
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type processor struct {
-	l  *log.Logger
+	l  log.FieldLogger
 	db *gorm.DB
+}
+
+var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
+	return &processor{l, db}
 }
 
 func (p processor) GetItemsForCharacter(characterId uint32, inventoryType byte, itemId uint32) []*Model {
@@ -36,8 +40,4 @@ func (p processor) CreateItemForCharacter(characterId uint32, inventoryType byte
 
 func (p processor) GetItemById(id uint32) (*Model, error) {
 	return GetById(p.db, id)
-}
-
-var Processor = func(l *log.Logger, db *gorm.DB) *processor {
-	return &processor{l, db}
 }

@@ -2,8 +2,8 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type gainExperienceEvent struct {
@@ -22,11 +22,13 @@ func GainExperienceEventCreator() EmptyEventCreator {
 }
 
 func HandleGainExperienceEvent(db *gorm.DB) EventProcessor {
-	return func(l *log.Logger, e interface{}) {
+	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*gainExperienceEvent); ok {
+			l.Debugf("Begin event handling.")
 			character.Processor(l, db).GainExperience(event.CharacterId, event.PersonalGain + event.PartyGain)
+			l.Debugf("Complete event handling.")
 		} else {
-			l.Printf("[ERROR] unable to cast event provided to handler [GainExperienceEvent]")
+			l.Errorf("Unable to cast event provided to handler")
 		}
 	}
 }

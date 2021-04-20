@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type adjustMesoEvent struct {
@@ -11,7 +11,7 @@ type adjustMesoEvent struct {
 	Show        bool   `json:"bool"`
 }
 
-var AdjustMeso = func(l *log.Logger, ctx context.Context) *adjustMeso {
+var AdjustMeso = func(l log.FieldLogger, ctx context.Context) *adjustMeso {
 	return &adjustMeso{
 		l:   l,
 		ctx: ctx,
@@ -19,7 +19,7 @@ var AdjustMeso = func(l *log.Logger, ctx context.Context) *adjustMeso {
 }
 
 type adjustMeso struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

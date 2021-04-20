@@ -2,15 +2,15 @@ package _map
 
 import (
 	"atlas-cos/portal"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"math"
 )
 
 type processor struct {
-	l *log.Logger
+	l log.FieldLogger
 }
 
-var Processor = func(l *log.Logger) *processor {
+var Processor = func(l log.FieldLogger) *processor {
 	return &processor{l}
 }
 

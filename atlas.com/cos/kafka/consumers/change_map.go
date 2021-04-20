@@ -2,8 +2,8 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type changeMapCommand struct {
@@ -21,11 +21,13 @@ func ChangeMapCommandCreator() EmptyEventCreator {
 }
 
 func HandleChangeMapCommand(db *gorm.DB) EventProcessor {
-	return func(l *log.Logger, e interface{}) {
+	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*changeMapCommand); ok {
+			l.Debugf("Begin event handling.")
 			character.Processor(l, db).ChangeMap(event.CharacterId, event.WorldId, event.ChannelId, event.MapId, event.PortalId)
+			l.Debugf("Complete event handling.")
 		} else {
-			l.Printf("[ERROR] unable to cast event provided to handler [ChangeMapCommand]")
+			l.Errorf("Unable to cast event provided to handler")
 		}
 	}
 }

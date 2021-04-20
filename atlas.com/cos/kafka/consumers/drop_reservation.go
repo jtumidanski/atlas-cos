@@ -2,8 +2,8 @@ package consumers
 
 import (
 	"atlas-cos/drop"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type dropReservationEvent struct {
@@ -19,13 +19,15 @@ func DropReservationEventCreator() EmptyEventCreator {
 }
 
 func HandleDropReservationEvent(db *gorm.DB) EventProcessor {
-	return func(l *log.Logger, e interface{}) {
+	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*dropReservationEvent); ok {
+			l.Debugf("Begin event handling.")
 			if event.Type == "SUCCESS" {
 				drop.Processor(l, db).AttemptPickup(event.CharacterId, event.DropId)
 			}
+			l.Debugf("Complete event handling.")
 		} else {
-			l.Printf("[ERROR] unable to cast event provided to handler [DropReservationEvent]")
+			l.Errorf("Unable to cast event provided to handler")
 		}
 	}
 }

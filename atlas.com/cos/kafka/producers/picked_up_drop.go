@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type pickedUpDropEvent struct {
@@ -10,7 +10,7 @@ type pickedUpDropEvent struct {
 	DropId      uint32 `json:"dropId"`
 }
 
-var PickedUpDrop = func(l *log.Logger, ctx context.Context) *pickedUpDrop {
+var PickedUpDrop = func(l log.FieldLogger, ctx context.Context) *pickedUpDrop {
 	return &pickedUpDrop{
 		l:   l,
 		ctx: ctx,
@@ -18,7 +18,7 @@ var PickedUpDrop = func(l *log.Logger, ctx context.Context) *pickedUpDrop {
 }
 
 type pickedUpDrop struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

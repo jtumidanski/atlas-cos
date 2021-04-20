@@ -2,8 +2,8 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type characterMovementEvent struct {
@@ -25,15 +25,17 @@ func CharacterMovementEventCreator() EmptyEventCreator {
 }
 
 func HandleCharacterMovementEvent(db *gorm.DB) EventProcessor {
-	return func(l *log.Logger, e interface{}) {
+	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*characterMovementEvent); ok {
+			l.Debugf("Begin event handling.")
 			if event.X != 0 || event.Y != 0 {
 				character.Processor(l, db).MoveCharacter(event.CharacterId, event.X, event.Y, event.Stance)
 			} else if event.Stance != 0 {
 				character.Processor(l, db).UpdateStance(event.CharacterId, event.Stance)
 			}
+			l.Debugf("Complete event handling.")
 		} else {
-			l.Printf("[ERROR] unable to cast event provided to handler [CharacterMovementEvent]")
+			l.Errorf("Unable to cast event provided to handler")
 		}
 	}
 }

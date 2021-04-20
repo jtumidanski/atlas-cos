@@ -2,8 +2,8 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type assignAPCommand struct {
@@ -18,8 +18,9 @@ func AssignAPCommandCreator() EmptyEventCreator {
 }
 
 func HandleAssignAPCommand(db *gorm.DB) EventProcessor {
-	return func(l *log.Logger, e interface{}) {
+	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*assignAPCommand); ok {
+			l.Debugf("Begin event handling.")
 			switch event.Type {
 			case "STRENGTH":
 				character.Processor(l, db).AssignStrength(event.CharacterId)
@@ -40,8 +41,9 @@ func HandleAssignAPCommand(db *gorm.DB) EventProcessor {
 				character.Processor(l, db).AssignMp(event.CharacterId)
 				break
 			}
+			l.Debugf("Complete event handling.")
 		} else {
-			l.Printf("[ERROR] unable to cast event provided to handler [AssignAPCommand]")
+			l.Errorf("Unable to cast event provided to handler")
 		}
 	}
 }

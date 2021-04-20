@@ -1,15 +1,7 @@
 package attributes
 
 type CharacterSeedInputDataContainer struct {
-	Data CharacterSeedData
-}
-
-type CharacterSeedDataContainer struct {
-	Data CharacterSeedData
-}
-
-type CharacterSeedDataListContainer struct {
-	Data []CharacterSeedData
+	Data CharacterSeedData `json:"data"`
 }
 
 type CharacterSeedData struct {

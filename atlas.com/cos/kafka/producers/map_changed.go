@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type mapChangedEvent struct {
@@ -13,7 +13,7 @@ type mapChangedEvent struct {
 	CharacterId uint32 `json:"characterId"`
 }
 
-var MapChanged = func(l *log.Logger, ctx context.Context) *mapChanged {
+var MapChanged = func(l log.FieldLogger, ctx context.Context) *mapChanged {
 	return &mapChanged{
 		l:   l,
 		ctx: ctx,
@@ -21,7 +21,7 @@ var MapChanged = func(l *log.Logger, ctx context.Context) *mapChanged {
 }
 
 type mapChanged struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

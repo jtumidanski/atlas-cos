@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type inventoryModification struct {
@@ -14,7 +14,7 @@ type inventoryModification struct {
 	OldPosition   int16  `json:"oldPosition"`
 }
 
-var InventoryModificationReservation = func(l *log.Logger, ctx context.Context) *inventoryModificationReservation {
+var InventoryModificationReservation = func(l log.FieldLogger, ctx context.Context) *inventoryModificationReservation {
 	return &inventoryModificationReservation{
 		l:   l,
 		ctx: ctx,
@@ -28,7 +28,7 @@ type characterInventoryModificationEvent struct {
 }
 
 type inventoryModificationReservation struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

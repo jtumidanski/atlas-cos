@@ -3,28 +3,30 @@ package character
 import (
 	"atlas-cos/rest/attributes"
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 	"net/http"
 	"strconv"
 )
 
 func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+
 		accountId, err := strconv.Atoi(mux.Vars(r)["accountId"])
 		if err != nil {
-			l.Printf("[ERROR] unable to properly parse accountId from path.")
+			fl.Errorf("Unable to properly parse accountId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		worldId, err := strconv.Atoi(mux.Vars(r)["worldId"])
 		if err != nil {
-			l.Printf("[ERROR] unable to properly parse worldId from path.")
+			fl.Errorf("Unable to properly parse worldId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		cs, err := Processor(l, db).GetForAccountInWorld(uint32(accountId), byte(worldId))
+		cs, err := Processor(fl, db).GetForAccountInWorld(uint32(accountId), byte(worldId))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -35,27 +37,29 @@ func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) http.HandlerFunc
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			l.Printf("[ERROR] writing response for GetCharactersForAccountInWorld.")
+			fl.Errorf("Writing response for GetCharactersForAccountInWorld.")
 		}
 	}
 }
 
 func GetCharactersByMap(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetCharactersByMap", "type": "rest_handler"})
+
 		worldId, err := strconv.Atoi(mux.Vars(r)["worldId"])
 		if err != nil {
-			l.Printf("[ERROR] unable to properly parse worldId from path.")
+			fl.Errorf("Unable to properly parse worldId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		mapId, err := strconv.Atoi(mux.Vars(r)["mapId"])
 		if err != nil {
-			l.Printf("[ERROR] unable to properly parse mapId from path.")
+			fl.Errorf("Unable to properly parse mapId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		cs, err := Processor(l, db).GetForMapInWorld(byte(worldId), uint32(mapId))
+		cs, err := Processor(fl, db).GetForMapInWorld(byte(worldId), uint32(mapId))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -66,21 +70,23 @@ func GetCharactersByMap(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			l.Printf("[ERROR] writing response for GetCharactersByMap.")
+			fl.Errorf("Writing response for GetCharactersByMap.")
 		}
 	}
 }
 
 func GetCharactersByName(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetCharactersByName", "type": "rest_handler"})
+
 		name, ok := mux.Vars(r)["name"]
 		if !ok {
-			l.Printf("[ERROR] unable to properly parse name from path.")
+			fl.Errorf("Unable to properly parse name from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		cs, err := Processor(l, db).GetForName(name)
+		cs, err := Processor(fl, db).GetForName(name)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -91,7 +97,7 @@ func GetCharactersByName(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			l.Printf("[ERROR] writing response for GetCharactersByName.")
+			fl.Errorf("Writing response for GetCharactersByName.")
 		}
 	}
 }
@@ -107,19 +113,22 @@ func createCharacterDataListContainer(cs []*Model) *attributes.CharacterDataList
 
 func CreateCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l.Printf("[ERROR] unhandled request to create character.")
+		fl := l.WithFields(log.Fields{"originator": "CreateCharacter", "type": "rest_handler"})
+		fl.Errorf("Unhandled request to create character.")
 	}
 }
 
 func GetCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetCharacter", "type": "rest_handler"})
+
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
-			l.Printf("[ERROR] unable to properly parse characterId from path.")
+			fl.Errorf("Unable to properly parse characterId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		c, err := Processor(l, db).GetById(uint32(characterId))
+		c, err := Processor(fl, db).GetById(uint32(characterId))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -135,7 +144,7 @@ func GetCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			l.Printf("[ERROR] writing response for GetCharacter.")
+			fl.Errorf("Writing response for GetCharacter.")
 		}
 	}
 }
@@ -182,14 +191,16 @@ func createCharacterData(c *Model) attributes.CharacterData {
 
 func GetCharacterDamage(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetCharacterDamage", "type": "rest_handler"})
+
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
-			l.Printf("[ERROR] unable to properly parse characterId from path.")
+			fl.Errorf("Unable to properly parse characterId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		damage := Processor(l, db).GetMaximumBaseDamage(uint32(characterId))
+		damage := Processor(fl, db).GetMaximumBaseDamage(uint32(characterId))
 
 		result := attributes.CharacterDamageDataContainer{
 			Data: attributes.CharacterDamageData{
@@ -205,7 +216,7 @@ func GetCharacterDamage(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			l.Printf("[ERROR] writing response for GetCharacterDamage.")
+			fl.Errorf("Writing response for GetCharacterDamage.")
 		}
 	}
 }

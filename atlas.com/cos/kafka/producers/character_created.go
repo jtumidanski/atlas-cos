@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type characterCreatedEvent struct {
@@ -11,7 +11,7 @@ type characterCreatedEvent struct {
 	Name        string `json:"name"`
 }
 
-var CharacterCreated = func(l *log.Logger, ctx context.Context) *characterCreated {
+var CharacterCreated = func(l log.FieldLogger, ctx context.Context) *characterCreated {
 	return &characterCreated{
 		l:   l,
 		ctx: ctx,
@@ -19,7 +19,7 @@ var CharacterCreated = func(l *log.Logger, ctx context.Context) *characterCreate
 }
 
 type characterCreated struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

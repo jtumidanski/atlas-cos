@@ -10,9 +10,9 @@ import (
 	"atlas-cos/retry"
 	"atlas-cos/skill"
 	"context"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -34,7 +34,13 @@ func connectToDatabase(attempt int) (bool, interface{}, error) {
 }
 
 func main() {
-	l := log.New(os.Stdout, "cos ", log.LstdFlags|log.Lmicroseconds)
+	l := log.New()
+	l.SetOutput(os.Stdout)
+	if val, ok := os.LookupEnv("LOG_LEVEL"); ok {
+		if level, err := log.ParseLevel(val); err == nil {
+			l.SetLevel(level)
+		}
+	}
 
 	r, err := retry.RetryResponse(connectToDatabase, 10)
 	if err != nil {
@@ -58,7 +64,7 @@ func main() {
 
 	// Block until a signal is received.
 	sig := <-c
-	l.Println("[INFO] Shutting down via signal:", sig)
+	l.Infoln("Shutting down via signal:", sig)
 }
 
 func createEventConsumers(l *log.Logger, db *gorm.DB) {
@@ -80,7 +86,7 @@ func createEventConsumers(l *log.Logger, db *gorm.DB) {
 }
 
 func createEventConsumer(l *log.Logger, topicToken string, emptyEventCreator consumers.EmptyEventCreator, processor consumers.EventProcessor) {
-	h := func(logger *log.Logger, event interface{}) {
+	h := func(logger log.FieldLogger, event interface{}) {
 		processor(logger, event)
 	}
 

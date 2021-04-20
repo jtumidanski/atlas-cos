@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type pickedUpItemEvent struct {
@@ -11,7 +11,7 @@ type pickedUpItemEvent struct {
 	Quantity    uint32 `json:"quantity"`
 }
 
-var PickedUpItem = func(l *log.Logger, ctx context.Context) *pickedUpItem {
+var PickedUpItem = func(l log.FieldLogger, ctx context.Context) *pickedUpItem {
 	return &pickedUpItem{
 		l:   l,
 		ctx: ctx,
@@ -19,7 +19,7 @@ var PickedUpItem = func(l *log.Logger, ctx context.Context) *pickedUpItem {
 }
 
 type pickedUpItem struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

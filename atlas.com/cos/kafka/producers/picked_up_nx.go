@@ -2,7 +2,7 @@ package producers
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 type pickedUpNxEvent struct {
@@ -10,7 +10,7 @@ type pickedUpNxEvent struct {
 	Gain        uint32 `json:"gain"`
 }
 
-var PickedUpNx = func(l *log.Logger, ctx context.Context) *pickedUpNx {
+var PickedUpNx = func(l log.FieldLogger, ctx context.Context) *pickedUpNx {
 	return &pickedUpNx{
 		l:   l,
 		ctx: ctx,
@@ -18,7 +18,7 @@ var PickedUpNx = func(l *log.Logger, ctx context.Context) *pickedUpNx {
 }
 
 type pickedUpNx struct {
-	l   *log.Logger
+	l   log.FieldLogger
 	ctx context.Context
 }
 

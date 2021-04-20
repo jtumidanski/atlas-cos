@@ -12,18 +12,18 @@ import (
 	"atlas-cos/skill"
 	"atlas-cos/skill/information"
 	"context"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 	"math"
 	"math/rand"
 )
 
 type processor struct {
-	l  *log.Logger
+	l  log.FieldLogger
 	db *gorm.DB
 }
 
-var Processor = func(l *log.Logger, db *gorm.DB) *processor {
+var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 	return &processor{l, db}
 }
 
@@ -258,7 +258,7 @@ func (p *processor) GetById(characterId uint32) (*Model, error) {
 func (p *processor) InMap(characterId uint32, mapId uint32) bool {
 	c, err := p.GetById(characterId)
 	if err != nil {
-		p.l.Printf("[ERROR] unable to validate character %d is in map %d. Assuming not.", characterId, mapId)
+		p.l.Errorf("Unable to validate character %d is in map %d. Assuming not.", characterId, mapId)
 		return false
 	}
 	return c.MapId() == mapId
@@ -435,12 +435,12 @@ func (p *processor) totalStat(c Model, baseGetter func(*Model) uint16, equipGett
 
 	equips, err := equipment.Processor(p.l, p.db).GetEquipmentForCharacter(c.Id())
 	if err != nil {
-		p.l.Printf("[ERROR] unable to retrieve equipment for character.")
+		p.l.Errorf("Unable to retrieve equipment for character.")
 	}
 	for _, equip := range equips {
 		es, err := statistics.Processor(p.l, p.db).GetEquipmentStatistics(equip.EquipmentId())
 		if err != nil {
-			p.l.Printf("[ERROR] unable to retrieve statistics for equipment %d.", equip.EquipmentId())
+			p.l.Errorf("Unable to retrieve statistics for equipment %d.", equip.EquipmentId())
 		} else {
 			value += equipGetter(es)
 		}
@@ -599,10 +599,10 @@ func (p *processor) updateTemporalPositionLogin() characterFunc {
 	return func(c *Model) error {
 		port, err := portal.Processor(p.l).GetMapPortalById(c.MapId(), c.SpawnPoint())
 		if err != nil {
-			p.l.Printf("[WARN] unable to find spawn point %d in map %d for character %d.", c.SpawnPoint(), c.MapId(), c.Id())
+			p.l.Warnf("Unable to find spawn point %d in map %d for character %d.", c.SpawnPoint(), c.MapId(), c.Id())
 			port, err = portal.Processor(p.l).GetMapPortalById(c.MapId(), 0)
 			if err != nil {
-				p.l.Printf("[ERROR] unable to get a portal in map %d to update character %d position to.", c.MapId(), c.Id())
+				p.l.Errorf("Unable to get a portal in map %d to update character %d position to.", c.MapId(), c.Id())
 				return err
 			}
 		}
@@ -626,7 +626,7 @@ func (p *processor) GetForName(name string) ([]*Model, error) {
 func (p *processor) GetMaximumBaseDamage(characterId uint32) uint32 {
 	c, err := p.GetById(characterId)
 	if err != nil {
-		p.l.Printf("[ERROR] unable to retrieve character %d for damage information request.")
+		p.l.Errorf("Unable to retrieve character %d for damage information request.")
 		return 0
 	}
 
@@ -634,12 +634,12 @@ func (p *processor) GetMaximumBaseDamage(characterId uint32) uint32 {
 
 	equip, err := equipment.Processor(p.l, p.db).GetEquippedItemForCharacterBySlot(c.Id(), -11)
 	if err != nil {
-		p.l.Printf("[ERROR] retrieving equipment for character %d.", c.Id())
+		p.l.Errorf("Retrieving equipment for character %d.", c.Id())
 		return p.getMaximumBaseDamageNoWeapon(c)
 	}
 	es, err := statistics.Processor(p.l, p.db).GetEquipmentStatistics(equip.EquipmentId())
 	if err != nil {
-		p.l.Printf("[ERROR] retrieving equipment %d statistics for character %d.", equip.EquipmentId(), c.Id())
+		p.l.Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), c.Id())
 		return p.getMaximumBaseDamageNoWeapon(c)
 	}
 	return p.getMaximumBaseDamage(c, wa, item.GetWeaponType(es.ItemId()))
@@ -650,13 +650,13 @@ func (p *processor) WeaponAttack(c *Model) uint16 {
 
 	equips, err := equipment.Processor(p.l, p.db).GetEquipmentForCharacter(c.Id())
 	if err != nil {
-		p.l.Printf("[ERROR] retrieving equipment for character %d.", c.Id())
+		p.l.Errorf("Retrieving equipment for character %d.", c.Id())
 		return 0
 	}
 	for _, equip := range equips {
 		es, err := statistics.Processor(p.l, p.db).GetEquipmentStatistics(equip.EquipmentId())
 		if err != nil {
-			p.l.Printf("[ERROR] retrieving equipment %d statistics for character %d.", equip.EquipmentId(), c.Id())
+			p.l.Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), c.Id())
 		} else {
 			wa += es.WeaponAttack()
 		}
@@ -709,8 +709,6 @@ func (p *processor) getMaximumBaseDamageNoWeapon(c *Model) uint32 {
 	}
 	return 1
 }
-
-
 
 func (p *processor) Create(b *Builder) (*Model, error) {
 	c := b.Build()

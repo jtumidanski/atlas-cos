@@ -1,11 +1,11 @@
 package attributes
 
 type CharacterDataContainer struct {
-	Data CharacterData
+	Data CharacterData `json:"data"`
 }
 
 type CharacterDataListContainer struct {
-	Data []CharacterData
+	Data []CharacterData `json:"data"`
 }
 
 type CharacterData struct {

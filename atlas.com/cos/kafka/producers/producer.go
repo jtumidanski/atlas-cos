@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"github.com/segmentio/kafka-go"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"time"
 )
@@ -18,10 +18,10 @@ func createKey(key int) []byte {
 	return b
 }
 
-func produceEvent(l *log.Logger, topicToken string, key []byte, event interface{}) {
+func produceEvent(l log.FieldLogger, topicToken string, key []byte, event interface{}) {
 	td, err := requests.Topic(l).GetTopic(topicToken)
 	if err != nil {
-		l.Fatal("[ERROR] unable to retrieve topic %s for producer.", topicToken)
+		l.Fatal("Unable to retrieve topic %s for producer.", topicToken)
 	}
 
 	w := &kafka.Writer{
@@ -33,7 +33,7 @@ func produceEvent(l *log.Logger, topicToken string, key []byte, event interface{
 
 	r, err := json.Marshal(event)
 	if err != nil {
-		l.Fatal("[ERROR] unable to marshall event for topic %s with reason %s", td.Attributes.Name, err.Error())
+		l.Fatal("Unable to marshall event for topic %s with reason %s", td.Attributes.Name, err.Error())
 	}
 
 	writeMessage := func(attempt int) (bool, error) {
@@ -42,7 +42,7 @@ func produceEvent(l *log.Logger, topicToken string, key []byte, event interface{
 			Value: r,
 		})
 		if err != nil {
-			l.Printf("[WARN] unable to emit event on topic %s, will retry.", td.Attributes.Name)
+			l.Warnf("Unable to emit event on topic %s, will retry.", td.Attributes.Name)
 			return true, err
 		}
 		return false, err
@@ -50,8 +50,6 @@ func produceEvent(l *log.Logger, topicToken string, key []byte, event interface{
 
 	err = retry.Retry(writeMessage, 10)
 	if err != nil {
-		l.Fatalf("[ERROR] unable to emit event on topic %s, with reason %s", td.Attributes.Name, err.Error())
+		l.Fatalf("Unable to emit event on topic %s, with reason %s", td.Attributes.Name, err.Error())
 	}
 }
-
-

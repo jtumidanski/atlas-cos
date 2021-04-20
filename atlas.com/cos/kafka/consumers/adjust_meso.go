@@ -2,8 +2,8 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type adjustMesoCommand struct {
@@ -19,11 +19,13 @@ func AdjustMesoCommandCreator() EmptyEventCreator {
 }
 
 func HandleAdjustMesoCommand(db *gorm.DB) EventProcessor {
-	return func(l *log.Logger, e interface{}) {
+	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*adjustMesoCommand); ok {
+			l.Debugf("Begin event handling.")
 			character.Processor(l, db).AdjustMeso(event.CharacterId, event.Amount, event.Show)
+			l.Debugf("Complete event handling.")
 		} else {
-			l.Printf("[ERROR] unable to cast event provided to handler [AdjustMesoCommand]")
+			l.Errorf("Unable to cast event provided to handler")
 		}
 	}
 }

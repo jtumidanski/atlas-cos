@@ -3,8 +3,8 @@ package equipment
 import (
 	"atlas-cos/rest/requests"
 	"errors"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 	"math"
 	"strconv"
 )
@@ -19,18 +19,18 @@ var characterCreationItems = []uint32{
 }
 
 type processor struct {
-	l  *log.Logger
+	l  log.FieldLogger
 	db *gorm.DB
 }
 
-var Processor = func(l *log.Logger, db *gorm.DB) *processor {
+var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 	return &processor{l, db}
 }
 
 func (p processor) CreateForCharacter(characterId uint32, itemId uint32, characterCreation bool) (*Model, error) {
 	if characterCreation {
 		if invalidCharacterCreationItem(itemId) {
-			p.l.Printf("[ERROR] received a request to create an item %d for character %d which is not valid for character creation. This is usually a hack.")
+			p.l.Errorf("Received a request to create an item %d for character %d which is not valid for character creation. This is usually a hack.")
 			return nil, errors.New("not valid item for character creation")
 		}
 	}
@@ -42,17 +42,17 @@ func (p processor) CreateForCharacter(characterId uint32, itemId uint32, charact
 
 	ro, err := requests.EquipmentRegistry().Create(itemId)
 	if err != nil {
-		p.l.Printf("[ERROR] generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.")
+		p.l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.")
 		return nil, err
 	}
 	eid, err := strconv.Atoi(ro.Data.Id)
 	if err != nil {
-		p.l.Printf("[ERROR] generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.")
+		p.l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.")
 		return nil, err
 	}
 	eq, err := Create(p.db, characterId, uint32(eid), nextOpen)
 	if err != nil {
-		p.l.Printf("[ERROR] persisting equipment %d association for character %d in Slot %d.", eid, characterId, nextOpen)
+		p.l.Errorf("Persisting equipment %d association for character %d in Slot %d.", eid, characterId, nextOpen)
 		return nil, err
 	}
 	return eq, nil
@@ -76,27 +76,27 @@ func (p processor) createAndEquip(characterId uint32, itemId uint32) {
 	if equipment, err := p.CreateForCharacter(characterId, itemId, true); err == nil {
 		p.equipItemForCharacter(characterId, equipment.EquipmentId())
 	} else {
-		p.l.Printf("[ERROR] unable to create equipment %d for character %d.", itemId, characterId)
+		p.l.Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
 	}
 }
 
 func (p processor) equipItemForCharacter(characterId uint32, equipmentId uint32) {
 	e, err := GetByEquipmentId(p.db, equipmentId)
 	if err != nil {
-		p.l.Printf("[ERROR] unable to retrieve equipment %d.", equipmentId)
+		p.l.Errorf("Unable to retrieve equipment %d.", equipmentId)
 		return
 	}
 
 	ea, err := requests.EquipmentRegistry().GetById(e.EquipmentId())
 	if err != nil {
-		p.l.Printf("[ERROR] unable to retrieve equipment %d.", equipmentId)
+		p.l.Errorf("Unable to retrieve equipment %d.", equipmentId)
 		return
 	}
 
 	itemId := ea.Data.Attributes.ItemId
 	slots, err := p.getEquipmentSlotDestination(itemId)
 	if err != nil || len(slots) <= 0 {
-		p.l.Printf("[ERROR] unable to retrieve destination slots for item %d.", itemId)
+		p.l.Errorf("Unable to retrieve destination slots for item %d.", itemId)
 		return
 	}
 	slot := slots[0]
@@ -131,7 +131,7 @@ func (p processor) equipItemForCharacter(characterId uint32, equipmentId uint32)
 		return nil
 	})
 	if err != nil {
-		p.l.Printf("[ERROR] unable to complete the equipment of item %d for character %d.", equipmentId, characterId)
+		p.l.Errorf("Unable to complete the equipment of item %d for character %d.", equipmentId, characterId)
 	}
 }
 

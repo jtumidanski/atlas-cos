@@ -7,20 +7,24 @@ import (
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/requests"
 	"context"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 	"math"
 )
 
 type processor struct {
-	l  *log.Logger
+	l  log.FieldLogger
 	db *gorm.DB
+}
+
+var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
+	return &processor{l, db}
 }
 
 func (p processor) GetMonster(monsterId uint32) (*Model, bool) {
 	resp, err := requests.Monster().GetById(monsterId)
 	if err != nil {
-		p.l.Printf("[ERROR] retrieving monster %d information.", monsterId)
+		p.l.Errorf("Retrieving monster %d information.", monsterId)
 		return nil, false
 	}
 	return makeMonster(resp), true
@@ -39,7 +43,7 @@ func (p processor) DistributeExperience(worldId byte, channelId byte, mapId uint
 		experience := float64(v) * d.ExperiencePerDamage()
 		c, err := character.Processor(p.l, p.db).GetById(k)
 		if err != nil {
-			p.l.Printf("[ERROR] unable to locate character %d whose for distributing experience from monster death.", k)
+			p.l.Errorf("Unable to locate character %d whose for distributing experience from monster death.", k)
 		} else {
 			whiteExperienceGain := p.isWhiteExperienceGain(c.Id(), d.PersonalRatio(), d.StandardDeviationRatio())
 			p.distributeCharacterExperience(c.Id(), c.Level(), experience, 0.0, c.Level(), true, whiteExperienceGain, false)
@@ -166,8 +170,4 @@ func (p processor) experienceValueToInteger(experience float64) uint32 {
 		experience = math.MinInt32
 	}
 	return uint32(math.RoundToEven(experience))
-}
-
-var Processor = func(l *log.Logger, db *gorm.DB) *processor {
-	return &processor{l, db}
 }

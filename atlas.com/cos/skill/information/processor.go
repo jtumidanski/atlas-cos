@@ -3,23 +3,23 @@ package information
 import (
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/requests"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 )
 
 type processor struct {
-	l  *log.Logger
+	l  log.FieldLogger
 	db *gorm.DB
 }
 
-var Processor = func(l *log.Logger, db *gorm.DB) *processor {
+var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 	return &processor{l, db}
 }
 
 func (p processor) GetSkillInformation(skillId uint32) (*Model, bool) {
 	s, err := requests.Skill().GetById(skillId)
 	if err != nil {
-		p.l.Printf("[ERROR] unable to retrieve skill %d information.", skillId)
+		p.l.Errorf("Unable to retrieve skill %d information.", skillId)
 		return nil, false
 	}
 	return makeSkill(s.Data), true

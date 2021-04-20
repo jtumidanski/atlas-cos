@@ -3,8 +3,8 @@ package skill
 import (
 	"atlas-cos/rest/attributes"
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -12,16 +12,18 @@ import (
 // GetCharacterSkills is a REST resource handler for retrieving the specified characters skills.
 func GetCharacterSkills(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
-			l.Printf("[ERROR] unable to properly parse characterId from path.")
+			fl.Errorf("Unable to properly parse characterId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		sl, err := Processor(l, db).GetSkills(uint32(characterId))
+		sl, err := Processor(fl, db).GetSkills(uint32(characterId))
 		if err != nil {
-			l.Printf("[ERROR] %s.", err.Error())
+			fl.Errorf("%s.", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -31,7 +33,7 @@ func GetCharacterSkills(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			l.Printf("[ERROR] writing GetCharacterSkills response. %s", err.Error())
+			fl.Errorf("Writing GetCharacterSkills response. %s", err.Error())
 		}
 	}
 }
