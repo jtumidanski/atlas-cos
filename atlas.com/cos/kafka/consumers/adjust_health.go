@@ -8,7 +8,7 @@ import (
 
 type adjustHealthCommand struct {
 	CharacterId uint32 `json:"characterId"`
-	Amount      uint16 `json:"amount"`
+	Amount      int16  `json:"amount"`
 }
 
 func AdjustHealthCommandCreator() EmptyEventCreator {

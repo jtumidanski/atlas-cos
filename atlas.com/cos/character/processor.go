@@ -61,12 +61,12 @@ func (p *processor) characterUpdate(characterId uint32, functions ...characterFu
 }
 
 // AdjustHealth - Adjusts the Health statistic for a character, and emits a CharacterStatUpdateEvent when successful.
-func (p *processor) AdjustHealth(characterId uint32, amount uint16) {
+func (p *processor) AdjustHealth(characterId uint32, amount int16) {
 	p.characterUpdate(characterId, p.persistHealthUpdate(amount), p.healthUpdateSuccess())
 }
 
 // Produces a function which persists a character health update, given the amount, respecting the MaxHP bound.
-func (p *processor) persistHealthUpdate(amount uint16) characterFunc {
+func (p *processor) persistHealthUpdate(amount int16) characterFunc {
 	return func(c *Model) error {
 		adjustedAmount := p.enforceBounds(amount, c.HP(), c.MaxHP(), 0)
 		return p.characterDatabaseUpdate(SetHealth(adjustedAmount))(c)
@@ -79,20 +79,20 @@ func (p *processor) healthUpdateSuccess() characterFunc {
 }
 
 // AdjustMana - Adjusts the Mana statistic for a character, and emits a CharacterStatUpdateEvent when successful.
-func (p *processor) AdjustMana(characterId uint32, amount uint16) {
+func (p *processor) AdjustMana(characterId uint32, amount int16) {
 	p.characterUpdate(characterId, p.persistManaUpdate(amount), p.manaUpdateSuccess())
 }
 
 // Produces a function which persists a character mana update, given the amount, respecting the MaxMP bound.
-func (p *processor) persistManaUpdate(amount uint16) characterFunc {
+func (p *processor) persistManaUpdate(amount int16) characterFunc {
 	return func(c *Model) error {
 		adjustedAmount := p.enforceBounds(amount, c.MP(), c.MaxMP(), 0)
 		return p.characterDatabaseUpdate(SetMana(adjustedAmount))(c)
 	}
 }
 
-func (p *processor) enforceBounds(change uint16, current uint16, upperBound uint16, lowerBound uint16) uint16 {
-	var adjusted = current + change
+func (p *processor) enforceBounds(change int16, current uint16, upperBound uint16, lowerBound uint16) uint16 {
+	var adjusted = int16(current) + change
 	return uint16(math.Min(math.Max(float64(adjusted), float64(lowerBound)), float64(upperBound)))
 }
 

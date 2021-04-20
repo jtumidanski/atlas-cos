@@ -43,10 +43,10 @@ func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc
 		result.Data.Relationships.InventoryItems = createInventoryItemRelationships(inv)
 
 		if strings.Contains(include, "inventoryItems") {
-			result.Included = append(result.Included, createIncludedInventoryItems(l, db, uint32(characterId), inventoryType))
+			result.Included = append(result.Included, createIncludedInventoryItems(l, db, uint32(characterId), inventoryType)...)
 		}
 		if strings.Contains(include, "equipmentStatistics") {
-			result.Included = append(result.Included, createIncludedEquipmentStatistics(l, db, uint32(characterId)))
+			result.Included = append(result.Included, createIncludedEquipmentStatistics(l, db, uint32(characterId))...)
 		}
 
 		w.WriteHeader(http.StatusOK)
