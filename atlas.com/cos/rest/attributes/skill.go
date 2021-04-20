@@ -42,7 +42,7 @@ type StatEffectAttributes struct {
 	MMPR          byte    `json:"mmpr"`
 	HPCon         uint16  `json:"HPCon"`
 	MPCon         uint16  `json:"MPCon"`
-	Duration      uint32  `json:"duration"`
+	Duration      int32   `json:"duration"`
 	Target        uint32  `json:"target"`
 	Barrier       uint32  `json:"barrier"`
 	Mob           uint32  `json:"mob"`
