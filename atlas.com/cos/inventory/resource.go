@@ -58,14 +58,6 @@ func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc
 	}
 }
 
-func GetInventoryForCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetInventoryForCharacter", "type": "rest_handler"})
-		fl.Errorln("Unhandled request.")
-		//TODO
-	}
-}
-
 func createIncludedEquipmentStatistics(fl log.FieldLogger, db *gorm.DB, characterId uint32) []interface{} {
 	var results = make([]interface{}, 0)
 	e, err := equipment.Processor(fl, db).GetEquipmentForCharacter(characterId)

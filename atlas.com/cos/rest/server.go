@@ -31,7 +31,6 @@ func NewServer(l *logrus.Logger, db *gorm.DB) *Server {
 	csr.HandleFunc("", character.CreateCharacter(l, db)).Methods(http.MethodPost)
 	csr.HandleFunc("/{characterId}", character.GetCharacter(l, db)).Methods(http.MethodGet)
 	csr.HandleFunc("/{characterId}/inventories", inventory.GetInventoryForCharacterByType(l, db)).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}")
-	csr.HandleFunc("/{characterId}/inventories", inventory.GetInventoryForCharacter(l, db)).Methods(http.MethodGet).Queries("include", "{include}")
 	csr.HandleFunc("/seeds", seed.CreateCharacterFromSeed(l, db)).Methods(http.MethodPost)
 	csr.HandleFunc("/{characterId}/locations", location.GetSavedLocationsByType(l, db)).Methods(http.MethodGet).Queries("type", "{type}")
 	csr.HandleFunc("/{characterId}/locations", location.GetSavedLocations(l, db)).Methods(http.MethodGet)
