@@ -4,8 +4,8 @@ import (
 	"atlas-cos/equipment"
 	"atlas-cos/item"
 	"errors"
-	"gorm.io/gorm"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type processor struct {
@@ -50,7 +50,7 @@ func (p processor) getInventoryItems(characterId uint32, inventoryType byte) []I
 		for _, i := range results {
 			items = append(items, InventoryItem{
 				id:       i.Id(),
-				itemType: ItemTypeEquip,
+				itemType: ItemTypeItem,
 				slot:     i.Slot(),
 			})
 		}

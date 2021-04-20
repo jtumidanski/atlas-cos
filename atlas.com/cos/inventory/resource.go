@@ -196,7 +196,7 @@ func createEquipmentStatisticsData(es *statistics.Model) attributes.InventoryEqu
 }
 
 func getInventoryItemType(inventoryType string) string {
-	if inventoryType == ItemTypeEquip {
+	if inventoryType == TypeEquip {
 		return "com.atlas.cos.rest.attribute.EquipmentAttributes"
 	} else {
 		return "com.atlas.cos.rest.attribute.ItemAttributes"
