@@ -2,7 +2,7 @@ package item
 
 import "gorm.io/gorm"
 
-type EntityUpdateFunction func(e *entity)
+type EntityUpdateFunction func() ([]string, func(e *entity))
 
 func CreateItemForCharacter(db *gorm.DB, characterId uint32, inventoryType byte, itemId uint32, quantity uint32, slot int16) (*Model, error) {
 	e := &entity{
@@ -22,14 +22,19 @@ func CreateItemForCharacter(db *gorm.DB, characterId uint32, inventoryType byte,
 
 func Update(db *gorm.DB, uniqueId uint32, modifiers ...EntityUpdateFunction) error {
 	e := &entity{}
+	var columns []string
 	for _, modifier := range modifiers {
-		modifier(e)
+		c, u := modifier()
+		columns = append(columns, c...)
+		u(e)
 	}
-	return db.Model(&entity{Id: uniqueId}).Updates(e).Error
+	return db.Model(&entity{Id: uniqueId}).Select(columns).Updates(e).Error
 }
 
 func SetQuantity(quantity uint32) EntityUpdateFunction {
-	return func(e *entity) {
-		e.Quantity = quantity
+	return func() ([]string, func(e *entity)) {
+		return []string{"Quantity"}, func(e *entity) {
+			e.Quantity = quantity
+		}
 	}
 }

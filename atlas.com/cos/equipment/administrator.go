@@ -22,7 +22,7 @@ func UpdateSlot(db *gorm.DB, equipmentId uint32, slot int16) error {
 		return err
 	}
 
-	return db.Model(&entity{Id: equip.Id()}).Updates(&entity{Slot: slot}).Error
+	return db.Model(&entity{Id: equip.Id()}).Select("Slot").Updates(&entity{Slot: slot}).Error
 }
 
 func makeEquipment(e *entity) *Model {
