@@ -12,18 +12,18 @@ import (
 // GetCharacterSkills is a REST resource handler for retrieving the specified characters skills.
 func GetCharacterSkills(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+		fl := l.WithFields(log.Fields{"originator": "GetCharacterSkills", "type": "rest_handler"})
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
-			fl.Errorf("Unable to properly parse characterId from path.")
+			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		sl, err := Processor(fl, db).GetSkills(uint32(characterId))
 		if err != nil {
-			fl.Errorf("%s.", err.Error())
+			fl.WithError(err).Errorf("Unable to get skills for character %d.", characterId)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -33,7 +33,7 @@ func GetCharacterSkills(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			fl.Errorf("Writing GetCharacterSkills response. %s", err.Error())
+			fl.WithError(err).Errorf("Writing response.")
 		}
 	}
 }

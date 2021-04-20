@@ -79,17 +79,17 @@ func (p *processor) addOtherItems(c *character.Model) {
 	if job.IsA(c.JobId(), job.Beginner) {
 		_, err := item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161001, 1)
 		if err != nil {
-			p.l.Errorf("Unable to give character %d item %d.", c.Id(), 4161001)
+			p.l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161001)
 		}
 	} else if job.IsA(c.JobId(), job.Noblesse) {
 		_, err := item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161047, 1)
 		if err != nil {
-			p.l.Errorf("Unable to give character %d item %d.", c.Id(), 4161047)
+			p.l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161047)
 		}
 	} else if job.IsA(c.JobId(), job.Legend) {
 		_, err := item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161048, 1)
 		if err != nil {
-			p.l.Errorf("Unable to give character %d item %d.", c.Id(), 4161048)
+			p.l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161048)
 		}
 	}
 }
@@ -105,13 +105,13 @@ func (p *processor) addSkills(c *character.Model) {
 func (p *processor) awardBeginnerSkills(c *character.Model) {
 	err := skill.Processor(p.l, p.db).AwardSkills(c.Id(), skill.BeginnerRecovery, skill.BeginnerNimbleFeet, skill.BeginnerThreeSnails)
 	if err != nil {
-		p.l.Errorf("Unable to award character %d beginner skills. %s.", c.Id(), err.Error())
+		p.l.WithError(err).Errorf("Unable to award character %d beginner skills.", c.Id())
 	}
 }
 
 func (p *processor) awardNoblesseBeginnerSkills(c *character.Model) {
 	err := skill.Processor(p.l, p.db).AwardSkills(c.Id(), skill.NoblesseRecovery, skill.NoblesseNimbleFeet, skill.NoblesseThreeSnails)
 	if err != nil {
-		p.l.Errorf("Unable to award character %d beginner skills. %s.", c.Id(), err.Error())
+		p.l.WithError(err).Errorf("Unable to award character %d beginner skills.", c.Id())
 	}
 }

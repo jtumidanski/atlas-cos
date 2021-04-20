@@ -21,7 +21,7 @@ func createKey(key int) []byte {
 func produceEvent(l log.FieldLogger, topicToken string, key []byte, event interface{}) {
 	td, err := requests.Topic(l).GetTopic(topicToken)
 	if err != nil {
-		l.Fatal("Unable to retrieve topic %s for producer.", topicToken)
+		l.WithError(err).Fatalf("Unable to retrieve topic %s for producer.", topicToken)
 		return
 	}
 	name := td.Attributes.Name
@@ -36,7 +36,7 @@ func produceEvent(l log.FieldLogger, topicToken string, key []byte, event interf
 	r, err := json.Marshal(event)
 	l.WithField("message", string(r)).Debugf("Writing message to topic %s.", name)
 	if err != nil {
-		l.Fatal("Unable to marshall event for topic %s with reason %s", name, err.Error())
+		l.WithError(err).Fatalf("Unable to marshall event for topic %s.", name)
 	}
 
 	writeMessage := func(attempt int) (bool, error) {
@@ -53,6 +53,6 @@ func produceEvent(l log.FieldLogger, topicToken string, key []byte, event interf
 
 	err = retry.Retry(writeMessage, 10)
 	if err != nil {
-		l.Fatalf("Unable to emit event on topic %s, with reason %s", td.Attributes.Name, err.Error())
+		l.WithError(err).Fatalf("Unable to emit event on topic %s.", td.Attributes.Name)
 	}
 }

@@ -12,16 +12,16 @@ import (
 
 func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+		fl := l.WithFields(log.Fields{"originator": "CreateCharacterFromSeed", "type": "rest_handler"})
 
 		li := &attributes.CharacterSeedInputDataContainer{}
 		err := attributes.FromJSON(li, r.Body)
 		if err != nil {
-			fl.Errorln("Deserializing input", err)
+			fl.WithError(err).Errorf("Deserializing input.")
 			w.WriteHeader(http.StatusBadRequest)
 			err = attributes.ToJSON(&resource.GenericError{Message: err.Error()}, w)
 			if err != nil {
-				fl.Fatalf("Writing error message.")
+				fl.WithError(err).Fatalf("Writing error message.")
 			}
 			return
 		}
@@ -30,6 +30,7 @@ func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		c, err := Processor(fl, db).CreateFromSeed(attr.AccountId, attr.WorldId, attr.Name, attr.JobIndex, attr.Face,
 			attr.Hair, attr.HairColor, attr.Skin, attr.Gender, attr.Top, attr.Bottom, attr.Shoes, attr.Weapon)
 		if err != nil {
+			fl.WithError(err).Errorf("Unable to create character from seed.")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -39,7 +40,7 @@ func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			fl.Errorf("Writing CreateCharacterFromSeed response. %s", err.Error())
+			fl.WithError(err).Errorf("Writing response.")
 		}
 	}
 }

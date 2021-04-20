@@ -20,7 +20,7 @@ var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 func (p processor) GetEquipmentStatistics(equipmentId uint32) (*Model, error) {
 	resp, err := requests.EquipmentRegistry().GetById(equipmentId)
 	if err != nil {
-		p.l.Errorf("Retrieving equipment %d information.", equipmentId)
+		p.l.WithError(err).Errorf("Retrieving equipment %d information.", equipmentId)
 		return nil, err
 	}
 	return makeEquipment(resp.Data), nil

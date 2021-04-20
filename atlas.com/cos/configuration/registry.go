@@ -16,7 +16,7 @@ func Get() *Configuration {
 	once.Do(func() {
 		c, err := loadConfiguration()
 		if err != nil {
-			log.Fatalf("Retrieving configuration for service. %s.", err.Error())
+			log.WithError(err).Fatalf("Retrieving configuration for service.")
 		}
 		registry = &Registry{
 			c: c,

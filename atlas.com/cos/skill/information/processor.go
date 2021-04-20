@@ -19,7 +19,7 @@ var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 func (p processor) GetSkillInformation(skillId uint32) (*Model, bool) {
 	s, err := requests.Skill().GetById(skillId)
 	if err != nil {
-		p.l.Errorf("Unable to retrieve skill %d information.", skillId)
+		p.l.WithError(err).Errorf("Unable to retrieve skill %d information.", skillId)
 		return nil, false
 	}
 	return makeSkill(s.Data), true

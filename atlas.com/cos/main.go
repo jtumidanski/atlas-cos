@@ -46,7 +46,7 @@ func main() {
 
 	r, err := retry.RetryResponse(connectToDatabase(), 10)
 	if err != nil {
-		panic("failed to connect database")
+		l.WithError(err).Fatalf("Failed to connect to database.")
 	}
 	db := r.(*gorm.DB)
 

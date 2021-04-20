@@ -29,10 +29,12 @@ var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 func (p processor) AttemptPickup(characterId uint32, dropId uint32) {
 	c, err := character.Processor(p.l, p.db).GetById(characterId)
 	if err != nil {
+		p.l.WithError(err).Errorf("Attempting to pick up %d for character %d.", dropId, characterId)
 		return
 	}
 	d, err := p.GetById(dropId)
 	if err != nil {
+		p.l.WithError(err).Errorf("Attempting to pick up %d for character %d.", dropId, characterId)
 		return
 	}
 	p.attemptPickup(c, d)
@@ -174,7 +176,7 @@ func (p processor) scriptedItem(itemId uint32) bool {
 func (p processor) pickupEquip(c *character.Model, d *Model) {
 	e, err := equipment.Processor(p.l, p.db).CreateForCharacter(c.Id(), d.ItemId(), false)
 	if err != nil {
-		p.l.Errorf("Unable to create equipment %d that character %d picked up.", d.ItemId(), c.Id())
+		p.l.WithError(err).Errorf("Unable to create equipment %d that character %d picked up.", d.ItemId(), c.Id())
 		return
 	}
 	producers.InventoryModificationReservation(p.l, context.Background()).
@@ -198,7 +200,7 @@ func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
 					runningQuantity = runningQuantity - (newQuantity - oldQuantity)
 					err := item.Processor(p.l, p.db).UpdateItemQuantity(i.Id(), newQuantity)
 					if err != nil {
-						p.l.Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
+						p.l.WithError(err).Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
 					} else {
 						producers.InventoryModificationReservation(p.l, context.Background()).
 							Emit(c.Id(), true, 1, d.ItemId(), i.InventoryType(), newQuantity, i.Slot())
@@ -214,7 +216,7 @@ func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
 		runningQuantity = runningQuantity - newQuantity
 		i, err := item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), it, d.ItemId(), newQuantity)
 		if err != nil {
-			p.l.Errorf("Unable to create item %d that character %d picked up.", d.ItemId(), c.Id())
+			p.l.WithError(err).Errorf("Unable to create item %d that character %d picked up.", d.ItemId(), c.Id())
 			return
 		}
 		producers.InventoryModificationReservation(p.l, context.Background()).

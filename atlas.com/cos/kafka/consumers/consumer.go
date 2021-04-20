@@ -31,7 +31,7 @@ func NewConsumer(l *log.Logger, ctx context.Context, h EventProcessor, options .
 
 	td, err := requests.Topic(l).GetTopic(c.topicToken)
 	if err != nil {
-		l.Fatal("Unable to retrieve topic for consumer.")
+		l.WithError(err).Fatal("Unable to retrieve topic for consumer.")
 		return *c
 	}
 	c.name = td.Attributes.Name
@@ -76,13 +76,13 @@ func (c Consumer) Init() {
 	for {
 		msg, err := retry.RetryResponse(consumerReader(c.l, r, c.ctx), 10)
 		if err != nil {
-			c.l.Errorf("Could not successfully read message " + err.Error())
+			c.l.WithError(err).Errorf("Could not successfully read message.")
 		} else {
 			if val, ok := msg.(*kafka.Message); ok {
 				event := c.emptyEventCreator()
 				err = json.Unmarshal(val.Value, &event)
 				if err != nil {
-					c.l.Errorf("Could not unmarshal event into %s. Error %s.", val.Value, err.Error())
+					c.l.WithError(err).Errorf("Could not unmarshal event into %s.", val.Value)
 				} else {
 					c.h(c.l, event)
 				}
@@ -97,7 +97,7 @@ func consumerReader(l log.FieldLogger, r *kafka.Reader, ctx context.Context) ret
 	return func(attempt int) (bool, interface{}, error) {
 		msg, err := r.ReadMessage(ctx)
 		if err != nil {
-			l.Warnf("Could not read message on topic %s, will retry. Error %s.", r.Config().Topic, err.Error())
+			l.WithError(err).Warnf("Could not read message on topic %s, will retry.", r.Config().Topic)
 			return true, nil, err
 		}
 		return false, &msg, err

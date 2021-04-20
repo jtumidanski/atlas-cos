@@ -15,19 +15,20 @@ func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) http.HandlerFunc
 
 		accountId, err := strconv.Atoi(mux.Vars(r)["accountId"])
 		if err != nil {
-			fl.Errorf("Unable to properly parse accountId from path.")
+			fl.WithError(err).Errorf("Unable to properly parse accountId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		worldId, err := strconv.Atoi(mux.Vars(r)["worldId"])
 		if err != nil {
-			fl.Errorf("Unable to properly parse worldId from path.")
+			fl.WithError(err).Errorf("Unable to properly parse worldId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		cs, err := Processor(fl, db).GetForAccountInWorld(uint32(accountId), byte(worldId))
 		if err != nil {
+			fl.WithError(err).Errorf("Unable to get characters for account %d in world %d.", accountId, worldId)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -37,7 +38,7 @@ func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) http.HandlerFunc
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			fl.Errorf("Writing response for GetCharactersForAccountInWorld.")
+			fl.WithError(err).Errorf("Writing response.")
 		}
 	}
 }
@@ -48,19 +49,20 @@ func GetCharactersByMap(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 
 		worldId, err := strconv.Atoi(mux.Vars(r)["worldId"])
 		if err != nil {
-			fl.Errorf("Unable to properly parse worldId from path.")
+			fl.WithError(err).Errorf("Unable to properly parse worldId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		mapId, err := strconv.Atoi(mux.Vars(r)["mapId"])
 		if err != nil {
-			fl.Errorf("Unable to properly parse mapId from path.")
+			fl.WithError(err).Errorf("Unable to properly parse mapId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		cs, err := Processor(fl, db).GetForMapInWorld(byte(worldId), uint32(mapId))
 		if err != nil {
+			fl.WithError(err).Errorf("Unable to get characters for map %d in world %d.", mapId, worldId)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -70,7 +72,7 @@ func GetCharactersByMap(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			fl.Errorf("Writing response for GetCharactersByMap.")
+			fl.WithError(err).Errorf("Writing response.")
 		}
 	}
 }
@@ -88,6 +90,7 @@ func GetCharactersByName(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 
 		cs, err := Processor(fl, db).GetForName(name)
 		if err != nil {
+			fl.WithError(err).Errorf("Getting character %s.", name)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -97,7 +100,7 @@ func GetCharactersByName(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			fl.Errorf("Writing response for GetCharactersByName.")
+			fl.WithError(err).Errorf("Writing response.")
 		}
 	}
 }
@@ -124,12 +127,13 @@ func GetCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
-			fl.Errorf("Unable to properly parse characterId from path.")
+			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		c, err := Processor(fl, db).GetById(uint32(characterId))
 		if err != nil {
+			fl.WithError(err).Errorf("Getting character %d.", characterId)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -144,7 +148,7 @@ func GetCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			fl.Errorf("Writing response for GetCharacter.")
+			fl.WithError(err).Errorf("Writing response.")
 		}
 	}
 }
@@ -195,7 +199,7 @@ func GetCharacterDamage(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
-			fl.Errorf("Unable to properly parse characterId from path.")
+			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -216,7 +220,7 @@ func GetCharacterDamage(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			fl.Errorf("Writing response for GetCharacterDamage.")
+			fl.WithError(err).Errorf("Writing response.")
 		}
 	}
 }

@@ -83,20 +83,23 @@ func (p processor) createAndEquip(characterId uint32, itemId uint32) {
 func (p processor) equipItemForCharacter(characterId uint32, equipmentId uint32) {
 	e, err := GetByEquipmentId(p.db, equipmentId)
 	if err != nil {
-		p.l.Errorf("Unable to retrieve equipment %d.", equipmentId)
+		p.l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
 		return
 	}
 
 	ea, err := requests.EquipmentRegistry().GetById(e.EquipmentId())
 	if err != nil {
-		p.l.Errorf("Unable to retrieve equipment %d.", equipmentId)
+		p.l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
 		return
 	}
 
 	itemId := ea.Data.Attributes.ItemId
 	slots, err := p.getEquipmentSlotDestination(itemId)
-	if err != nil || len(slots) <= 0 {
-		p.l.Errorf("Unable to retrieve destination slots for item %d.", itemId)
+	if err != nil {
+		p.l.WithError(err).Errorf("Unable to retrieve destination slots for item %d.", itemId)
+		return
+	} else if len(slots) <= 0 {
+		p.l.Errorf("Unable to retrieve destination slots for item %d. %s.", itemId)
 		return
 	}
 	slot := slots[0]
@@ -131,7 +134,7 @@ func (p processor) equipItemForCharacter(characterId uint32, equipmentId uint32)
 		return nil
 	})
 	if err != nil {
-		p.l.Errorf("Unable to complete the equipment of item %d for character %d.", equipmentId, characterId)
+		p.l.WithError(err).Errorf("Unable to complete the equipment of item %d for character %d.", equipmentId, characterId)
 	}
 }
 

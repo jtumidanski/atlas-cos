@@ -24,7 +24,7 @@ var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 func (p processor) GetMonster(monsterId uint32) (*Model, bool) {
 	resp, err := requests.Monster().GetById(monsterId)
 	if err != nil {
-		p.l.Errorf("Retrieving monster %d information.", monsterId)
+		p.l.WithError(err).Errorf("Retrieving monster %d information.", monsterId)
 		return nil, false
 	}
 	return makeMonster(resp), true
@@ -43,7 +43,7 @@ func (p processor) DistributeExperience(worldId byte, channelId byte, mapId uint
 		experience := float64(v) * d.ExperiencePerDamage()
 		c, err := character.Processor(p.l, p.db).GetById(k)
 		if err != nil {
-			p.l.Errorf("Unable to locate character %d whose for distributing experience from monster death.", k)
+			p.l.WithError(err).Errorf("Unable to locate character %d whose for distributing experience from monster death.", k)
 		} else {
 			whiteExperienceGain := p.isWhiteExperienceGain(c.Id(), d.PersonalRatio(), d.StandardDeviationRatio())
 			p.distributeCharacterExperience(c.Id(), c.Level(), experience, 0.0, c.Level(), true, whiteExperienceGain, false)

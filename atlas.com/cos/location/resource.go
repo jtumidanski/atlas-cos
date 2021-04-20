@@ -13,10 +13,11 @@ import (
 // GetSavedLocationsByType is a REST resource handler for retrieving the saved locations of a type for a character.
 func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+		fl := l.WithFields(log.Fields{"originator": "GetSavedLocationsByType", "type": "rest_handler"})
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
+			fl.WithError(err).Errorf("Unable to parse characterId from request.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -25,6 +26,7 @@ func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 
 		locations, err := Processor(fl, db).GetSavedLocationsByType(uint32(characterId), theType)
 		if err != nil {
+			fl.WithError(err).Errorf("Unable to get saved locations for character %d by type %s.", characterId, theType)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -34,7 +36,7 @@ func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			fl.Errorf("Writing GetSavedLocations response. %s", err.Error())
+			fl.WithError(err).Errorf("Writing response.")
 		}
 	}
 }
@@ -42,16 +44,18 @@ func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 // GetSavedLocations is a REST resource handler for retrieving the saved locations for a character.
 func GetSavedLocations(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+		fl := l.WithFields(log.Fields{"originator": "GetSavedLocations", "type": "rest_handler"})
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
+			fl.WithError(err).Errorf("Unable to parse characterId from request.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		locations, err := Processor(fl, db).GetSavedLocations(uint32(characterId))
 		if err != nil {
+			fl.WithError(err).Errorf("Unable to get saved locations for character %d.", characterId)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -61,7 +65,7 @@ func GetSavedLocations(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		err = attributes.ToJSON(result, w)
 		if err != nil {
-			fl.Errorf("Writing GetSavedLocations response. %s", err.Error())
+			fl.WithError(err).Errorf("Writing response.")
 		}
 	}
 }
@@ -90,10 +94,11 @@ func createData(loc *Model) attributes.LocationData {
 // AddSavedLocation is a REST resource handler for adding a saved location for a character.
 func AddSavedLocation(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+		fl := l.WithFields(log.Fields{"originator": "AddSavedLocation", "type": "rest_handler"})
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
+			fl.WithError(err).Errorf("Error retrieving characterId from request.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -105,7 +110,7 @@ func AddSavedLocation(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			err = attributes.ToJSON(&resource.GenericError{Message: err.Error()}, w)
 			if err != nil {
-				fl.Fatalf("Writing error message.")
+				fl.WithError(err).Fatalf("Writing error message.")
 			}
 			return
 		}
@@ -113,6 +118,7 @@ func AddSavedLocation(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		att := li.Data.Attributes
 		err = Processor(fl, db).AddSavedLocation(uint32(characterId), att.Type, att.MapId, att.PortalId)
 		if err != nil {
+			fl.WithError(err).Errorf("Unable to add saved location for character %d.", characterId)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
