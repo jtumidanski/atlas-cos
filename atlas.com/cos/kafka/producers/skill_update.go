@@ -10,7 +10,7 @@ type characterSkillUpdateEvent struct {
 	SkillId     uint32 `json:"skillId"`
 	Level       uint32 `json:"level"`
 	MasterLevel uint32 `json:"masterLevel"`
-	Expiration  uint64 `json:"expiration"`
+	Expiration  int64  `json:"expiration"`
 }
 
 var CharacterSkillUpdate = func(l *log.Logger, ctx context.Context) *characterSkillUpdate {
@@ -25,7 +25,7 @@ type characterSkillUpdate struct {
 	ctx context.Context
 }
 
-func (c *characterSkillUpdate) Emit(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration uint64) {
+func (c *characterSkillUpdate) Emit(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) {
 	event := &characterSkillUpdateEvent{characterId, skillId, level, masterLevel, expiration}
 	produceEvent(c.l, "TOPIC_CHARACTER_SKILL_UPDATE_EVENT", createKey(int(characterId)), event)
 }

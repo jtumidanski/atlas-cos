@@ -267,7 +267,7 @@ func (p *processor) InMap(characterId uint32, mapId uint32) bool {
 }
 
 func (p *processor) outOfRange(new uint16, change uint16) bool {
-	return new < 4 && change != 0 || new > configuration.GetUINT16((*configuration.Configuration).MaxAp, 9999)
+	return new < 4 && change != 0 || new > configuration.Get().MaxAp
 }
 
 func (p *processor) persistAttributeUpdate(getter func(*Model) uint16, modifierGetter func(uint16, uint16) []EntityUpdateFunction) characterFunc {
@@ -362,7 +362,7 @@ func (p *processor) calculateHPChange(c *Model, usedAPReset bool) uint16 {
 }
 
 func (p *processor) adjustHPMPGain(usedAPReset bool, maxHP uint16, apResetAmount uint16, upperBound uint16, lowerBound uint16, floor uint16, staticAmount uint16) uint16 {
-	if configuration.GetBool((*configuration.Configuration).UseRandomizeHPMPGain, true) {
+	if configuration.Get().UseRandomizeHpMpGain {
 		if usedAPReset {
 			maxHP = maxHP + apResetAmount
 		} else {
@@ -465,7 +465,7 @@ func (p *processor) persistLevelUpdate() characterFunc {
 
 func (p *processor) onLevelAdjustAP(c *Model) []EntityUpdateFunction {
 	var modifiers = make([]EntityUpdateFunction, 0)
-	autoAssignStarterAp := configuration.GetBool((*configuration.Configuration).UseAutoAssignStartersAp, false)
+	autoAssignStarterAp := configuration.Get().UseAutoAssignStartersAp
 	if autoAssignStarterAp && c.IsBeginner() && c.Level() <= 10 {
 		if c.Level() <= 5 {
 			modifiers = append(modifiers, SetStrength(5))
@@ -515,7 +515,7 @@ func (p *processor) onLevelAdjustHealthAndMana(c *Model) []EntityUpdateFunction 
 		modifiers = append(modifiers, IncreaseMP(uint16(mpSeed)+uint16(math.Floor(float64(mpSeed)*0.1))))
 	}
 
-	if configuration.GetBool((*configuration.Configuration).UseRandomizeHPMPGain, false) {
+	if configuration.Get().UseRandomizeHpMpGain {
 		if job.GetJobStyle(c.JobId(), c.Strength(), c.Dexterity()) == job.Magician {
 			modifiers = append(modifiers, IncreaseMP(p.TotalIntelligence(c)/20))
 		} else {
@@ -718,8 +718,8 @@ func (p *processor) CreateFromSeed(accountId uint32, worldId byte, name string, 
 	if jobId, ok := job.GetJobFromIndex(jobIndex); ok {
 		if bc, ok := p.getCreator(jobId); ok {
 			config := builderConfiguration{
-				useStarting4AP:          configuration.GetBool((*configuration.Configuration).UseStarting4AP, false),
-				useAutoAssignStartersAP: configuration.GetBool((*configuration.Configuration).UseAutoAssignStartersAp, false),
+				useStarting4AP:          configuration.Get().UseStarting4Ap,
+				useAutoAssignStartersAP: configuration.Get().UseAutoAssignStartersAp,
 			}
 			c, err := bc(NewBuilder(config, accountId, worldId, name, skinColor, gender, hair+hairColor, face))
 			if err != nil {

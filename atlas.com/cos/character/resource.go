@@ -7,7 +7,6 @@ import (
 	"atlas-cos/item"
 	"atlas-cos/location"
 	"atlas-cos/rest/attributes"
-	"atlas-cos/skill"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 	"log"
@@ -21,7 +20,7 @@ type GenericError struct {
 	Message string `json:"message"`
 }
 
-func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountId, err := strconv.Atoi(mux.Vars(r)["accountId"])
 		if err != nil {
@@ -53,7 +52,7 @@ func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) func(http.Respon
 	}
 }
 
-func GetCharactersByMap(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func GetCharactersByMap(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		worldId, err := strconv.Atoi(mux.Vars(r)["worldId"])
 		if err != nil {
@@ -85,7 +84,7 @@ func GetCharactersByMap(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *h
 	}
 }
 
-func GetCharactersByName(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func GetCharactersByName(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name, ok := mux.Vars(r)["name"]
 		if !ok {
@@ -111,13 +110,13 @@ func GetCharactersByName(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *
 	}
 }
 
-func CreateCharacter(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func CreateCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		l.Printf("[ERROR] unhandled request to create character.")
 	}
 }
 
-func GetCharacter(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func GetCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
@@ -183,7 +182,7 @@ func makeCharacterData(c *Model) attributes.CharacterData {
 	}
 }
 
-func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
@@ -320,13 +319,13 @@ func getInventoryItemType(inventoryType string) string {
 	}
 }
 
-func GetInventoryForCharacter(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func GetInventoryForCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 	}
 }
 
-func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		li := &attributes.CharacterSeedInputDataContainer{}
 		err := attributes.FromJSON(li, r.Body)
@@ -352,7 +351,7 @@ func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) func(http.ResponseWrite
 	}
 }
 
-func GetSavedLocations(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func GetSavedLocations(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
@@ -396,7 +395,7 @@ func GetSavedLocations(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *ht
 	}
 }
 
-func AddSavedLocation(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func AddSavedLocation(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
@@ -426,7 +425,7 @@ func AddSavedLocation(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *htt
 	}
 }
 
-func GetCharacterDamage(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
+func GetCharacterDamage(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
@@ -446,40 +445,6 @@ func GetCharacterDamage(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *h
 					Maximum: damage,
 				},
 			},
-		}
-
-		w.WriteHeader(http.StatusOK)
-		attributes.ToJSON(result, w)
-	}
-}
-
-func GetCharacterSkills(l *log.Logger, db *gorm.DB) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
-		if err != nil {
-			l.Printf("[ERROR] unable to properly parse characterId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		sl, err := skill.Processor(l, db).GetSkills(uint32(characterId))
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		var result = attributes.CharacterSkillDataListContainer{}
-		result.Data = make([]attributes.CharacterSkillData, 0)
-		for _, s := range sl {
-			result.Data = append(result.Data, attributes.CharacterSkillData{
-				Id:   strconv.Itoa(int(s.Id())),
-				Type: "com.atlas.cos.rest.attribute.SkillAttributes",
-				Attributes: attributes.CharacterSkillAttributes{
-					Level:       s.Level(),
-					MasterLevel: s.MasterLevel(),
-					Expiration:  s.Expiration(),
-				},
-			})
 		}
 
 		w.WriteHeader(http.StatusOK)

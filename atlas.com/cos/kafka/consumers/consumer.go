@@ -59,9 +59,11 @@ func (c Consumer) Init() {
 	td, err := requests.Topic(c.l).GetTopic(c.topicToken)
 	if err != nil {
 		c.l.Fatal("[ERROR] Unable to retrieve topic for consumer.")
+		return
 	}
 
 	c.l.Printf("[INFO] creating topic consumer for %s", td.Attributes.Name)
+
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{os.Getenv("BOOTSTRAP_SERVERS")},
 		Topic:   td.Attributes.Name,
@@ -69,17 +71,8 @@ func (c Consumer) Init() {
 		MaxWait: 50 * time.Millisecond,
 	})
 
-	readMessage := func(attempt int) (bool, interface{}, error) {
-		msg, err := r.ReadMessage(c.ctx)
-		if err != nil {
-			c.l.Printf("[WARN] could not successfully read message on topic %s, will retry", td.Attributes.Name)
-			return true, nil, err
-		}
-		return false, &msg, err
-	}
-
 	for {
-		msg, err := retry.RetryResponse(readMessage, 10)
+		msg, err := retry.RetryResponse(consumerReader(c.l, r, c.ctx), 10)
 		if err != nil {
 			c.l.Fatalf("[ERROR] could not successfully read message " + err.Error())
 		}
@@ -92,5 +85,16 @@ func (c Consumer) Init() {
 				c.h(c.l, event)
 			}
 		}
+	}
+}
+
+func consumerReader(l *log.Logger, r *kafka.Reader, ctx context.Context) retry.RetryResponseFunc {
+	return func(attempt int) (bool, interface{}, error) {
+		msg, err := r.ReadMessage(ctx)
+		if err != nil {
+			l.Printf("[WARN] could not successfully read message on topic %s, will retry", r.Config().Topic)
+			return true, nil, err
+		}
+		return false, &msg, err
 	}
 }

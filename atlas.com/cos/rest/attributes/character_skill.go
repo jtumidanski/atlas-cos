@@ -17,5 +17,5 @@ type CharacterSkillData struct {
 type CharacterSkillAttributes struct {
 	Level       uint32 `json:"level"`
 	MasterLevel uint32 `json:"masterLevel"`
-	Expiration  uint64 `json:"expiration"`
+	Expiration  int64  `json:"expiration"`
 }

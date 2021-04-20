@@ -12,7 +12,7 @@ type entity struct {
 	CharacterId uint32 `gorm:"not null"`
 	SkillLevel  uint32 `gorm:"not null"`
 	MasterLevel uint32 `gorm:"not null"`
-	Expiration  uint64 `gorm:"not null;default=-1"`
+	Expiration  int64  `gorm:"not null;default=-1"`
 }
 
 func (e entity) TableName() string {

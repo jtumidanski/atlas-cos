@@ -2,6 +2,7 @@ package rest
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/skill"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 	"log"
@@ -32,7 +33,7 @@ func NewServer(l *log.Logger, db *gorm.DB) *Server {
 	csr.HandleFunc("/{characterId}/locations", character.GetSavedLocations(l, db)).Methods(http.MethodGet)
 	csr.HandleFunc("/{characterId}/locations", character.AddSavedLocation(l, db)).Methods(http.MethodPost)
 	csr.HandleFunc("/{characterId}/damage/weapon", character.GetCharacterDamage(l, db)).Methods(http.MethodGet)
-	csr.HandleFunc("/{characterId}/skills", character.GetCharacterSkills(l, db)).Methods(http.MethodGet)
+	csr.HandleFunc("/{characterId}/skills", skill.GetCharacterSkills(l, db)).Methods(http.MethodGet)
 
 	hs := http.Server{
 		Addr:         ":8080",

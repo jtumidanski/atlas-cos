@@ -1,97 +1,36 @@
 package configuration
 
 import (
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"log"
 	"sync"
 )
 
 type Registry struct {
 	c *Configuration
-	e error
+}
+
+var once sync.Once
+var registry *Registry
+
+func Get() *Configuration {
+	once.Do(func() {
+		c, err := loadConfiguration()
+		if err != nil {
+			log.Fatalf("[ERROR] retrieving configuration for service. %s.", err.Error())
+		}
+		registry = &Registry{
+			c: c,
+		}
+	})
+	return registry.c
 }
 
 type Configuration struct {
-	useStarting4Ap          bool    `yaml:"useStarting4Ap"`
-	useAutoAssignStartersAp bool    `yaml:"useAutoAssignStartersAp"`
-	expSplitCommonMod       float32 `yaml:"expSplitCommonMod"`
-	expSplitMvpMod          float32 `yaml:"expSplitMvpMod"`
-	maxAp                   uint16  `yaml:"maxAp"`
-	useRandomizeHpMpGain    bool    `yaml:"useRandomizeHpMpGain"`
-	useEnforceJobSpRange    bool    `yaml:"useEnforceJobSpRange"`
-}
-
-func (c *Configuration) UseRandomizeHPMPGain() bool {
-	return c.useRandomizeHpMpGain
-}
-
-func (c *Configuration) UseStarting4AP() bool {
-	return c.useStarting4Ap
-}
-
-func (c *Configuration) MaxAp() uint16 {
-	return c.maxAp
-}
-
-func (c *Configuration) ExpSplitCommonMod() float32 {
-	return c.expSplitCommonMod
-}
-
-func (c *Configuration) ExpSplitMvpMod() float32 {
-	return c.expSplitMvpMod
-}
-
-func (c *Configuration) UseAutoAssignStartersAp() bool {
-	return c.useAutoAssignStartersAp
-}
-
-var configurationRegistryOnce sync.Once
-var configurationRegistry *Registry
-
-func Get() (*Configuration, error) {
-	configurationRegistryOnce.Do(func() {
-		configurationRegistry = &Registry{}
-		err := configurationRegistry.loadConfiguration()
-		configurationRegistry.e = err
-	})
-	return configurationRegistry.c, configurationRegistry.e
-}
-
-func GetBool(getter func(c *Configuration) bool, def bool) bool {
-	c, err := Get()
-	if err != nil {
-		return def
-	}
-	return getter(c)
-}
-
-func GetUINT16(getter func(c *Configuration) uint16, def uint16) uint16 {
-	c, err := Get()
-	if err != nil {
-		return def
-	}
-	return getter(c)
-}
-
-func GetFLOAT32(getter func(c *Configuration) float32, def float32) float32 {
-	c, err := Get()
-	if err != nil {
-		return def
-	}
-	return getter(c)
-}
-
-func (c *Registry) loadConfiguration() error {
-	yamlFile, err := ioutil.ReadFile("config.yaml")
-	if err != nil {
-		return err
-	}
-
-	con := &Configuration{}
-	err = yaml.Unmarshal(yamlFile, con)
-	if err != nil {
-		return err
-	}
-	c.c = con
-	return nil
+	UseStarting4Ap          bool    `yaml:"useStarting4Ap"`
+	UseAutoAssignStartersAp bool    `yaml:"useAutoAssignStartersAp"`
+	ExpSplitCommonMod       float32 `yaml:"expSplitCommonMod"`
+	ExpSplitMvpMod          float32 `yaml:"expSplitMvpMod"`
+	MaxAp                   uint16  `yaml:"maxAp"`
+	UseRandomizeHpMpGain    bool    `yaml:"useRandomizeHpMpGain"`
+	UseEnforceJobSpRange    bool    `yaml:"useEnforceJobSpRange"`
 }

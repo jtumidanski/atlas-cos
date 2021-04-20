@@ -2,53 +2,60 @@ package skill
 
 import "gorm.io/gorm"
 
-type EntityUpdateFunction func(e entity)
+type EntityFunction func(e *entity)
 
-func Create(db *gorm.DB, characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration uint64) (*Model, error) {
+// create a new skill for the given character and skill. Applying EntityFunction's to modify additional skill
+// attributes. Returns a structure representing the skill created, or an error if one occurred.
+func create(db *gorm.DB, characterId uint32, skillId uint32, modifiers ...EntityFunction) (*Model, error) {
 	e := &entity{
 		SkillId:     skillId,
 		CharacterId: characterId,
-		SkillLevel:  level,
-		MasterLevel: masterLevel,
-		Expiration:  expiration,
+	}
+
+	for _, modifier := range modifiers {
+		modifier(e)
 	}
 
 	err := db.Create(e).Error
 	if err != nil {
 		return nil, err
 	}
-	return makeSkill(e), nil
+	return transform(e), nil
 }
 
-func Update(db *gorm.DB, id uint32, modifiers ...EntityUpdateFunction) error {
-	c := entity{ID: id}
-	err := db.Where(&c).First(&c).Error
+// update a skill, applying EntityFunction's to modify the attributes of the skill. Returns an error if one occurred.
+func update(db *gorm.DB, id uint32, modifiers ...EntityFunction) error {
+	e := &entity{}
+	err := db.Where(&entity{ID: id}).First(e).Error
 	if err != nil {
 		return err
 	}
 
 	for _, modifier := range modifiers {
-		modifier(c)
+		modifier(e)
 	}
 
-	err = db.Save(&c).Error
+	err = db.Save(&e).Error
 	return err
 }
 
-func SetExpiration(expiration uint64) EntityUpdateFunction {
-	return func(e entity) {
+// setExpiration Sets the expiration of the skill.
+func setExpiration(expiration int64) EntityFunction {
+	return func(e *entity) {
 		e.Expiration = expiration
 	}
 }
 
-func SetMasterLevel(level uint32) EntityUpdateFunction {
-	return func(e entity) {
+// setMasterLevel Sets the master level of the skill.
+func setMasterLevel(level uint32) EntityFunction {
+	return func(e *entity) {
 		e.MasterLevel = level
 	}
 }
 
-func SetLevel(level uint32) EntityUpdateFunction {
-	return func(e entity) {
+// setLevel Sets the current level of the skill.
+func setLevel(level uint32) EntityFunction {
+	return func(e *entity) {
 		e.SkillLevel = level
 	}
 }

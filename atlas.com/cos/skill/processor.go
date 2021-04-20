@@ -1,8 +1,8 @@
 package skill
 
 import (
-	"atlas-cos/job"
 	"atlas-cos/skill/information"
+	"errors"
 	"gorm.io/gorm"
 	"log"
 )
@@ -16,52 +16,36 @@ var Processor = func(l *log.Logger, db *gorm.DB) *processor {
 	return &processor{l, db}
 }
 
+// GetSkill retrieves the identified skill for the given character.
 func (p processor) GetSkill(characterId uint32, skillId uint32) (*Model, bool) {
-	s, err := GetById(p.db, characterId, skillId)
+	s, err := getById(p.db, characterId, skillId)
 	if err != nil {
-		p.l.Printf("[ERROR] unable to retrieve skill %d for character %d.", skillId, characterId)
 		return nil, false
 	}
 	return s, true
 }
 
-func GetSkillBook(jobId uint32) uint32 {
-	if jobId >= 2210 && jobId <= 2218 {
-		return jobId - 2209
-	}
-	return 0
-}
-
-func IsFourthJob(jobId uint16, skillId uint32) bool {
-	if jobId == job.Evan4 {
-		return false
-	}
-
-	if Is(skillId, EvanMagicMastery, EvanFlameWheel, EvanHerosWill, EvanDarkFog, EvanSoulStone) {
-		return true
-	}
-
-	return jobId%10 == 2
-}
-
-func (p processor) UpdateSkill(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration uint64) error {
+// UpdateSkill updates the skill for the given character. Returns an error if one occurred.
+func (p processor) UpdateSkill(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) error {
 	if skill, ok := p.GetSkill(characterId, skillId); ok {
-		return Update(p.db, skill.Id(), SetLevel(level), SetMasterLevel(masterLevel), SetExpiration(expiration))
+		return update(p.db, skill.Id(), setLevel(level), setMasterLevel(masterLevel), setExpiration(expiration))
 	}
-	_, err := Create(p.db, characterId, skillId, level, masterLevel, expiration)
+	_, err := create(p.db, characterId, skillId, setLevel(level), setMasterLevel(masterLevel), setExpiration(expiration))
 	return err
 }
 
+// GetSkills retrieves the skills for a given character. Returns an error if one occurred.
 func (p processor) GetSkills(characterId uint32) ([]*Model, error) {
-	return GetForCharacter(p.db, characterId)
+	return getForCharacter(p.db, characterId)
 }
 
-func (p processor) AwardSkill(characterId uint32, skillId uint32) {
+// AwardSkill awards the given character the designated skill. Returns an error if one occurred.
+func (p processor) AwardSkill(characterId uint32, skillId uint32) error {
 	if i, ok := information.Processor(p.l, p.db).GetSkillInformation(skillId); ok {
 		maxLevel := len(i.Effects())
-		_, err := Create(p.db, characterId, skillId, 0, uint32(maxLevel), 0)
-		if err != nil {
-			p.l.Printf("[ERROR] unable to award skill %d to character %d.", skillId, characterId)
-		}
+		_, err := create(p.db, characterId, skillId, setMasterLevel(uint32(maxLevel)), setExpiration(-1))
+		return err
+	} else {
+		return errors.New("unable to locate skill information")
 	}
 }
