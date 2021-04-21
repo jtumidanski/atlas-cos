@@ -70,7 +70,7 @@ func (c Consumer) Init() {
 		Brokers: []string{os.Getenv("BOOTSTRAP_SERVERS")},
 		Topic:   c.name,
 		GroupID: c.groupId,
-		MaxWait: 50 * time.Millisecond,
+		MaxWait: 500 * time.Millisecond,
 	})
 
 	for {
