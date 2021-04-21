@@ -1,7 +1,7 @@
 package producers
 
 import (
-	"atlas-cos/rest/requests"
+	"atlas-cos/kafka/topics"
 	"atlas-cos/retry"
 	"context"
 	"encoding/binary"
@@ -19,13 +19,7 @@ func createKey(key int) []byte {
 }
 
 func produceEvent(l log.FieldLogger, topicToken string, key []byte, event interface{}) {
-	td, err := requests.Topic(l).GetTopic(topicToken)
-	if err != nil {
-		l.WithError(err).Fatalf("Unable to retrieve topic %s for producer.", topicToken)
-		return
-	}
-	name := td.Attributes.Name
-
+	name := topics.GetRegistry().Get(l, topicToken)
 	w := &kafka.Writer{
 		Addr:         kafka.TCP(os.Getenv("BOOTSTRAP_SERVERS")),
 		Topic:        name,
@@ -45,7 +39,7 @@ func produceEvent(l log.FieldLogger, topicToken string, key []byte, event interf
 			Value: r,
 		})
 		if err != nil {
-			l.Warnf("Unable to emit event on topic %s, will retry.", td.Attributes.Name)
+			l.Warnf("Unable to emit event on topic %s, will retry.", name)
 			return true, err
 		}
 		return false, err
@@ -53,6 +47,6 @@ func produceEvent(l log.FieldLogger, topicToken string, key []byte, event interf
 
 	err = retry.Retry(writeMessage, 10)
 	if err != nil {
-		l.WithError(err).Fatalf("Unable to emit event on topic %s.", td.Attributes.Name)
+		l.WithError(err).Fatalf("Unable to emit event on topic %s.", name)
 	}
 }

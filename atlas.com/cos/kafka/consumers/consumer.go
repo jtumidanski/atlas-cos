@@ -1,7 +1,7 @@
 package consumers
 
 import (
-	"atlas-cos/rest/requests"
+	"atlas-cos/kafka/topics"
 	"atlas-cos/retry"
 	"context"
 	"encoding/json"
@@ -29,12 +29,7 @@ func NewConsumer(l *log.Logger, ctx context.Context, h EventProcessor, options .
 		option(c)
 	}
 
-	td, err := requests.Topic(l).GetTopic(c.topicToken)
-	if err != nil {
-		l.WithError(err).Fatal("Unable to retrieve topic for consumer.")
-		return *c
-	}
-	c.name = td.Attributes.Name
+	c.name = topics.GetRegistry().Get(l, c.topicToken)
 	c.l = l.WithFields(log.Fields{"originator": c.name, "type": "kafka_consumer"})
 	return *c
 }
