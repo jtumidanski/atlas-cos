@@ -7,7 +7,7 @@ import (
 
 type mesoGainedEvent struct {
 	CharacterId uint32 `json:"characterId"`
-	Gain        uint32 `json:"gain"`
+	Gain        int32  `json:"gain"`
 }
 
 var MesoGained = func(l log.FieldLogger, ctx context.Context) *mesoGained {
@@ -22,7 +22,7 @@ type mesoGained struct {
 	ctx context.Context
 }
 
-func (e *mesoGained) Emit(characterId uint32, gain uint32) {
+func (e *mesoGained) Emit(characterId uint32, gain int32) {
 	event := &mesoGainedEvent{characterId, gain}
 	produceEvent(e.l, "TOPIC_MESO_GAINED", createKey(int(characterId)), event)
 }

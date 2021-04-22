@@ -8,7 +8,7 @@ import (
 
 type adjustMesoCommand struct {
 	CharacterId uint32 `json:"characterId"`
-	Amount      uint32 `json:"amount"`
+	Amount      int32  `json:"amount"`
 	Show        bool   `json:"show"`
 }
 

@@ -122,20 +122,21 @@ func (p *processor) statisticsUpdateSuccess(statistics ...string) characterFunc 
 }
 
 // AdjustMeso - Adjusts the Meso count for a character, and emits a MesoGainedEvent when successful.
-func (p *processor) AdjustMeso(characterId uint32, amount uint32, show bool) {
+func (p *processor) AdjustMeso(characterId uint32, amount int32, show bool) {
 	p.characterUpdate(characterId, p.persistMesoUpdate(amount), p.statisticUpdateSuccess("MESO"), p.mesoUpdateSuccess(amount, show))
 }
 
 // Produces a function which persists a character meso update, given the amount.
-func (p *processor) persistMesoUpdate(amount uint32) characterFunc {
+func (p *processor) persistMesoUpdate(amount int32) characterFunc {
 	return func(c *Model) error {
-		p.l.Debugf("Adjusting meso of character %d by %d to %d.", c.Id(), amount, amount+c.Meso())
-		return p.characterDatabaseUpdate(SetMeso(amount + c.Meso()))(c)
+		final := uint32(math.Min(0, float64(amount)+float64(c.Meso())))
+		p.l.Debugf("Adjusting meso of character %d by %d to %d.", c.Id(), amount, final)
+		return p.characterDatabaseUpdate(SetMeso(final))(c)
 	}
 }
 
 // Produces a function which emits a MesoGainedEvent for the given characterId and amount.
-func (p *processor) mesoUpdateSuccess(amount uint32, show bool) characterFunc {
+func (p *processor) mesoUpdateSuccess(amount int32, show bool) characterFunc {
 	return func(c *Model) error {
 		if show {
 			producers.MesoGained(p.l, context.Background()).Emit(c.Id(), amount)
