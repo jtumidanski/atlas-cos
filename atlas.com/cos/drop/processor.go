@@ -178,6 +178,85 @@ func (p processor) needsQuestItem(c *character.Model, d *Model) bool {
 }
 
 func (p processor) hasInventorySpace(c *character.Model, d *Model) bool {
+	//TODO checking inventory space, and adding items should become an atomic action
+	if val, ok := inventory.GetInventoryType(d.ItemId()); ok {
+		i, err := inventory.Processor(p.l, p.db).GetInventoryByTypeVal(c.Id(), val)
+		if err != nil {
+			p.l.WithError(err).Errorf("Unable to retrieve equipment for character %d.", c.Id())
+			return false
+		}
+
+		if val == inventory.TypeValueEquip {
+			return p.hasEquipInventorySpace(c, d, i)
+		} else {
+			return p.hasItemInventorySpace(c, d, i)
+		}
+	}
+	return false
+}
+
+func (p processor) hasItemInventorySpace(c *character.Model, d *Model, i *inventory.Model) bool {
+	p.l.Debugf("Checking inventory capacity for item %d, quantity %d for character %d.", d.ItemId(), d.Quantity(), c.Id())
+	slotMax := p.maxInSlot(c, d)
+	runningQuantity := d.Quantity()
+
+	existingItems, err := item.Processor(p.l, p.db).GetForCharacterByInventory(c.Id(), i.Id())
+	if err != nil {
+		p.l.WithError(err).Errorf("Unable to retrieve existing inventory %d items for character %d.", i.Type(), c.Id())
+		return false
+	}
+
+	// breaks for a rechargeable item.
+	usedSlots := uint32(len(existingItems))
+
+	p.l.Debugf("Character %d has %d slots already occupied.", c.Id(), usedSlots)
+
+	if len(existingItems) > 0 {
+		index := 0
+		for runningQuantity > 0 {
+			if index < len(existingItems) {
+				i := existingItems[index]
+				if i.ItemId() == d.ItemId() {
+					oldQuantity := i.Quantity()
+					if oldQuantity < slotMax {
+						newQuantity := uint32(math.Min(float64(oldQuantity+runningQuantity), float64(slotMax)))
+						runningQuantity = runningQuantity - (newQuantity - oldQuantity)
+					}
+				}
+				index++
+			} else {
+				break
+			}
+		}
+	}
+
+	newSlots := uint32(0)
+	for runningQuantity > 0 {
+		newQuantity := uint32(math.Min(float64(runningQuantity), float64(slotMax)))
+		runningQuantity = runningQuantity - newQuantity
+		newSlots += 1
+	}
+	p.l.Debugf("Character %d would need to consume %d additional slot to pick up %d %d.", c.Id(), newSlots, d.Quantity(), d.ItemId())
+
+	if usedSlots+newSlots > i.Capacity() {
+		p.l.Debugf("Unable to pick up item %d because character %d inventory full.", d.ItemId(), c.Id())
+		return false
+	}
+	return true
+}
+
+func (p processor) hasEquipInventorySpace(c *character.Model, d *Model, i *inventory.Model) bool {
+	p.l.Debugf("Checking inventory capacity for equip %d for character %d.", d.ItemId(), c.Id())
+	count := uint32(0)
+	for _, equip := range i.Items() {
+		if equip.Slot() >= 0 {
+			count += 1
+		}
+	}
+	if count+1 > i.Capacity() {
+		p.l.Debugf("Unable to pick up equip %d because character %d inventory full.", d.ItemId(), c.Id())
+		return false
+	}
 	return true
 }
 
@@ -218,6 +297,7 @@ func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
 							Emit(c.Id(), true, 1, d.ItemId(), i.InventoryType(), newQuantity, i.Slot())
 					}
 				}
+				index++
 			} else {
 				break
 			}

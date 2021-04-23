@@ -36,3 +36,7 @@ func (i InventoryItem) Type() string {
 func (i InventoryItem) Id() uint32 {
 	return i.id
 }
+
+func (i InventoryItem) Slot() int16 {
+	return i.slot
+}

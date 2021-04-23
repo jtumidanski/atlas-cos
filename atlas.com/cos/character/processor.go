@@ -4,6 +4,7 @@ import (
 	"atlas-cos/configuration"
 	"atlas-cos/equipment"
 	"atlas-cos/equipment/statistics"
+	"atlas-cos/inventory"
 	"atlas-cos/item"
 	"atlas-cos/job"
 	"atlas-cos/kafka/producers"
@@ -752,6 +753,12 @@ func (p *processor) Create(b *Builder) (*Model, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	err = inventory.Processor(p.l, p.db).CreateInitialInventories(c.Id())
+	if err != nil {
+		return nil, err
+	}
+
 	producers.CharacterCreated(p.l, context.Background()).Emit(c.Id(), c.WorldId(), c.Name())
 	return c, nil
 }

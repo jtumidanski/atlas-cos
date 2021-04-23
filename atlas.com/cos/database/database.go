@@ -3,6 +3,7 @@ package database
 import (
 	"atlas-cos/character"
 	"atlas-cos/equipment"
+	"atlas-cos/inventory"
 	"atlas-cos/item"
 	"atlas-cos/location"
 	"atlas-cos/retry"
@@ -42,5 +43,6 @@ func ConnectToDatabase(l logrus.FieldLogger) *gorm.DB {
 	item.Migration(db)
 	location.Migration(db)
 	skill.Migration(db)
+	inventory.Migration(db)
 	return db
 }

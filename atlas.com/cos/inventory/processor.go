@@ -19,26 +19,23 @@ var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 
 func (p processor) GetInventoryByType(characterId uint32, inventoryType string) (*Model, error) {
 	if it, ok := GetByteFromName(inventoryType); ok {
-		return p.getInventoryByType(characterId, it)
+		return p.GetInventoryByTypeVal(characterId, it)
 	}
 	return nil, errors.New("invalid inventory type")
 }
 
-func (p processor) getInventoryByType(characterId uint32, inventoryType byte) (*Model, error) {
-	var items = make([]InventoryItem, 0)
-	if inventoryType == TypeValueEquip {
-		items = p.getEquipInventoryItems(characterId)
-	} else {
-		items = p.getInventoryItems(characterId, inventoryType)
+func (p processor) GetInventoryByTypeVal(characterId uint32, inventoryType byte) (*Model, error) {
+	i, err := Get(p.db, characterId, inventoryType)
+	if err != nil {
+		return nil, err
 	}
 
-	name, _ := GetTypeFromByte(inventoryType)
-	return &Model{
-		id:            inventoryType,
-		inventoryType: name,
-		capacity:      4,
-		items:         items,
-	}, nil
+	if inventoryType == TypeValueEquip {
+		i.items = p.getEquipInventoryItems(characterId)
+	} else {
+		i.items = p.getInventoryItems(characterId, inventoryType)
+	}
+	return i, nil
 }
 
 func (p processor) getInventoryItems(characterId uint32, inventoryType byte) []InventoryItem {
@@ -73,4 +70,32 @@ func (p processor) getEquipInventoryItems(characterId uint32) []InventoryItem {
 		}
 		return equips
 	}
+}
+
+func (p processor) CreateInventory(characterId uint32, inventoryType byte, capacity uint32) (*Model, error) {
+	return Create(p.db, characterId, inventoryType, capacity)
+}
+
+func (p processor) CreateInitialInventories(characterId uint32) error {
+	_, err := p.CreateInventory(characterId, TypeValueEquip, 4)
+	if err != nil {
+		return err
+	}
+	_, err = p.CreateInventory(characterId, TypeValueUse, 4)
+	if err != nil {
+		return err
+	}
+	_, err = p.CreateInventory(characterId, TypeValueSetup, 4)
+	if err != nil {
+		return err
+	}
+	_, err = p.CreateInventory(characterId, TypeValueETC, 4)
+	if err != nil {
+		return err
+	}
+	_, err = p.CreateInventory(characterId, TypeValueCash, 4)
+	if err != nil {
+		return err
+	}
+	return nil
 }
