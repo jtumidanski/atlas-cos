@@ -17,6 +17,10 @@ var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 	return &processor{l, db}
 }
 
+const (
+	DefaultInventoryCapacity uint32 = 24
+)
+
 func (p processor) GetInventoryByType(characterId uint32, inventoryType string) (*Model, error) {
 	if it, ok := GetByteFromName(inventoryType); ok {
 		return p.GetInventoryByTypeVal(characterId, it)
@@ -77,23 +81,23 @@ func (p processor) CreateInventory(characterId uint32, inventoryType byte, capac
 }
 
 func (p processor) CreateInitialInventories(characterId uint32) error {
-	_, err := p.CreateInventory(characterId, TypeValueEquip, 4)
+	_, err := p.CreateInventory(characterId, TypeValueEquip, DefaultInventoryCapacity)
 	if err != nil {
 		return err
 	}
-	_, err = p.CreateInventory(characterId, TypeValueUse, 4)
+	_, err = p.CreateInventory(characterId, TypeValueUse, DefaultInventoryCapacity)
 	if err != nil {
 		return err
 	}
-	_, err = p.CreateInventory(characterId, TypeValueSetup, 4)
+	_, err = p.CreateInventory(characterId, TypeValueSetup, DefaultInventoryCapacity)
 	if err != nil {
 		return err
 	}
-	_, err = p.CreateInventory(characterId, TypeValueETC, 4)
+	_, err = p.CreateInventory(characterId, TypeValueETC, DefaultInventoryCapacity)
 	if err != nil {
 		return err
 	}
-	_, err = p.CreateInventory(characterId, TypeValueCash, 4)
+	_, err = p.CreateInventory(characterId, TypeValueCash, DefaultInventoryCapacity)
 	if err != nil {
 		return err
 	}
