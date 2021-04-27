@@ -5,24 +5,35 @@ import (
 	"sort"
 )
 
-func GetByEquipmentId(db *gorm.DB, equipmentId uint32) (*Model, error) {
+func getEquipment(db *gorm.DB, query interface{}) (*Model, error) {
 	var result entity
-	err := db.Where(&entity{EquipmentId: equipmentId}).Find(&result).Error
+	err := db.Where(query).Find(&result).Error
 	if err != nil {
 		return nil, err
 	}
-
 	return makeEquipment(&result), nil
 }
 
-func GetById(db *gorm.DB, id uint32) (*Model, error) {
-	var result entity
-	err := db.Where(&entity{Id: id}).Find(&result).Error
+func getEquipments(db *gorm.DB, query interface{}) ([]*Model, error) {
+	var results []entity
+	err := db.Where(query).Find(&results).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return makeEquipment(&result), nil
+	var equipment = make([]*Model, 0)
+	for _, e := range results {
+		equipment = append(equipment, makeEquipment(&e))
+	}
+	return equipment, nil
+}
+
+func GetByEquipmentId(db *gorm.DB, equipmentId uint32) (*Model, error) {
+	return getEquipment(db, &entity{EquipmentId: equipmentId})
+}
+
+func GetById(db *gorm.DB, id uint32) (*Model, error) {
+	return getEquipment(db, &entity{Id: id})
 }
 
 func GetNextFreeEquipmentSlot(db *gorm.DB, characterId uint32) (int16, error) {
@@ -59,24 +70,9 @@ func minFreeSlot(items []*Model) int16 {
 }
 
 func GetEquipmentForCharacter(db *gorm.DB, characterId uint32) ([]*Model, error) {
-	var results []entity
-	err := db.Where(&entity{CharacterId: characterId}).Find(&results).Error
-	if err != nil {
-		return nil, err
-	}
-
-	var equipment = make([]*Model, 0)
-	for _, e := range results {
-		equipment = append(equipment, makeEquipment(&e))
-	}
-	return equipment, nil
+	return getEquipments(db, &entity{CharacterId: characterId})
 }
 
 func GetEquipmentForCharacterBySlot(db *gorm.DB, characterId uint32, slot int16) (*Model, error) {
-	var results entity
-	err := db.Where(&entity{CharacterId: characterId, Slot: slot}, characterId, slot).First(&results).Error
-	if err != nil {
-		return nil, err
-	}
-	return makeEquipment(&results), nil
+	return getEquipment(db, &entity{CharacterId: characterId, Slot: slot})
 }

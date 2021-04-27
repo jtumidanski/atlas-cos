@@ -16,15 +16,3 @@ func Create(db *gorm.DB, characterId uint32, inventoryType byte, capacity uint32
 	return makeInventory(e), nil
 }
 
-func makeInventory(e *entity) *Model {
-	t, ok := GetTypeFromByte(e.InventoryType)
-	if !ok {
-		return nil
-	}
-
-	return &Model{
-		id:            e.InventoryType,
-		inventoryType: t,
-		capacity:      e.Capacity,
-	}
-}
