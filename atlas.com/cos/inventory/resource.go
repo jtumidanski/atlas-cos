@@ -13,6 +13,58 @@ import (
 	"strings"
 )
 
+func GetItemForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
+
+		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
+		if err != nil {
+			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		include := mux.Vars(r)["include"]
+
+		inventoryType := mux.Vars(r)["type"]
+		if inventoryType == "" {
+			fl.Errorf("Unable to retrieve requested inventory type.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		slot, err := strconv.Atoi(mux.Vars(r)["slot"])
+		if err != nil {
+			fl.WithError(err).Errorf("Unable to properly parse slot from path.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		inv, err := Processor(fl, db).GetInventoryByTypeFilterSlot(uint32(characterId), inventoryType, int16(slot))
+		if err != nil {
+			fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, inventoryType)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		result := createInventoryDataContainer(inv)
+		result.Data.Relationships.InventoryItems = createInventoryItemRelationships(inv)
+
+		if strings.Contains(include, "inventoryItems") {
+			result.Included = append(result.Included, createIncludedInventoryItems(l, db, uint32(characterId), inv)...)
+		}
+		if strings.Contains(include, "equipmentStatistics") {
+			result.Included = append(result.Included, createIncludedEquipmentStatistics(l, db, uint32(characterId))...)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		err = attributes.ToJSON(result, w)
+		if err != nil {
+			fl.WithError(err).Errorf("Writing response.")
+		}
+	}
+}
+
 func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetInventoryForCharacterByType", "type": "rest_handler"})
@@ -44,7 +96,7 @@ func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc
 		result.Data.Relationships.InventoryItems = createInventoryItemRelationships(inv)
 
 		if strings.Contains(include, "inventoryItems") {
-			result.Included = append(result.Included, createIncludedInventoryItems(l, db, uint32(characterId), inventoryType)...)
+			result.Included = append(result.Included, createIncludedInventoryItems(l, db, uint32(characterId), inv)...)
 		}
 		if strings.Contains(include, "equipmentStatistics") {
 			result.Included = append(result.Included, createIncludedEquipmentStatistics(l, db, uint32(characterId))...)
@@ -77,13 +129,8 @@ func createIncludedEquipmentStatistics(fl log.FieldLogger, db *gorm.DB, characte
 	return results
 }
 
-func createIncludedInventoryItems(fl log.FieldLogger, db *gorm.DB, characterId uint32, inventoryType string) []interface{} {
+func createIncludedInventoryItems(fl log.FieldLogger, db *gorm.DB, characterId uint32, inv *Model) []interface{} {
 	var results = make([]interface{}, 0)
-	inv, err := Processor(fl, db).GetInventoryByType(characterId, inventoryType)
-	if err != nil {
-		fl.WithError(err).Errorf("Unable to retrieve inventory items for character %d.", characterId)
-		return results
-	}
 	for _, inventoryItem := range inv.Items() {
 		if inventoryItem.Type() == ItemTypeEquip {
 			e, err := equipment.Processor(fl, db).GetEquipmentById(inventoryItem.Id())

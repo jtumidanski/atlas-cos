@@ -130,7 +130,7 @@ func (p *processor) AdjustMeso(characterId uint32, amount int32, show bool) {
 // Produces a function which persists a character meso update, given the amount.
 func (p *processor) persistMesoUpdate(amount int32) characterFunc {
 	return func(c *Model) error {
-		final := uint32(math.Min(0, float64(amount)+float64(c.Meso())))
+		final := uint32(math.Max(0, float64(amount)+float64(c.Meso())))
 		p.l.Debugf("Adjusting meso of character %d by %d to %d.", c.Id(), amount, final)
 		return p.characterDatabaseUpdate(SetMeso(final))(c)
 	}
@@ -491,7 +491,7 @@ func (p *processor) onLevelAdjustAP(c *Model) []EntityUpdateFunction {
 			modifiers = append(modifiers, SetDexterity(1))
 		}
 	} else {
-		ap := uint16(5)
+		ap := c.AP() + 5
 		if c.Cygnus() && c.Level() > 10 {
 			if c.Level() <= 17 {
 				ap += 2
@@ -546,6 +546,7 @@ func (p *processor) onLevelAdjustHealthAndMana(c *Model) []EntityUpdateFunction 
 			mp += p.TotalIntelligence(c) / 10
 		}
 	}
+	modifiers = append(modifiers, SetHealth(hp), SetMana(mp), SetMaxHP(hp), SetMaxMP(mp))
 	return modifiers
 }
 

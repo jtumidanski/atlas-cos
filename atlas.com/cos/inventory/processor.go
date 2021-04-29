@@ -28,6 +28,13 @@ func (p processor) GetInventoryByType(characterId uint32, inventoryType string) 
 	return nil, errors.New("invalid inventory type")
 }
 
+func (p processor) GetInventoryByTypeFilterSlot(characterId uint32, inventoryType string, slot int16) (*Model, error) {
+	if it, ok := GetByteFromName(inventoryType); ok {
+		return p.GetInventoryByTypeValFilterSlot(characterId, it, slot)
+	}
+	return nil, errors.New("invalid inventory type")
+}
+
 func (p processor) GetInventoryByTypeVal(characterId uint32, inventoryType byte) (*Model, error) {
 	i, err := Get(p.db, characterId, inventoryType)
 	if err != nil {
@@ -39,6 +46,28 @@ func (p processor) GetInventoryByTypeVal(characterId uint32, inventoryType byte)
 	} else {
 		i.items = p.getInventoryItems(characterId, inventoryType)
 	}
+	return i, nil
+}
+
+func (p processor) GetInventoryByTypeValFilterSlot(characterId uint32, inventoryType byte, slot int16) (*Model, error) {
+	i, err := Get(p.db, characterId, inventoryType)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []InventoryItem
+	if inventoryType == TypeValueEquip {
+		items = p.getEquipInventoryItems(characterId)
+	} else {
+		items = p.getInventoryItems(characterId, inventoryType)
+	}
+
+	for _, it := range items {
+		if it.Slot() == slot {
+			i.items = append(i.items, it)
+		}
+	}
+
 	return i, nil
 }
 
