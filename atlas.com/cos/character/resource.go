@@ -114,13 +114,6 @@ func createCharacterDataListContainer(cs []*Model) *attributes.CharacterDataList
 	return result
 }
 
-func CreateCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "CreateCharacter", "type": "rest_handler"})
-		fl.Errorf("Unhandled request to create character.")
-	}
-}
-
 func GetCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetCharacter", "type": "rest_handler"})
