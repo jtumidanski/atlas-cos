@@ -147,6 +147,7 @@ func (p processor) EquipItemForCharacter(characterId uint32, equipmentId uint32)
 			}
 			producers.InventoryModificationReservation(p.l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, currentSlot, slot)
 		}
+		producers.CharacterEquippedItem(p.l)(characterId)
 		return nil
 	})
 	if err != nil {
@@ -176,6 +177,7 @@ func (p processor) UnequipItemForCharacter(characterId uint32, equipmentId uint3
 
 		p.l.Debugf("Unequipped %d for character %d and place it in slot %d, from %d.", equipmentId, characterId, val, oldSlot)
 		producers.InventoryModificationReservation(p.l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, val, oldSlot)
+		producers.CharacterUnEquippedItem(p.l)(characterId)
 		return nil
 	})
 	if err != nil {
