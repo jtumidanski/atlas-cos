@@ -67,7 +67,7 @@ func GetNextFreeEquipmentSlot(db *gorm.DB, characterId uint32, inventoryType int
 	}
 
 	sort.Slice(items, func(i, j int) bool {
-		return items[i].Slot() > items[i].Slot()
+		return items[i].Slot() < items[j].Slot()
 	})
 	return minFreeSlot(items), nil
 }
