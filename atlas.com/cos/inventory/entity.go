@@ -8,7 +8,7 @@ func Migration(db *gorm.DB) {
 
 type entity struct {
 	CharacterId   uint32 `gorm:"not null"`
-	InventoryType byte   `gorm:"not null"`
+	InventoryType int8   `gorm:"not null"`
 	Capacity      uint32 `gorm:"capacity"`
 }
 

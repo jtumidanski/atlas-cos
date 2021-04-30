@@ -39,10 +39,10 @@ func GetById(db *gorm.DB, id uint32) (*Model, error) {
 func GetNextFreeEquipmentSlot(db *gorm.DB, characterId uint32) (int16, error) {
 	equipment, err := GetEquipmentForCharacter(db, characterId)
 	if err != nil {
-		return 0, err
+		return 1, err
 	}
 	if len(equipment) == 0 {
-		return 0, nil
+		return 1, nil
 	}
 
 	sort.Slice(equipment, func(i, j int) bool {
@@ -52,7 +52,7 @@ func GetNextFreeEquipmentSlot(db *gorm.DB, characterId uint32) (int16, error) {
 }
 
 func minFreeSlot(items []*Model) int16 {
-	slot := int16(0)
+	slot := int16(1)
 	i := 0
 
 	for {

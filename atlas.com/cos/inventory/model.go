@@ -1,13 +1,13 @@
 package inventory
 
 type Model struct {
-	id            byte
+	id            int8
 	inventoryType string
 	capacity      uint32
 	items         []InventoryItem
 }
 
-func (m Model) Id() byte {
+func (m Model) Id() int8 {
 	return m.id
 }
 

@@ -15,7 +15,7 @@ func GetById(db *gorm.DB, id uint32) (*Model, error) {
 	return makeItem(&result), nil
 }
 
-func GetItemsForCharacter(db *gorm.DB, characterId uint32, inventoryType byte, itemId uint32) ([]*Model, error) {
+func GetItemsForCharacter(db *gorm.DB, characterId uint32, inventoryType int8, itemId uint32) ([]*Model, error) {
 	var results []entity
 	err := db.Where(&entity{CharacterId: characterId, InventoryType: inventoryType, ItemId: itemId}).Find(&results).Error
 	if err != nil {
@@ -29,7 +29,7 @@ func GetItemsForCharacter(db *gorm.DB, characterId uint32, inventoryType byte, i
 	return items, nil
 }
 
-func GetForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType byte) ([]*Model, error) {
+func GetForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType int8) ([]*Model, error) {
 	var results []entity
 	err := db.Where(&entity{CharacterId: characterId, InventoryType: inventoryType}).Find(&results).Error
 	if err != nil {
@@ -43,7 +43,7 @@ func GetForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType b
 	return items, nil
 }
 
-func GetItemsForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType byte) ([]*Model, error) {
+func GetItemsForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType int8) ([]*Model, error) {
 	var results []entity
 	err := db.Where(&entity{CharacterId: characterId, InventoryType: inventoryType}).Find(&results).Error
 	if err != nil {
@@ -57,13 +57,13 @@ func GetItemsForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryT
 	return items, nil
 }
 
-func GetNextFreeEquipmentSlot(db *gorm.DB, characterId uint32, inventoryType byte) (int16, error) {
+func GetNextFreeEquipmentSlot(db *gorm.DB, characterId uint32, inventoryType int8) (int16, error) {
 	items, err := GetItemsForCharacterByInventory(db, characterId, inventoryType)
 	if err != nil {
-		return 0, err
+		return 1, err
 	}
 	if len(items) == 0 {
-		return 0, nil
+		return 1, nil
 	}
 
 	sort.Slice(items, func(i, j int) bool {
@@ -73,7 +73,7 @@ func GetNextFreeEquipmentSlot(db *gorm.DB, characterId uint32, inventoryType byt
 }
 
 func minFreeSlot(items []*Model) int16 {
-	slot := int16(0)
+	slot := int16(1)
 	i := 0
 
 	for {

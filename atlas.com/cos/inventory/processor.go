@@ -35,7 +35,7 @@ func (p processor) GetInventoryByTypeFilterSlot(characterId uint32, inventoryTyp
 	return nil, errors.New("invalid inventory type")
 }
 
-func (p processor) GetInventoryByTypeVal(characterId uint32, inventoryType byte) (*Model, error) {
+func (p processor) GetInventoryByTypeVal(characterId uint32, inventoryType int8) (*Model, error) {
 	i, err := Get(p.db, characterId, inventoryType)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (p processor) GetInventoryByTypeVal(characterId uint32, inventoryType byte)
 	return i, nil
 }
 
-func (p processor) GetInventoryByTypeValFilterSlot(characterId uint32, inventoryType byte, slot int16) (*Model, error) {
+func (p processor) GetInventoryByTypeValFilterSlot(characterId uint32, inventoryType int8, slot int16) (*Model, error) {
 	i, err := Get(p.db, characterId, inventoryType)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (p processor) GetInventoryByTypeValFilterSlot(characterId uint32, inventory
 	return i, nil
 }
 
-func (p processor) getInventoryItems(characterId uint32, inventoryType byte) []InventoryItem {
+func (p processor) getInventoryItems(characterId uint32, inventoryType int8) []InventoryItem {
 	results, err := item.Processor(p.l, p.db).GetForCharacterByInventory(characterId, inventoryType)
 	if err != nil {
 		return make([]InventoryItem, 0)
@@ -105,7 +105,7 @@ func (p processor) getEquipInventoryItems(characterId uint32) []InventoryItem {
 	}
 }
 
-func (p processor) CreateInventory(characterId uint32, inventoryType byte, capacity uint32) (*Model, error) {
+func (p processor) CreateInventory(characterId uint32, inventoryType int8, capacity uint32) (*Model, error) {
 	return Create(p.db, characterId, inventoryType, capacity)
 }
 

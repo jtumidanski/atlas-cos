@@ -271,10 +271,10 @@ func (p processor) pickupEquip(c *character.Model, d *Model) {
 		return
 	}
 	producers.InventoryModificationReservation(p.l, context.Background()).
-		Emit(c.Id(), true, 0, d.ItemId(), 1, d.Quantity(), e.Slot())
+		Emit(c.Id(), true, 0, d.ItemId(), 1, d.Quantity(), e.Slot(), 0)
 }
 
-func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
+func (p processor) pickupItem(c *character.Model, d *Model, it int8) {
 	slotMax := p.maxInSlot(c, d)
 	runningQuantity := d.Quantity()
 
@@ -294,7 +294,7 @@ func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
 						p.l.WithError(err).Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
 					} else {
 						producers.InventoryModificationReservation(p.l, context.Background()).
-							Emit(c.Id(), true, 1, d.ItemId(), i.InventoryType(), newQuantity, i.Slot())
+							Emit(c.Id(), true, 1, d.ItemId(), i.InventoryType(), newQuantity, i.Slot(), 0)
 					}
 				}
 				index++
@@ -312,7 +312,7 @@ func (p processor) pickupItem(c *character.Model, d *Model, it byte) {
 			return
 		}
 		producers.InventoryModificationReservation(p.l, context.Background()).
-			Emit(c.Id(), true, 0, d.ItemId(), it, d.Quantity(), i.Slot())
+			Emit(c.Id(), true, 0, d.ItemId(), it, d.Quantity(), i.Slot(), 0)
 	}
 }
 

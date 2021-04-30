@@ -2,7 +2,7 @@ package inventory
 
 import "gorm.io/gorm"
 
-func Create(db *gorm.DB, characterId uint32, inventoryType byte, capacity uint32) (*Model, error) {
+func Create(db *gorm.DB, characterId uint32, inventoryType int8, capacity uint32) (*Model, error) {
 	e := &entity{
 		CharacterId:   characterId,
 		InventoryType: inventoryType,

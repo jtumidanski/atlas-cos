@@ -1,7 +1,9 @@
 package equipment
 
 import (
+	"atlas-cos/kafka/producers"
 	"atlas-cos/rest/requests"
+	"context"
 	"errors"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -37,7 +39,7 @@ func (p processor) CreateForCharacter(characterId uint32, itemId uint32, charact
 
 	nextOpen, err := GetNextFreeEquipmentSlot(p.db, characterId)
 	if err != nil {
-		nextOpen = 0
+		nextOpen = 1
 	}
 
 	ro, err := requests.EquipmentRegistry().Create(itemId)
@@ -74,13 +76,14 @@ func (p processor) CreateAndEquip(characterId uint32, items ...uint32) {
 
 func (p processor) createAndEquip(characterId uint32, itemId uint32) {
 	if equipment, err := p.CreateForCharacter(characterId, itemId, true); err == nil {
-		p.equipItemForCharacter(characterId, equipment.EquipmentId())
+		p.EquipItemForCharacter(characterId, equipment.EquipmentId())
 	} else {
 		p.l.Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
 	}
 }
 
-func (p processor) equipItemForCharacter(characterId uint32, equipmentId uint32) {
+func (p processor) EquipItemForCharacter(characterId uint32, equipmentId uint32) {
+	p.l.Debugf("Received request to equip %d for character %d.", equipmentId, characterId)
 	e, err := GetByEquipmentId(p.db, equipmentId)
 	if err != nil {
 		p.l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
@@ -94,6 +97,8 @@ func (p processor) equipItemForCharacter(characterId uint32, equipmentId uint32)
 	}
 
 	itemId := ea.Data.Attributes.ItemId
+	p.l.Debugf("Equipment %d is item %d for character %d.", equipmentId, itemId, characterId)
+
 	slots, err := p.getEquipmentSlotDestination(itemId)
 	if err != nil {
 		p.l.WithError(err).Errorf("Unable to retrieve destination slots for item %d.", itemId)
@@ -103,20 +108,21 @@ func (p processor) equipItemForCharacter(characterId uint32, equipmentId uint32)
 		return
 	}
 	slot := slots[0]
+	p.l.Debugf("Equipment %d to be equipped in slot %d for character %d.", equipmentId, slot, characterId)
 
 	temporarySlot := int16(math.MinInt16)
 	err = p.db.Transaction(func(tx *gorm.DB) error {
-		if equip, err := GetEquipmentForCharacterBySlot(tx, characterId, slot); err == nil {
+		if equip, err := GetEquipmentForCharacterBySlot(tx, characterId, slot); err == nil && equip.EquipmentId() != 0 {
+			p.l.Debugf("Equipment %d already exists in slot %d, that item will be moved temporarily to %d for character %d.", equip.EquipmentId(), slot, temporarySlot, characterId)
 			_ = UpdateSlot(tx, equip.EquipmentId(), temporarySlot)
 		}
 
-		currentSlot := int16(0)
+		currentSlot := int16(1)
 		if equip, err := GetByEquipmentId(tx, equipmentId); err == nil {
 			currentSlot = equip.Slot()
 		} else {
 			val, err := GetNextFreeEquipmentSlot(tx, characterId)
 			if err != nil {
-
 			}
 			currentSlot = val
 		}
@@ -124,13 +130,52 @@ func (p processor) equipItemForCharacter(characterId uint32, equipmentId uint32)
 		if err != nil {
 			return err
 		}
+		p.l.Debugf("Moved item %d from slot %d to %d for character %d.", itemId, currentSlot, slot, characterId)
+		producers.InventoryModificationReservation(p.l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, slot, currentSlot)
 
-		if equip, err := GetEquipmentForCharacterBySlot(tx, characterId, temporarySlot); err == nil {
+		if equip, err := GetEquipmentForCharacterBySlot(tx, characterId, temporarySlot); err == nil && equip.EquipmentId() != 0 {
 			err := UpdateSlot(tx, equip.EquipmentId(), currentSlot)
 			if err != nil {
 				return err
 			}
+			p.l.Debugf("Moved item from temporary location %d to slot %d for character %d.", temporarySlot, currentSlot, characterId)
+
+			ea, err := requests.EquipmentRegistry().GetById(equip.EquipmentId())
+			if err != nil {
+				p.l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
+				return err
+			}
+			producers.InventoryModificationReservation(p.l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, currentSlot, slot)
 		}
+		return nil
+	})
+	if err != nil {
+		p.l.WithError(err).Errorf("Unable to complete the equipment of item %d for character %d.", equipmentId, characterId)
+	}
+}
+
+func (p processor) UnequipItemForCharacter(characterId uint32, equipmentId uint32, oldSlot int16) {
+	p.l.Debugf("Received request to unequip %d for character %d.", equipmentId, characterId)
+	err := p.db.Transaction(func(tx *gorm.DB) error {
+		ea, err := requests.EquipmentRegistry().GetById(equipmentId)
+		if err != nil {
+			p.l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
+			return err
+		}
+
+		val, err := GetNextFreeEquipmentSlot(tx, characterId)
+		if err != nil {
+			p.l.WithError(err).Errorf("Unable to get next free equipment slot")
+			return err
+		}
+
+		err = UpdateSlot(tx, equipmentId, val)
+		if err != nil {
+			return err
+		}
+
+		p.l.Debugf("Unequipped %d for character %d and place it in slot %d, from %d.", equipmentId, characterId, val, oldSlot)
+		producers.InventoryModificationReservation(p.l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, val, oldSlot)
 		return nil
 	})
 	if err != nil {

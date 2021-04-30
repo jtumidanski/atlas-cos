@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type EntityUpdateFunction func() ([]string, func(e *entity))
 
-func CreateItemForCharacter(db *gorm.DB, characterId uint32, inventoryType byte, itemId uint32, quantity uint32, slot int16) (*Model, error) {
+func CreateItemForCharacter(db *gorm.DB, characterId uint32, inventoryType int8, itemId uint32, quantity uint32, slot int16) (*Model, error) {
 	e := &entity{
 		CharacterId:   characterId,
 		InventoryType: inventoryType,

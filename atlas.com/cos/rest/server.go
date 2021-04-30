@@ -25,10 +25,13 @@ func NewServer(l *logrus.Logger, db *gorm.DB) *Server {
 	router.Use(commonHeader)
 
 	csr := router.PathPrefix("/characters").Subrouter()
+
+	csr := router.PathPrefix("/ms/cos/characters").Subrouter()
 	csr.HandleFunc("", character.GetCharactersForAccountInWorld(l, db)).Methods(http.MethodGet).Queries("accountId", "{accountId}", "worldId", "{worldId}")
 	csr.HandleFunc("", character.GetCharactersByMap(l, db)).Methods(http.MethodGet).Queries("worldId", "{worldId}", "mapId", "{mapId}")
 	csr.HandleFunc("", character.GetCharactersByName(l, db)).Methods(http.MethodGet).Queries("name", "{name}")
 	csr.HandleFunc("/{characterId}", character.GetCharacter(l, db)).Methods(http.MethodGet)
+	csr.HandleFunc("/{characterId}/inventories", inventory.GetItemForCharacterByType(l, db)).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}", "slot", "{slot}")
 	csr.HandleFunc("/{characterId}/inventories", inventory.GetInventoryForCharacterByType(l, db)).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}")
 	csr.HandleFunc("/seeds", seed.CreateCharacterFromSeed(l, db)).Methods(http.MethodPost)
 	csr.HandleFunc("/{characterId}/locations", location.GetSavedLocationsByType(l, db)).Methods(http.MethodGet).Queries("type", "{type}")

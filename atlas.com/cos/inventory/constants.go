@@ -3,11 +3,11 @@ package inventory
 import "strings"
 
 const (
-	TypeValueEquip byte = 1
-	TypeValueUse   byte = 2
-	TypeValueSetup byte = 3
-	TypeValueETC   byte = 4
-	TypeValueCash  byte = 5
+	TypeValueEquip int8 = 1
+	TypeValueUse   int8 = 2
+	TypeValueSetup int8 = 3
+	TypeValueETC   int8 = 4
+	TypeValueCash  int8 = 5
 	TypeEquip           = "EQUIP"
 	TypeUse             = "USE"
 	TypeSetup           = "SETUP"
@@ -18,15 +18,15 @@ const (
 	ItemTypeItem  = "ITEM"
 )
 
-func GetInventoryType(itemId uint32) (byte, bool) {
-	t := byte(itemId / 1000000)
+func GetInventoryType(itemId uint32) (int8, bool) {
+	t := int8(itemId / 1000000)
 	if t >= 1 && t <= 5 {
 		return t, true
 	}
 	return 0, false
 }
 
-func GetTypeFromByte(opt byte) (string, bool) {
+func GetTypeFromByte(opt int8) (string, bool) {
 	if opt >= 1 && opt <= 5 {
 		switch opt {
 		case TypeValueEquip:
@@ -44,7 +44,7 @@ func GetTypeFromByte(opt byte) (string, bool) {
 	return "", false
 }
 
-func GetByteFromName(name string) (byte, bool) {
+func GetByteFromName(name string) (int8, bool) {
 	if strings.EqualFold(name, TypeEquip) {
 		return TypeValueEquip, true
 	} else if strings.EqualFold(name, TypeUse) {

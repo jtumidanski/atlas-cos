@@ -3,7 +3,7 @@ package item
 type Model struct {
 	id            uint32
 	characterId   uint32
-	inventoryType byte
+	inventoryType int8
 	itemId        uint32
 	quantity      uint32
 	slot          int16
@@ -21,7 +21,7 @@ func (m Model) Slot() int16 {
 	return m.slot
 }
 
-func (m Model) InventoryType() byte {
+func (m Model) InventoryType() int8 {
 	return m.inventoryType
 }
 
