@@ -25,8 +25,6 @@ func NewServer(l *logrus.Logger, db *gorm.DB) *Server {
 	router.Use(commonHeader)
 
 	csr := router.PathPrefix("/characters").Subrouter()
-
-	csr := router.PathPrefix("/ms/cos/characters").Subrouter()
 	csr.HandleFunc("", character.GetCharactersForAccountInWorld(l, db)).Methods(http.MethodGet).Queries("accountId", "{accountId}", "worldId", "{worldId}")
 	csr.HandleFunc("", character.GetCharactersByMap(l, db)).Methods(http.MethodGet).Queries("worldId", "{worldId}", "mapId", "{mapId}")
 	csr.HandleFunc("", character.GetCharactersByName(l, db)).Methods(http.MethodGet).Queries("name", "{name}")
@@ -39,6 +37,7 @@ func NewServer(l *logrus.Logger, db *gorm.DB) *Server {
 	csr.HandleFunc("/{characterId}/locations", location.AddSavedLocation(l, db)).Methods(http.MethodPost)
 	csr.HandleFunc("/{characterId}/damage/weapon", character.GetCharacterDamage(l, db)).Methods(http.MethodGet)
 	csr.HandleFunc("/{characterId}/skills", skill.GetCharacterSkills(l, db)).Methods(http.MethodGet)
+	csr.HandleFunc("/{characterId}/skills/{skillId}", skill.GetCharacterSkill(l, db)).Methods(http.MethodGet)
 
 	w := l.Writer()
 	defer w.Close()
