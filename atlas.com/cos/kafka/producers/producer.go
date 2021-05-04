@@ -39,7 +39,7 @@ func produceEvent(l log.FieldLogger, topicToken string, key []byte, event interf
 			Value: r,
 		})
 		if err != nil {
-			l.Warnf("Unable to emit event on topic %s, will retry.", name)
+			l.WithError(err).Warnf("Unable to emit event on topic %s, will retry.", name)
 			return true, err
 		}
 		return false, err

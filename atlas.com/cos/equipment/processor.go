@@ -111,6 +111,9 @@ func (p processor) EquipItemForCharacter(characterId uint32, equipmentId uint32)
 	p.l.Debugf("Equipment %d to be equipped in slot %d for character %d.", equipmentId, slot, characterId)
 
 	temporarySlot := int16(math.MinInt16)
+
+	events := make([]func(), 0)
+
 	err = p.db.Transaction(func(tx *gorm.DB) error {
 		if equip, err := GetEquipmentForCharacterBySlot(tx, characterId, slot); err == nil && equip.EquipmentId() != 0 {
 			p.l.Debugf("Equipment %d already exists in slot %d, that item will be moved temporarily to %d for character %d.", equip.EquipmentId(), slot, temporarySlot, characterId)
@@ -131,7 +134,10 @@ func (p processor) EquipItemForCharacter(characterId uint32, equipmentId uint32)
 			return err
 		}
 		p.l.Debugf("Moved item %d from slot %d to %d for character %d.", itemId, currentSlot, slot, characterId)
-		producers.InventoryModificationReservation(p.l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, slot, currentSlot)
+
+		events = append(events, func() {
+			producers.InventoryModificationReservation(p.l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, slot, currentSlot)
+		})
 
 		if equip, err := GetEquipmentForCharacterBySlot(tx, characterId, temporarySlot); err == nil && equip.EquipmentId() != 0 {
 			err := UpdateSlot(tx, equip.EquipmentId(), currentSlot)
@@ -139,24 +145,27 @@ func (p processor) EquipItemForCharacter(characterId uint32, equipmentId uint32)
 				return err
 			}
 			p.l.Debugf("Moved item from temporary location %d to slot %d for character %d.", temporarySlot, currentSlot, characterId)
-
-			ea, err := requests.EquipmentRegistry().GetById(equip.EquipmentId())
-			if err != nil {
-				p.l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
-				return err
-			}
-			producers.InventoryModificationReservation(p.l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, currentSlot, slot)
 		}
-		producers.CharacterEquippedItem(p.l)(characterId)
+		events = append(events, func() {
+			producers.CharacterEquippedItem(p.l)(characterId)
+		})
 		return nil
 	})
 	if err != nil {
 		p.l.WithError(err).Errorf("Unable to complete the equipment of item %d for character %d.", equipmentId, characterId)
+		return
+	}
+
+	for _, event := range events {
+		event()
 	}
 }
 
 func (p processor) UnequipItemForCharacter(characterId uint32, equipmentId uint32, oldSlot int16) {
 	p.l.Debugf("Received request to unequip %d for character %d.", equipmentId, characterId)
+
+	events := make([]func(), 0)
+
 	err := p.db.Transaction(func(tx *gorm.DB) error {
 		ea, err := requests.EquipmentRegistry().GetById(equipmentId)
 		if err != nil {
@@ -176,12 +185,21 @@ func (p processor) UnequipItemForCharacter(characterId uint32, equipmentId uint3
 		}
 
 		p.l.Debugf("Unequipped %d for character %d and place it in slot %d, from %d.", equipmentId, characterId, val, oldSlot)
-		producers.InventoryModificationReservation(p.l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, val, oldSlot)
-		producers.CharacterUnEquippedItem(p.l)(characterId)
+		events = append(events, func() {
+			producers.InventoryModificationReservation(p.l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, val, oldSlot)
+		})
+		events = append(events, func() {
+			producers.CharacterUnEquippedItem(p.l)(characterId)
+		})
 		return nil
 	})
 	if err != nil {
 		p.l.WithError(err).Errorf("Unable to complete the equipment of item %d for character %d.", equipmentId, characterId)
+		return
+	}
+
+	for _, event := range events {
+		event()
 	}
 }
 
