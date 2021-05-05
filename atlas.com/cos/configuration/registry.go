@@ -28,8 +28,6 @@ func Get() *Configuration {
 type Configuration struct {
 	UseStarting4Ap          bool    `yaml:"useStarting4Ap"`
 	UseAutoAssignStartersAp bool    `yaml:"useAutoAssignStartersAp"`
-	ExpSplitCommonMod       float32 `yaml:"expSplitCommonMod"`
-	ExpSplitMvpMod          float32 `yaml:"expSplitMvpMod"`
 	MaxAp                   uint16  `yaml:"maxAp"`
 	UseRandomizeHpMpGain    bool    `yaml:"useRandomizeHpMpGain"`
 	UseEnforceJobSpRange    bool    `yaml:"useEnforceJobSpRange"`
