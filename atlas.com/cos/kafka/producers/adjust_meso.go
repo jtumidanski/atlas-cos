@@ -8,7 +8,7 @@ import (
 type adjustMesoEvent struct {
 	CharacterId uint32 `json:"characterId"`
 	Amount      uint32 `json:"amount"`
-	Show        bool   `json:"bool"`
+	Show        bool   `json:"show"`
 }
 
 var AdjustMeso = func(l log.FieldLogger, ctx context.Context) *adjustMeso {
