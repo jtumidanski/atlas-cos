@@ -20,6 +20,10 @@ func CreateItemForCharacter(db *gorm.DB, characterId uint32, inventoryType int8,
 	return makeItem(e), nil
 }
 
+func remove(db *gorm.DB, uniqueId uint32) error {
+	return db.Delete(&entity{Id: uniqueId}).Error
+}
+
 func Update(db *gorm.DB, uniqueId uint32, modifiers ...EntityUpdateFunction) error {
 	e := &entity{}
 	var columns []string

@@ -228,3 +228,17 @@ func invalidCharacterCreationItem(itemId uint32) bool {
 	}
 	return true
 }
+
+func GainItem(l log.FieldLogger, db *gorm.DB) func(characterId uint32, itemId uint32) error {
+	return func(characterId uint32, itemId uint32) error {
+		//TODO verify inventory space
+		e, err := Processor(l, db).CreateForCharacter(characterId, itemId, false)
+		if err != nil {
+			l.WithError(err).Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
+			return err
+		}
+		producers.InventoryModificationReservation(l, context.Background()).
+			Emit(characterId, true, 0, itemId, 1, 1, e.Slot(), 0)
+		return nil
+	}
+}

@@ -123,7 +123,7 @@ func (p processor) attemptPickup(c *character.Model, d *Model) {
 				p.pickupEquip(c, d)
 			} else {
 				p.l.Debugf("Picking up item %d for character %d.", d.ItemId(), c.Id())
-				p.pickupItem(c, d, val)
+				p.pickupItem(c, val, d)
 			}
 			// TODO update ariant score if 4031868
 			producers.PickedUpItem(p.l, context.Background()).Emit(c.Id(), d.ItemId(), d.Quantity())
@@ -166,7 +166,7 @@ func (p processor) pickupNX(c *character.Model, d *Model) {
 }
 
 func (p processor) pickupMeso(c *character.Model, d *Model) {
-	producers.AdjustMeso(p.l, context.Background()).Emit(c.Id(), d.Meso())
+	producers.AdjustMeso(p.l, context.Background()).Emit(c.Id(), int32(d.Meso()))
 }
 
 func (p processor) consumeOnPickup(itemId uint32) bool {
@@ -265,54 +265,18 @@ func (p processor) scriptedItem(itemId uint32) bool {
 }
 
 func (p processor) pickupEquip(c *character.Model, d *Model) {
-	e, err := equipment.Processor(p.l, p.db).CreateForCharacter(c.Id(), d.ItemId(), false)
+	err := equipment.GainItem(p.l, p.db)(c.Id(), d.ItemId())
 	if err != nil {
 		p.l.WithError(err).Errorf("Unable to create equipment %d that character %d picked up.", d.ItemId(), c.Id())
 		return
 	}
-	producers.InventoryModificationReservation(p.l, context.Background()).
-		Emit(c.Id(), true, 0, d.ItemId(), 1, d.Quantity(), e.Slot(), 0)
 }
 
-func (p processor) pickupItem(c *character.Model, d *Model, it int8) {
-	slotMax := p.maxInSlot(c, d)
-	runningQuantity := d.Quantity()
-
-	existingItems := item.Processor(p.l, p.db).GetItemsForCharacter(c.Id(), it, d.ItemId())
-	// breaks for a rechargeable item.
-	if len(existingItems) > 0 {
-		index := 0
-		for runningQuantity > 0 {
-			if index < len(existingItems) {
-				i := existingItems[index]
-				oldQuantity := i.Quantity()
-				if oldQuantity < slotMax {
-					newQuantity := uint32(math.Min(float64(oldQuantity+runningQuantity), float64(slotMax)))
-					runningQuantity = runningQuantity - (newQuantity - oldQuantity)
-					err := item.Processor(p.l, p.db).UpdateItemQuantity(i.Id(), newQuantity)
-					if err != nil {
-						p.l.WithError(err).Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
-					} else {
-						producers.InventoryModificationReservation(p.l, context.Background()).
-							Emit(c.Id(), true, 1, d.ItemId(), i.InventoryType(), newQuantity, i.Slot(), 0)
-					}
-				}
-				index++
-			} else {
-				break
-			}
-		}
-	}
-	for runningQuantity > 0 {
-		newQuantity := uint32(math.Min(float64(runningQuantity), float64(slotMax)))
-		runningQuantity = runningQuantity - newQuantity
-		i, err := item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), it, d.ItemId(), newQuantity)
-		if err != nil {
-			p.l.WithError(err).Errorf("Unable to create item %d that character %d picked up.", d.ItemId(), c.Id())
-			return
-		}
-		producers.InventoryModificationReservation(p.l, context.Background()).
-			Emit(c.Id(), true, 0, d.ItemId(), it, d.Quantity(), i.Slot(), 0)
+func (p processor) pickupItem(c *character.Model, it int8, d *Model) {
+	err := item.GainItem(p.l, p.db)(c.Id(), it, d.ItemId(), d.Quantity())
+	if err != nil {
+		p.l.WithError(err).Errorf("Unable to gain item %d that character %d picked up.", d.ItemId(), c.Id())
+		return
 	}
 }
 

@@ -187,3 +187,11 @@ func SetSP(amount uint32, bookId uint32) EntityUpdateFunction {
 		}
 	}
 }
+
+func SetJob(jobId uint16) EntityUpdateFunction {
+	return func() ([]string, func(e *entity)) {
+		return []string{"JobId"}, func(e *entity) {
+			e.JobId = jobId
+		}
+	}
+}

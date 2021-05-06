@@ -13,6 +13,7 @@ import (
 	"atlas-cos/skill"
 	"atlas-cos/skill/information"
 	"context"
+	"errors"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math"
@@ -762,4 +763,113 @@ func (p *processor) Create(b *Builder) (*Model, error) {
 
 	producers.CharacterCreated(p.l, context.Background()).Emit(c.Id(), c.WorldId(), c.Name())
 	return c, nil
+}
+
+func AdjustJob(l log.FieldLogger, db *gorm.DB) func(characterId uint32, jobId uint16) error {
+	return func(characterId uint32, jobId uint16) error {
+		Processor(l, db).characterUpdate(characterId, adjustJob(l, db)(jobId), awardSkillsForJobUpdate(l, db)(jobId), jobUpdateSuccess(l, db))
+		return nil
+	}
+}
+
+func awardSkillsForJobUpdate(l log.FieldLogger, db *gorm.DB) func(jobId uint16) characterFunc {
+	return func(jobId uint16) characterFunc {
+		return func(model *Model) error {
+			return nil
+		}
+	}	
+}
+
+func jobUpdateSuccess(l log.FieldLogger, db *gorm.DB) characterFunc {
+	return Processor(l, db).statisticsUpdateSuccess("HP", "MP", "MAX_HP", "MAX_MP", "AVAILABLE_AP", "AVAILABLE_SP", "JOB")
+}
+
+func adjustJob(l log.FieldLogger, db *gorm.DB) func(jobId uint16) characterFunc {
+	return func(jobId uint16) characterFunc {
+		return func(c *Model) error {
+			hp := uint16(0)
+			mp := uint16(0)
+
+			j := c.JobId() % 1000
+			if j == 100 {
+				// 1st job warrior
+				hp += randRange(200, 250)
+			} else if j == 200 {
+				// 1st job magician
+				mp += randRange(100, 150)
+			} else if j % 100 == 0 {
+				hp += randRange(100, 150)
+				mp += randRange(25, 50)
+			} else if j > 0 && j < 200 {
+				// 2nd-4th warrior
+				hp += randRange(300, 350)
+			} else if j < 300 {
+				mp += randRange(450, 500)
+			} else {
+				hp += randRange(300, 350)
+				mp += randRange(150, 200)
+			}
+
+			modifiers := []EntityUpdateFunction{
+				SetHealth(c.HP() + hp),
+				SetMana(c.MP() + mp),
+				SetMaxHP(c.maxHp + hp),
+				SetMaxMP(c.maxMp + mp),
+				SetJob(jobId),
+			}
+			return Processor(l, db).characterDatabaseUpdate(modifiers...)(c)
+		}
+	}
+}
+
+func ResetAP(l log.FieldLogger, db *gorm.DB) func(characterId uint32) error {
+	return func(characterId uint32) error {
+		Processor(l, db).characterUpdate(characterId, resetAP(l, db), apResetSuccess(l, db))
+		return nil
+	}
+}
+
+func apResetSuccess(l log.FieldLogger, db *gorm.DB) characterFunc {
+	return Processor(l, db).statisticsUpdateSuccess("AVAILABLE_AP", "AVAILABLE_SP", "STRENGTH", "DEXTERITY", "LUCK", "INTELLIGENCE")
+}
+
+func resetAP(l log.FieldLogger, db *gorm.DB) characterFunc {
+	return func(c *Model) error {
+		tap := c.AP() + c.Strength() + c.Dexterity() + c.Intelligence() + c.Luck()
+		tstr := uint16(4)
+		tdex := uint16(4)
+		tint := uint16(4)
+		tluk := uint16(4)
+		tsp := uint32(1)
+
+		switch c.JobId() {
+		case job.Warrior, job.DawnWarrior1, job.Aran1:
+			tstr = 35
+			tsp += uint32((c.Level() - 10) * 3)
+			break
+		case job.Magician, job.BlazeWizard1:
+			tint = 20
+			tsp += uint32((c.Level() - 10) * 3)
+			break
+		case job.Bowman, job.WindArcher1, job.Thief, job.NightWalker1:
+			tdex = 25
+			tsp += uint32((c.Level() - 10) * 3)
+		case job.Pirate, job.ThunderBreaker1:
+			tdex = 20
+			tsp += uint32((c.Level() - 10) * 3)
+		}
+
+		tap -= tstr
+		tap -= tdex
+		tap -= tint
+		tap -= tluk
+
+		if tap < 0 {
+			l.Errorf("Cannot reset statistics, character does not have base AP needed.")
+			return errors.New("not enough ap")
+		}
+
+		modifiers := []EntityUpdateFunction{SetStrength(tstr), SetDexterity(tdex), SetIntelligence(tint), SetLuck(tluk), SetAP(tap), SetSP(tsp, 0)}
+		return Processor(l, db).characterDatabaseUpdate(modifiers...)(c)
+	}
 }
