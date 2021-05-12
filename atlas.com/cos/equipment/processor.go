@@ -29,7 +29,7 @@ var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 	return &processor{l, db}
 }
 
-func (p processor) CreateForCharacter(characterId uint32, itemId uint32, characterCreation bool) (*Model, error) {
+func (p processor) CreateForCharacter(characterId uint32, itemId uint32, equipmentId uint32, characterCreation bool) (*Model, error) {
 	if characterCreation {
 		if invalidCharacterCreationItem(itemId) {
 			p.l.Errorf("Received a request to create an item %d for character %d which is not valid for character creation. This is usually a hack.")
@@ -42,19 +42,9 @@ func (p processor) CreateForCharacter(characterId uint32, itemId uint32, charact
 		nextOpen = 1
 	}
 
-	ro, err := requests.EquipmentRegistry().Create(itemId)
+	eq, err := Create(p.db, characterId, equipmentId, nextOpen)
 	if err != nil {
-		p.l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.")
-		return nil, err
-	}
-	eid, err := strconv.Atoi(ro.Data.Id)
-	if err != nil {
-		p.l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.")
-		return nil, err
-	}
-	eq, err := Create(p.db, characterId, uint32(eid), nextOpen)
-	if err != nil {
-		p.l.Errorf("Persisting equipment %d association for character %d in Slot %d.", eid, characterId, nextOpen)
+		p.l.Errorf("Persisting equipment %d association for character %d in Slot %d.", equipmentId, characterId, nextOpen)
 		return nil, err
 	}
 	return eq, nil
@@ -75,7 +65,18 @@ func (p processor) CreateAndEquip(characterId uint32, items ...uint32) {
 }
 
 func (p processor) createAndEquip(characterId uint32, itemId uint32) {
-	if equipment, err := p.CreateForCharacter(characterId, itemId, true); err == nil {
+	ro, err := requests.EquipmentRegistry().Create(itemId)
+	if err != nil {
+		p.l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.")
+		return
+	}
+	eid, err := strconv.Atoi(ro.Data.Id)
+	if err != nil {
+		p.l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.")
+		return
+	}
+
+	if equipment, err := p.CreateForCharacter(characterId, itemId, uint32(eid), true); err == nil {
 		p.EquipItemForCharacter(characterId, equipment.EquipmentId())
 	} else {
 		p.l.Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
@@ -229,10 +230,10 @@ func invalidCharacterCreationItem(itemId uint32) bool {
 	return true
 }
 
-func GainItem(l log.FieldLogger, db *gorm.DB) func(characterId uint32, itemId uint32) error {
-	return func(characterId uint32, itemId uint32) error {
+func GainItem(l log.FieldLogger, db *gorm.DB) func(characterId uint32, itemId uint32, equipmentId uint32) error {
+	return func(characterId uint32, itemId uint32, equipmentId uint32) error {
 		//TODO verify inventory space
-		e, err := Processor(l, db).CreateForCharacter(characterId, itemId, false)
+		e, err := Processor(l, db).CreateForCharacter(characterId, itemId, equipmentId, false)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
 			return err

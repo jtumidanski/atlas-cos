@@ -32,6 +32,7 @@ func (p processor) AttemptPickup(characterId uint32, dropId uint32) {
 		p.l.WithError(err).Errorf("Attempting to pick up %d for character %d.", dropId, characterId)
 		return
 	}
+	p.l.Debugf("Character %d attempting to pickup drop %d.", characterId, dropId)
 	d, err := p.GetById(dropId)
 	if err != nil {
 		p.l.WithError(err).Errorf("Attempting to pick up %d for character %d.", dropId, characterId)
@@ -57,6 +58,7 @@ func (p processor) makeDrop(dc attributes.DropData) *Model {
 	return &Model{
 		id:            uint32(id),
 		itemId:        dc.Attributes.ItemId,
+		equipmentId:   dc.Attributes.EquipmentId,
 		quantity:      dc.Attributes.Quantity,
 		meso:          dc.Attributes.Meso,
 		dropTime:      dc.Attributes.DropTime,
@@ -119,7 +121,7 @@ func (p processor) attemptPickup(c *character.Model, d *Model) {
 
 		if val, ok := inventory.GetInventoryType(d.ItemId()); ok {
 			if val == inventory.TypeValueEquip {
-				p.l.Debugf("Picking up equip item %d for character %d.", d.ItemId(), c.Id())
+				p.l.Debugf("Picking up equipment %d for character %d.", d.EquipmentId(), c.Id())
 				p.pickupEquip(c, d)
 			} else {
 				p.l.Debugf("Picking up item %d for character %d.", d.ItemId(), c.Id())
@@ -265,7 +267,7 @@ func (p processor) scriptedItem(itemId uint32) bool {
 }
 
 func (p processor) pickupEquip(c *character.Model, d *Model) {
-	err := equipment.GainItem(p.l, p.db)(c.Id(), d.ItemId())
+	err := equipment.GainItem(p.l, p.db)(c.Id(), d.ItemId(), d.EquipmentId())
 	if err != nil {
 		p.l.WithError(err).Errorf("Unable to create equipment %d that character %d picked up.", d.ItemId(), c.Id())
 		return

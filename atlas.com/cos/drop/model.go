@@ -5,6 +5,7 @@ import "time"
 type Model struct {
 	id            uint32
 	itemId        uint32
+	equipmentId   uint32
 	quantity      uint32
 	meso          uint32
 	dropTime      uint64
@@ -47,4 +48,8 @@ func (m Model) Meso() uint32 {
 
 func (m Model) Quantity() uint32 {
 	return m.quantity
+}
+
+func (m Model) EquipmentId() uint32 {
+	return m.equipmentId
 }
