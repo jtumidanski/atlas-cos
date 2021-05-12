@@ -27,7 +27,7 @@ func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		}
 
 		attr := li.Data.Attributes
-		c, err := Processor(fl, db).CreateFromSeed(attr.AccountId, attr.WorldId, attr.Name, attr.JobIndex, attr.Face,
+		c, err := CreateFromSeed(fl, db)(attr.AccountId, attr.WorldId, attr.Name, attr.JobIndex, attr.Face,
 			attr.Hair, attr.HairColor, attr.Skin, attr.Gender, attr.Top, attr.Bottom, attr.Shoes, attr.Weapon)
 		if err != nil {
 			fl.WithError(err).Errorf("Unable to create character from seed.")

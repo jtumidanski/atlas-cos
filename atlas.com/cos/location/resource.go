@@ -10,8 +10,8 @@ import (
 	"strconv"
 )
 
-// GetSavedLocationsByType is a REST resource handler for retrieving the saved locations of a type for a character.
-func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+// HandleGetSavedLocationsByType is a REST resource handler for retrieving the saved locations of a type for a character.
+func HandleGetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetSavedLocationsByType", "type": "rest_handler"})
 
@@ -24,7 +24,7 @@ func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 
 		theType := mux.Vars(r)["type"]
 
-		locations, err := Processor(fl, db).GetSavedLocationsByType(uint32(characterId), theType)
+		locations, err := GetSavedLocationsByType(l, db)(uint32(characterId), theType)
 		if err != nil {
 			fl.WithError(err).Errorf("Unable to get saved locations for character %d by type %s.", characterId, theType)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -41,8 +41,8 @@ func GetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-// GetSavedLocations is a REST resource handler for retrieving the saved locations for a character.
-func GetSavedLocations(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+// HandleGetSavedLocations is a REST resource handler for retrieving the saved locations for a character.
+func HandleGetSavedLocations(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetSavedLocations", "type": "rest_handler"})
 
@@ -53,7 +53,7 @@ func GetSavedLocations(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		locations, err := Processor(fl, db).GetSavedLocations(uint32(characterId))
+		locations, err := GetSavedLocations(fl, db)(uint32(characterId))
 		if err != nil {
 			fl.WithError(err).Errorf("Unable to get saved locations for character %d.", characterId)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -91,8 +91,8 @@ func createData(loc *Model) attributes.LocationData {
 	}
 }
 
-// AddSavedLocation is a REST resource handler for adding a saved location for a character.
-func AddSavedLocation(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+// HandleAddSavedLocation is a REST resource handler for adding a saved location for a character.
+func HandleAddSavedLocation(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "AddSavedLocation", "type": "rest_handler"})
 
@@ -116,7 +116,7 @@ func AddSavedLocation(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		}
 
 		att := li.Data.Attributes
-		err = Processor(fl, db).AddSavedLocation(uint32(characterId), att.Type, att.MapId, att.PortalId)
+		err = AddSavedLocation(fl, db)(uint32(characterId), att.Type, att.MapId, att.PortalId)
 		if err != nil {
 			fl.WithError(err).Errorf("Unable to add saved location for character %d.", characterId)
 			w.WriteHeader(http.StatusInternalServerError)

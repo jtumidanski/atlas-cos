@@ -3,39 +3,35 @@ package portal
 import (
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/requests"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
-type processor struct {
-	l log.FieldLogger
+func GetMapPortalById(l logrus.FieldLogger) func(mapId uint32, portalId uint32) (*Model, error) {
+	return func(mapId uint32, portalId uint32) (*Model, error) {
+		data, err := requests.MapInformation().GetPortalById(mapId, portalId)
+		if err != nil {
+			l.Errorf("Unable to get map %d portal %d.", mapId, portalId)
+			return nil, err
+		}
+		return makePortal(data.Data()), nil
+	}
 }
 
-var Processor = func(l log.FieldLogger) *processor {
-	return &processor{l}
-}
+func GetMapPortals(l logrus.FieldLogger) func(mapId uint32) ([]*Model, error) {
+	return func(mapId uint32) ([]*Model, error) {
+		data, err := requests.MapInformation().GetPortals(mapId)
+		if err != nil {
+			l.Errorf("Unable to get map %d portals.", mapId)
+			return nil, err
+		}
 
-func (p *processor) GetMapPortalById(mapId uint32, portalId uint32) (*Model, error) {
-	data, err := requests.MapInformation().GetPortalById(mapId, portalId)
-	if err != nil {
-		p.l.Errorf("Unable to get map %d portal %d.", mapId, portalId)
-		return nil, err
+		var portals = make([]*Model, 0)
+		for _, portal := range data.DataList() {
+			portals = append(portals, makePortal(&portal))
+		}
+		return portals, nil
 	}
-	return makePortal(data.Data()), nil
-}
-
-func (p *processor) GetMapPortals(mapId uint32) ([]*Model, error) {
-	data, err := requests.MapInformation().GetPortals(mapId)
-	if err != nil {
-		p.l.Errorf("Unable to get map %d portals.", mapId)
-		return nil, err
-	}
-
-	var portals = make([]*Model, 0)
-	for _, portal := range data.DataList() {
-		portals = append(portals, makePortal(&portal))
-	}
-	return portals, nil
 }
 
 func makePortal(data *attributes.PortalData) *Model {

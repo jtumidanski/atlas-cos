@@ -9,109 +9,120 @@ import (
 	"atlas-cos/job"
 	"atlas-cos/skill"
 	"errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
-type processor struct {
-	l  log.FieldLogger
-	db *gorm.DB
-}
-
-var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
-	return &processor{l, db}
-}
-
 type BuilderCreator func(*character.Builder) (*character.Model, error)
 
-func (p *processor) CreateFromSeed(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (*character.Model, error) {
-	if jobId, ok := job.GetJobFromIndex(jobIndex); ok {
-		if bc, ok := p.getCreator(jobId); ok {
-			config := character.NewBuilderConfiguration(configuration.Get().UseStarting4Ap, configuration.Get().UseAutoAssignStartersAp)
-			c, err := bc(character.NewBuilder(config, accountId, worldId, name, skinColor, gender, hair+hairColor, face))
-			if err != nil {
-				return nil, err
+func CreateFromSeed(l logrus.FieldLogger, db *gorm.DB) func(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (*character.Model, error) {
+	return func(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (*character.Model, error) {
+		if jobId, ok := job.GetJobFromIndex(jobIndex); ok {
+			if bc, ok := getCreator(l, db)(jobId); ok {
+				config := character.NewBuilderConfiguration(configuration.Get().UseStarting4Ap, configuration.Get().UseAutoAssignStartersAp)
+				c, err := bc(character.NewBuilder(config, accountId, worldId, name, skinColor, gender, hair+hairColor, face))
+				if err != nil {
+					return nil, err
+				}
+				addEquippedItems(l, db)(c, top, bottom, shoes, weapon)
+				addOtherItems(l, db)(c)
+				addSkills(l, db)(c)
+				return c, nil
 			}
-			p.addEquippedItems(c, top, bottom, shoes, weapon)
-			p.addOtherItems(c)
-			p.addSkills(c)
-			return c, nil
+			return nil, errors.New("creator not available for job")
 		}
-		return nil, errors.New("creator not available for job")
+		return nil, errors.New("invalid job creator index")
 	}
-	return nil, errors.New("invalid job creator index")
 }
 
-func (p *processor) getCreator(jobId uint16) (BuilderCreator, bool) {
-	if jobId == job.Beginner {
-		return p.createBeginner, true
-	} else if jobId == job.Noblesse {
-		return p.createNoblesse, true
-	} else if jobId == job.Legend {
-		return p.createLegend, true
+func getCreator(l logrus.FieldLogger, db *gorm.DB) func(jobId uint16) (BuilderCreator, bool) {
+	return func(jobId uint16) (BuilderCreator, bool) {
+		if jobId == job.Beginner {
+			return createBeginner(l, db), true
+		} else if jobId == job.Noblesse {
+			return createNoblesse(l, db), true
+		} else if jobId == job.Legend {
+			return createLegend(l, db), true
+		}
+		return nil, false
 	}
-	return nil, false
 }
 
-func (p *processor) createBeginner(b *character.Builder) (*character.Model, error) {
-	b.SetJobId(job.Beginner)
-	b.SetMapId(10000)
-	return character.Create(p.l, p.db)(b)
+func createBeginner(l logrus.FieldLogger, db *gorm.DB) func(b *character.Builder) (*character.Model, error) {
+	return func(b *character.Builder) (*character.Model, error) {
+		b.SetJobId(job.Beginner)
+		b.SetMapId(10000)
+		return character.Create(l, db)(b)
+	}
 }
 
-func (p *processor) createNoblesse(b *character.Builder) (*character.Model, error) {
-	b.SetJobId(job.Noblesse)
-	b.SetMapId(130030000)
-	return character.Create(p.l, p.db)(b)
+func createNoblesse(l logrus.FieldLogger, db *gorm.DB) func(b *character.Builder) (*character.Model, error) {
+	return func(b *character.Builder) (*character.Model, error) {
+		b.SetJobId(job.Noblesse)
+		b.SetMapId(130030000)
+		return character.Create(l, db)(b)
+	}
 }
 
-func (p *processor) createLegend(b *character.Builder) (*character.Model, error) {
-	b.SetJobId(job.Legend)
-	b.SetMapId(914000000)
-	return character.Create(p.l, p.db)(b)
+func createLegend(l logrus.FieldLogger, db *gorm.DB) func(b *character.Builder) (*character.Model, error) {
+	return func(b *character.Builder) (*character.Model, error) {
+		b.SetJobId(job.Legend)
+		b.SetMapId(914000000)
+		return character.Create(l, db)(b)
+	}
 }
 
-func (p *processor) addEquippedItems(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
-	equipment.CreateAndEquip(p.l, p.db)(c.Id(), top, bottom, shoes, weapon)
+func addEquippedItems(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
+	return func(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
+		equipment.CreateAndEquip(l, db)(c.Id(), top, bottom, shoes, weapon)
+	}
 }
 
-func (p *processor) addOtherItems(c *character.Model) {
-	if job.IsA(c.JobId(), job.Beginner) {
-		_, err := item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161001, 1)
+func addOtherItems(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model) {
+	return func(c *character.Model) {
+		if job.IsA(c.JobId(), job.Beginner) {
+			_, err := item.CreateItemForCharacter(l, db)(c.Id(), inventory.TypeValueETC, 4161001, 1)
+			if err != nil {
+				l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161001)
+			}
+		} else if job.IsA(c.JobId(), job.Noblesse) {
+			_, err := item.CreateItemForCharacter(l, db)(c.Id(), inventory.TypeValueETC, 4161047, 1)
+			if err != nil {
+				l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161047)
+			}
+		} else if job.IsA(c.JobId(), job.Legend) {
+			_, err := item.CreateItemForCharacter(l, db)(c.Id(), inventory.TypeValueETC, 4161048, 1)
+			if err != nil {
+				l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161048)
+			}
+		}
+	}
+}
+
+func addSkills(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model) {
+	return func(c *character.Model) {
+		if job.IsA(c.JobId(), job.Beginner) {
+			awardBeginnerSkills(l, db)(c)
+		} else if job.IsA(c.JobId(), job.Noblesse) {
+			awardNoblesseBeginnerSkills(l, db)(c)
+		}
+	}
+}
+
+func awardBeginnerSkills(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model) {
+	return func(c *character.Model) {
+		err := skill.AwardSkills(l, db)(c.Id(), skill.BeginnerRecovery, skill.BeginnerNimbleFeet, skill.BeginnerThreeSnails)
 		if err != nil {
-			p.l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161001)
+			l.WithError(err).Errorf("Unable to award character %d beginner skills.", c.Id())
 		}
-	} else if job.IsA(c.JobId(), job.Noblesse) {
-		_, err := item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161047, 1)
+	}
+}
+
+func awardNoblesseBeginnerSkills(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model) {
+	return func(c *character.Model) {
+		err := skill.AwardSkills(l, db)(c.Id(), skill.NoblesseRecovery, skill.NoblesseNimbleFeet, skill.NoblesseThreeSnails)
 		if err != nil {
-			p.l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161047)
+			l.WithError(err).Errorf("Unable to award character %d beginner skills.", c.Id())
 		}
-	} else if job.IsA(c.JobId(), job.Legend) {
-		_, err := item.Processor(p.l, p.db).CreateItemForCharacter(c.Id(), inventory.TypeValueETC, 4161048, 1)
-		if err != nil {
-			p.l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161048)
-		}
-	}
-}
-
-func (p *processor) addSkills(c *character.Model) {
-	if job.IsA(c.JobId(), job.Beginner) {
-		p.awardBeginnerSkills(c)
-	} else if job.IsA(c.JobId(), job.Noblesse) {
-		p.awardNoblesseBeginnerSkills(c)
-	}
-}
-
-func (p *processor) awardBeginnerSkills(c *character.Model) {
-	err := skill.Processor(p.l, p.db).AwardSkills(c.Id(), skill.BeginnerRecovery, skill.BeginnerNimbleFeet, skill.BeginnerThreeSnails)
-	if err != nil {
-		p.l.WithError(err).Errorf("Unable to award character %d beginner skills.", c.Id())
-	}
-}
-
-func (p *processor) awardNoblesseBeginnerSkills(c *character.Model) {
-	err := skill.Processor(p.l, p.db).AwardSkills(c.Id(), skill.NoblesseRecovery, skill.NoblesseNimbleFeet, skill.NoblesseThreeSnails)
-	if err != nil {
-		p.l.WithError(err).Errorf("Unable to award character %d beginner skills.", c.Id())
 	}
 }

@@ -135,13 +135,13 @@ func canBePickedBy(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, d
 			return true
 		}
 
-		ownerParty, err := party.Processor(l, db).PartyForCharacter(d.OwnerId())
+		ownerParty, err := party.PartyForCharacter(d.OwnerId())
 		if err != nil {
 			if c.Id() == d.OwnerId() {
 				return true
 			}
 		} else {
-			characterParty, err := party.Processor(l, db).PartyForCharacter(c.Id())
+			characterParty, err := party.PartyForCharacter(c.Id())
 			if err == nil && ownerParty.Id() == characterParty.Id() {
 				return true
 			} else if c.Id() == d.OwnerId() {
@@ -185,7 +185,7 @@ func hasInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c *character.Mode
 
 		//TODO checking inventory space, and adding items should become an atomic action
 		if val, ok := inventory.GetInventoryType(d.ItemId()); ok {
-			i, err := inventory.Processor(l, db).GetInventoryByTypeVal(c.Id(), val)
+			i, err := inventory.GetInventoryByTypeVal(l, db)(c.Id(), val)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to retrieve equipment for character %d.", c.Id())
 				return false
@@ -208,7 +208,7 @@ func hasItemInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c *character.
 		slotMax := maxInSlot(c, d)
 		runningQuantity := d.Quantity()
 
-		existingItems, err := item.Processor(l, db).GetForCharacterByInventory(c.Id(), i.Id())
+		existingItems, err := item.GetForCharacterByInventory(l, db)(c.Id(), i.Id())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve existing inventory %d items for character %d.", i.Type(), c.Id())
 			return false

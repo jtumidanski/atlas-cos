@@ -176,7 +176,7 @@ func performChangeMap(l logrus.FieldLogger, db *gorm.DB) func(mapId uint32, port
 			if err != nil {
 				return err
 			}
-			por, err := portal.Processor(l).GetMapPortalById(mapId, portalId)
+			por, err := portal.GetMapPortalById(l)(mapId, portalId)
 			if err != nil {
 				return err
 			}
@@ -288,7 +288,7 @@ func updateTemporalPosition(x int16, y int16, stance byte) characterFunc {
 func updateSpawnPoint(l logrus.FieldLogger, db *gorm.DB) func(x int16, y int16) characterFunc {
 	return func(x int16, y int16) characterFunc {
 		return func(c *Model) error {
-			sp, err := _map.Processor(l).FindClosestSpawnPoint(c.MapId(), x, y)
+			sp, err := _map.FindClosestSpawnPoint(l)(c.MapId(), x, y)
 			if err != nil {
 				return err
 			}
@@ -637,7 +637,7 @@ func AssignSP(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillI
 func assignSP(l logrus.FieldLogger, db *gorm.DB) func(skillId uint32) characterFunc {
 	return func(skillId uint32) characterFunc {
 		return func(c *Model) error {
-			if s, ok := skill.Processor(l, db).GetSkill(c.Id(), skillId); ok {
+			if s, ok := skill.GetSkill(l, db)(c.Id(), skillId); ok {
 				skillBookId := skill.GetSkillBook(skillId / 10000)
 				remainingSP := c.SP(int(skillBookId))
 
@@ -645,7 +645,7 @@ func assignSP(l logrus.FieldLogger, db *gorm.DB) func(skillId uint32) characterF
 				if skillId%10000000 > 999 && skillId%10000000 < 1003 {
 					total := uint32(0)
 					for i := uint32(0); i < 3; i++ {
-						if bs, ok := skill.Processor(l, db).GetSkill(c.Id(), uint32(c.JobType())*10000000+1000+i); ok {
+						if bs, ok := skill.GetSkill(l, db)(c.Id(), uint32(c.JobType())*10000000+1000+i); ok {
 							total += bs.Level()
 						}
 					}
@@ -655,7 +655,7 @@ func assignSP(l logrus.FieldLogger, db *gorm.DB) func(skillId uint32) characterF
 				}
 
 				skillMaxLevel := uint32(20)
-				if si, ok := information.Processor(l, db).GetSkillInformation(skillId); ok {
+				if si, ok := information.GetSkillInformation(l)(skillId); ok {
 					skillMaxLevel = uint32(len(si.Effects()))
 				}
 				var maxLevel = uint32(0)
@@ -685,7 +685,7 @@ func assignSP(l logrus.FieldLogger, db *gorm.DB) func(skillId uint32) characterF
 				}
 
 				//TODO special handling for aran full swing and over swing.
-				err := skill.Processor(l, db).UpdateSkill(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
+				err := skill.UpdateSkill(l, db)(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
 				if err != nil {
 					return err
 				}
@@ -717,10 +717,10 @@ func UpdateLoginPosition(l logrus.FieldLogger, db *gorm.DB) func(characterId uin
 
 func updateTemporalPositionLogin(l logrus.FieldLogger) characterFunc {
 	return func(c *Model) error {
-		port, err := portal.Processor(l).GetMapPortalById(c.MapId(), c.SpawnPoint())
+		port, err := portal.GetMapPortalById(l)(c.MapId(), c.SpawnPoint())
 		if err != nil {
 			l.Warnf("Unable to find spawn point %d in map %d for character %d.", c.SpawnPoint(), c.MapId(), c.Id())
-			port, err = portal.Processor(l).GetMapPortalById(c.MapId(), 0)
+			port, err = portal.GetMapPortalById(l)(c.MapId(), 0)
 			if err != nil {
 				l.Errorf("Unable to get a portal in map %d to update character %d position to.", c.MapId(), c.Id())
 				return err
@@ -852,7 +852,7 @@ func Create(l logrus.FieldLogger, db *gorm.DB) func(b *Builder) (*Model, error) 
 			return nil, err
 		}
 
-		err = inventory.Processor(l, db).CreateInitialInventories(c.Id())
+		err = inventory.CreateInitialInventories(l, db)(c.Id())
 		if err != nil {
 			return nil, err
 		}

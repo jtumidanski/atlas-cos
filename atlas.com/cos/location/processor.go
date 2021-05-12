@@ -1,34 +1,31 @@
 package location
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
-type processor struct {
-	l  log.FieldLogger
-	db *gorm.DB
-}
-
-var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
-	return &processor{l, db}
-}
-
 // GetSavedLocationsByType gets the saved locations by type for the character, or returns an error if one occurred.
-func (p processor) GetSavedLocationsByType(characterId uint32, theType string) ([]*Model, error) {
-	return getSavedLocationsByType(p.db, characterId, theType)
+func GetSavedLocationsByType(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, theType string) ([]*Model, error) {
+	return func(characterId uint32, theType string) ([]*Model, error) {
+		return getSavedLocationsByType(db, characterId, theType)
+	}
 }
 
 // GetSavedLocations gets all the saved locations for the given character, or returns an error if one occurred.
-func (p processor) GetSavedLocations(characterId uint32) ([]*Model, error) {
-	return getSavedLocations(p.db, characterId)
+func GetSavedLocations(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) ([]*Model, error) {
+	return func(characterId uint32) ([]*Model, error) {
+		return getSavedLocations(db, characterId)
+	}
 }
 
 // AddSavedLocation resets the saved location for of a given type for the character, returns an error if one occurred.
-func (p processor) AddSavedLocation(characterId uint32, locationType string, mapId uint32, portalId uint32) error {
-	err := deleteByType(p.db, characterId, locationType)
-	if err != nil {
-		return err
+func AddSavedLocation(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, locationType string, mapId uint32, portalId uint32) error {
+	return func(characterId uint32, locationType string, mapId uint32, portalId uint32) error {
+		err := deleteByType(db, characterId, locationType)
+		if err != nil {
+			return err
+		}
+		return create(db, characterId, locationType, mapId, portalId)
 	}
-	return create(p.db, characterId, locationType, mapId, portalId)
 }

@@ -40,7 +40,7 @@ func GetItemForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		inv, err := Processor(fl, db).GetInventoryByTypeFilterSlot(uint32(characterId), inventoryType, int16(slot))
+		inv, err := GetInventoryByTypeFilterSlot(fl, db)(uint32(characterId), inventoryType, int16(slot))
 		if err != nil {
 			fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, inventoryType)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -85,7 +85,7 @@ func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc
 			return
 		}
 
-		inv, err := Processor(fl, db).GetInventoryByType(uint32(characterId), inventoryType)
+		inv, err := GetInventoryByType(fl, db)(uint32(characterId), inventoryType)
 		if err != nil {
 			fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, inventoryType)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -140,7 +140,7 @@ func createIncludedInventoryItems(fl log.FieldLogger, db *gorm.DB, characterId u
 				results = append(results, createEquipmentData(e))
 			}
 		} else {
-			i, err := item.Processor(fl, db).GetItemById(inventoryItem.Id())
+			i, err := item.GetItemById(fl, db)(inventoryItem.Id())
 			if err != nil {
 				fl.WithError(err).Errorf("Unable to retrieve item %d for character %d.", inventoryItem.Id(), characterId)
 			} else {

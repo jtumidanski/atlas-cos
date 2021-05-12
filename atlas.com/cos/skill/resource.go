@@ -21,7 +21,7 @@ func GetCharacterSkills(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		sl, err := Processor(fl, db).GetSkills(uint32(characterId))
+		sl, err := GetSkills(fl, db)(uint32(characterId))
 		if err != nil {
 			fl.WithError(err).Errorf("Unable to get skills for character %d.", characterId)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -57,7 +57,7 @@ func GetCharacterSkill(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		sl, ok := Processor(fl, db).GetSkill(uint32(characterId), uint32(skillId))
+		sl, ok := GetSkill(fl, db)(uint32(characterId), uint32(skillId))
 		if !ok {
 			fl.WithError(err).Errorf("Unable to get skills for character %d.", characterId)
 			w.WriteHeader(http.StatusInternalServerError)
