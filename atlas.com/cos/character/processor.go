@@ -10,6 +10,7 @@ import (
 	"atlas-cos/kafka/producers"
 	_map "atlas-cos/map"
 	"atlas-cos/portal"
+	"atlas-cos/rest/requests"
 	"atlas-cos/skill"
 	"atlas-cos/skill/information"
 	"context"
@@ -777,7 +778,7 @@ func awardSkillsForJobUpdate(l log.FieldLogger, db *gorm.DB) func(jobId uint16) 
 		return func(model *Model) error {
 			return nil
 		}
-	}	
+	}
 }
 
 func jobUpdateSuccess(l log.FieldLogger, db *gorm.DB) characterFunc {
@@ -797,7 +798,7 @@ func adjustJob(l log.FieldLogger, db *gorm.DB) func(jobId uint16) characterFunc 
 			} else if j == 200 {
 				// 1st job magician
 				mp += randRange(100, 150)
-			} else if j % 100 == 0 {
+			} else if j%100 == 0 {
 				hp += randRange(100, 150)
 				mp += randRange(25, 50)
 			} else if j > 0 && j < 200 {
@@ -871,5 +872,79 @@ func resetAP(l log.FieldLogger, db *gorm.DB) characterFunc {
 
 		modifiers := []EntityUpdateFunction{SetStrength(tstr), SetDexterity(tdex), SetIntelligence(tint), SetLuck(tluk), SetAP(tap), SetSP(tsp, 0)}
 		return Processor(l, db).characterDatabaseUpdate(modifiers...)(c)
+	}
+}
+
+func DropItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) error {
+	return func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) error {
+		c, err := Processor(l, db).GetById(characterId)
+		if err != nil {
+			l.WithError(err).Errorf("Cannot retrieve character %d performing the drop.", characterId)
+			return err
+		}
+		ctd := GetTemporalRegistry().GetById(characterId)
+		if ctd == nil {
+			return errors.New("unable to locate character temporal data")
+		}
+
+		if slot < 0 {
+			return dropEquippedItem(l, db)(worldId, channelId, c, ctd, slot)
+		}
+
+		if inventoryType == inventory.TypeValueEquip {
+			return dropEquipItem(l, db)(worldId, channelId, c, ctd, slot)
+		}
+
+		return dropItem(l, db)(worldId, channelId, c, ctd, inventoryType, slot, quantity)
+	}
+}
+
+func dropItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, c *Model, ctd *temporalData, inventoryType int8, slot int16, quantity int16) error {
+	return func(worldId byte, channelId byte, c *Model, ctd *temporalData, inventoryType int8, slot int16, quantity int16) error {
+		itemId, err := item.DropItem(l, db)(worldId, channelId, c.Id(), inventoryType, slot, quantity)
+		if err != nil {
+			l.WithError(err).Errorf("Unable to drop item from inventory %d slot %d for character %d.", inventoryType, slot, c.Id())
+			return err
+		}
+		producers.SpawnCharacterItemDrop(l)(worldId, channelId, c.MapId(), itemId, uint32(quantity), 0, 0, ctd.X(), ctd.Y(), c.Id(), 0)
+		return nil
+	}
+}
+
+func dropEquipItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
+	return func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
+		eid, err := equipment.DropEquipment(l, db)(worldId, channelId, c.Id(), slot)
+		if err != nil {
+			l.WithError(err).Errorf("Unable to drop equip item from slot %d for character %d.", slot, c.Id())
+			return err
+		}
+
+		ea, err := requests.EquipmentRegistry().GetById(eid)
+		if err != nil {
+			l.WithError(err).Errorf("Unable to retrieve equipment %d.", eid)
+			return err
+		}
+
+		producers.SpawnCharacterEquipDrop(l)(worldId, channelId, c.MapId(), ea.Data.Attributes.ItemId, eid, 0, ctd.X(), ctd.Y(), c.Id(), 0)
+		return nil
+	}
+}
+
+func dropEquippedItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
+	return func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
+		eid, err := equipment.DropEquippedItem(l, db)(worldId, channelId, c.Id(), slot)
+		if err != nil {
+			l.WithError(err).Errorf("Unable to drop equipped item from slot %d for character %d.", slot, c.Id())
+			return err
+		}
+
+		ea, err := requests.EquipmentRegistry().GetById(eid)
+		if err != nil {
+			l.WithError(err).Errorf("Unable to retrieve equipment %d.", eid)
+			return err
+		}
+
+		producers.SpawnCharacterEquipDrop(l)(worldId, channelId, c.MapId(), ea.Data.Attributes.ItemId, eid, 0, ctd.X(), ctd.Y(), c.Id(), 0)
+		return nil
 	}
 }

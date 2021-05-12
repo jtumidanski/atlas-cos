@@ -29,6 +29,15 @@ func GetItemsForCharacter(db *gorm.DB, characterId uint32, inventoryType int8, i
 	return items, nil
 }
 
+func GetItemForCharacter(db *gorm.DB, characterId uint32, inventoryType int8, slot int16) (*Model, error) {
+	var results entity
+	err := db.Where(&entity{CharacterId: characterId, InventoryType: inventoryType, Slot: slot}).Find(&results).Error
+	if err != nil {
+		return nil, err
+	}
+	return makeItem(&results), nil
+}
+
 func GetForCharacterByInventory(db *gorm.DB, characterId uint32, inventoryType int8) ([]*Model, error) {
 	var results []entity
 	err := db.Where(&entity{CharacterId: characterId, InventoryType: inventoryType}).Find(&results).Error

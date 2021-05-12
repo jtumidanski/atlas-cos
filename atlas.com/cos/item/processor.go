@@ -25,6 +25,10 @@ func (p processor) GetItemsForCharacter(characterId uint32, inventoryType int8, 
 	return items
 }
 
+func (p processor) GetItemForCharacter(characterId uint32, inventoryType int8, slot int16) (*Model, error) {
+	return GetItemForCharacter(p.db, characterId, inventoryType, slot)
+}
+
 func (p processor) GetForCharacterByInventory(characterId uint32, inventoryType int8) ([]*Model, error) {
 	return GetForCharacterByInventory(p.db, characterId, inventoryType)
 }
@@ -143,5 +147,38 @@ func LoseItem(l log.FieldLogger, db *gorm.DB) func(characterId uint32, it int8, 
 			}
 		}
 		return nil
+	}
+}
+
+func DropItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) (uint32, error) {
+	return func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) (uint32, error) {
+		l.Debugf("Character %d dropping %d item in inventory %d slot %d.", characterId, quantity, inventoryType, slot)
+		i, err := Processor(l, db).GetItemForCharacter(characterId, inventoryType, slot)
+		if err != nil {
+			l.WithError(err).Errorf("Unable to retrieve item in slot %d being dropped.", slot)
+			return 0, err
+		}
+
+		if i.Quantity() <= uint32(quantity) {
+			err := Processor(l, db).RemoveItem(i.Id())
+			if err != nil {
+				l.WithError(err).Errorf("Could not remove item %d from character %d inventory.", i.Id(), characterId)
+				return 0, err
+			}
+			producers.InventoryModificationReservation(l, context.Background()).
+				Emit(characterId, true, 3, i.ItemId(), i.InventoryType(), uint32(quantity), i.Slot(), 0)
+		} else {
+			newQuantity := i.Quantity() - uint32(quantity)
+			err := Processor(l, db).UpdateItemQuantity(i.Id(), newQuantity)
+			if err != nil {
+				l.WithError(err).Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
+				return 0, err
+			} else {
+				producers.InventoryModificationReservation(l, context.Background()).
+					Emit(characterId, true, 1, i.ItemId(), i.InventoryType(), newQuantity, i.Slot(), 0)
+			}
+		}
+
+		return i.ItemId(), nil
 	}
 }

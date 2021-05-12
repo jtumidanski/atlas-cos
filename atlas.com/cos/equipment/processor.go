@@ -243,3 +243,65 @@ func GainItem(l log.FieldLogger, db *gorm.DB) func(characterId uint32, itemId ui
 		return nil
 	}
 }
+
+func DropEquippedItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
+	return func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
+		l.Debugf("Character %d dropping equipment in slot %d.", characterId, slot)
+		e, err := Processor(l, db).GetEquippedItemForCharacterBySlot(characterId, slot)
+		if err != nil {
+			l.WithError(err).Errorf("Unable to retrieve item in slot %d being dropped.", slot)
+			return 0, err
+		}
+
+		ea, err := requests.EquipmentRegistry().GetById(e.EquipmentId())
+		if err != nil {
+			l.WithError(err).Errorf("Unable to retrieve equipment %d.", e.EquipmentId())
+			return 0, err
+		}
+
+		err = RemoveItem(l, db)(characterId, e.Id())
+		if err != nil {
+			l.WithError(err).Errorf("Unable to remove item %d.", e.Id())
+			return 0, err
+		}
+
+		producers.InventoryModificationReservation(l, context.Background()).
+			Emit(characterId, true, 3, ea.Data.Attributes.ItemId, 1, 1, slot, 0)
+		return e.EquipmentId(), nil
+	}
+}
+
+func DropEquipment(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
+	return func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
+		l.Debugf("Character %d dropping equipment in slot %d.", characterId, slot)
+		e, err := Processor(l, db).GetEquippedItemForCharacterBySlot(characterId, slot)
+		if err != nil {
+			l.WithError(err).Errorf("Unable to retrieve item in slot %d being dropped.", slot)
+			return 0, err
+		}
+
+		ea, err := requests.EquipmentRegistry().GetById(e.EquipmentId())
+		if err != nil {
+			l.WithError(err).Errorf("Unable to retrieve equipment %d.", e.EquipmentId())
+			return 0, err
+		}
+
+		err = RemoveItem(l, db)(characterId, e.Id())
+		if err != nil {
+			l.WithError(err).Errorf("Unable to remove item %d.", e.Id())
+			return 0, err
+		}
+
+		producers.InventoryModificationReservation(l, context.Background()).
+			Emit(characterId, true, 3, ea.Data.Attributes.ItemId, 1, 1, slot, 0)
+
+		producers.CharacterUnEquippedItem(l)(characterId)
+		return e.EquipmentId(), nil
+	}
+}
+
+func RemoveItem(_ log.FieldLogger, db *gorm.DB) func(characterId uint32, id uint32) error {
+	return func(characterId uint32, id uint32) error {
+		return remove(db, characterId, id)
+	}
+}

@@ -27,6 +27,7 @@ func CreateEventConsumers(l *logrus.Logger, db *gorm.DB) {
 	cec("TOPIC_CHARACTER_GAIN_ITEM", GainItemCommandCreator(), HandleGainItemCommand(db))
 	cec("TOPIC_CHARACTER_ADJUST_JOB", AdjustJobCommandCreator(), HandleAdjustJobCommand(db))
 	cec("TOPIC_CHARACTER_RESET_AP", ResetAPCommandCreator(), HandleResetAPCommand(db))
+	cec("TOPIC_CHARACTER_DROP_ITEM", CharacterDropItemCommandCreator(), HandleCharacterDropItemCommand(db))
 }
 
 func createEventConsumer(l *logrus.Logger, topicToken string, emptyEventCreator EmptyEventCreator, processor EventProcessor) {
