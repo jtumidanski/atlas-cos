@@ -27,7 +27,7 @@ var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
 }
 
 func (p processor) AttemptPickup(characterId uint32, dropId uint32) {
-	c, err := character.Processor(p.l, p.db).GetById(characterId)
+	c, err := character.GetById(p.l, p.db)(characterId)
 	if err != nil {
 		p.l.WithError(err).Errorf("Attempting to pick up %d for character %d.", dropId, characterId)
 		return

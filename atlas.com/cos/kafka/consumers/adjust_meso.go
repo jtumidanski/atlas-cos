@@ -22,7 +22,7 @@ func HandleAdjustMesoCommand(db *gorm.DB) EventProcessor {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*adjustMesoCommand); ok {
 			l.Debugf("Begin event handling.")
-			character.Processor(l, db).AdjustMeso(event.CharacterId, event.Amount, event.Show)
+			character.AdjustMeso(l, db)(event.CharacterId, event.Amount, event.Show)
 			l.Debugf("Complete event handling.")
 		} else {
 			l.Errorf("Unable to cast event provided to handler")

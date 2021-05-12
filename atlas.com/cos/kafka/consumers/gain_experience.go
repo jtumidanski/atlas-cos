@@ -25,7 +25,7 @@ func HandleGainExperienceEvent(db *gorm.DB) EventProcessor {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*gainExperienceEvent); ok {
 			l.Debugf("Begin event handling.")
-			character.Processor(l, db).GainExperience(event.CharacterId, event.PersonalGain + event.PartyGain)
+			character.GainExperience(l, db)(event.CharacterId, event.PersonalGain + event.PartyGain)
 			l.Debugf("Complete event handling.")
 		} else {
 			l.Errorf("Unable to cast event provided to handler")

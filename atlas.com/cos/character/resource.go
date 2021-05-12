@@ -26,7 +26,7 @@ func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) http.HandlerFunc
 			return
 		}
 
-		cs, err := Processor(fl, db).GetForAccountInWorld(uint32(accountId), byte(worldId))
+		cs, err := GetForAccountInWorld(fl, db)(uint32(accountId), byte(worldId))
 		if err != nil {
 			fl.WithError(err).Errorf("Unable to get characters for account %d in world %d.", accountId, worldId)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -60,7 +60,7 @@ func GetCharactersByMap(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		cs, err := Processor(fl, db).GetForMapInWorld(byte(worldId), uint32(mapId))
+		cs, err := GetForMapInWorld(fl, db)(byte(worldId), uint32(mapId))
 		if err != nil {
 			fl.WithError(err).Errorf("Unable to get characters for map %d in world %d.", mapId, worldId)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -88,7 +88,7 @@ func GetCharactersByName(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		cs, err := Processor(fl, db).GetForName(name)
+		cs, err := GetForName(fl, db)(name)
 		if err != nil {
 			fl.WithError(err).Errorf("Getting character %s.", name)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -124,7 +124,7 @@ func GetCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		c, err := Processor(fl, db).GetById(uint32(characterId))
+		c, err := GetById(fl, db)(uint32(characterId))
 		if err != nil {
 			fl.WithError(err).Errorf("Getting character %d.", characterId)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -197,7 +197,7 @@ func GetCharacterDamage(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		damage := Processor(fl, db).GetMaximumBaseDamage(uint32(characterId))
+		damage := GetMaximumBaseDamage(fl, db)(uint32(characterId))
 
 		result := attributes.CharacterDamageDataContainer{
 			Data: attributes.CharacterDamageData{

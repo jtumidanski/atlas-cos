@@ -15,371 +15,415 @@ import (
 	"atlas-cos/skill/information"
 	"context"
 	"errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math"
 	"math/rand"
 )
-
-type processor struct {
-	l  log.FieldLogger
-	db *gorm.DB
-}
-
-var Processor = func(l log.FieldLogger, db *gorm.DB) *processor {
-	return &processor{l, db}
-}
 
 // characterFunc - Function which does something about the character, and returns whether or not further processing should continue.
 type characterFunc func(*Model) error
 
 // Returns a function which accepts a character model,and updates the persisted state of the character given a set of
 // modifying functions.
-func (p *processor) characterDatabaseUpdate(modifiers ...EntityUpdateFunction) characterFunc {
-	return func(c *Model) error {
-		if len(modifiers) > 0 {
-			err := Update(p.db, c.Id(), modifiers...)
-			if err != nil {
-				return err
+func characterDatabaseUpdate(_ logrus.FieldLogger, db *gorm.DB) func(modifiers ...EntityUpdateFunction) characterFunc {
+	return func(modifiers ...EntityUpdateFunction) characterFunc {
+		return func(c *Model) error {
+			if len(modifiers) > 0 {
+				err := Update(db, c.Id(), modifiers...)
+				if err != nil {
+					return err
+				}
 			}
+			return nil
 		}
-		return nil
 	}
 }
 
 // For the characterId, perform the updaterFunc, and if successful, call the successFunc, otherwise log an error.
-func (p *processor) characterUpdate(characterId uint32, functions ...characterFunc) {
-	c, err := GetById(p.db, characterId)
-	if err != nil {
-		p.l.WithError(err).Errorf("Unable to locate character %d for update.", characterId)
-		return
-	}
-
-	err = nil
-	for _, f := range functions {
-		err = f(c)
+func characterUpdate(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, functions ...characterFunc) {
+	return func(characterId uint32, functions ...characterFunc) {
+		c, err := GetById(l, db)(characterId)
 		if err != nil {
-			p.l.WithError(err).Errorln("Unable to complete character update.")
-			break
+			l.WithError(err).Errorf("Unable to locate character %d for update.", characterId)
+			return
+		}
+
+		err = nil
+		for _, f := range functions {
+			err = f(c)
+			if err != nil {
+				l.WithError(err).Errorln("Unable to complete character update.")
+				break
+			}
 		}
 	}
 }
 
 // AdjustHealth - Adjusts the Health statistic for a character, and emits a CharacterStatUpdateEvent when successful.
-func (p *processor) AdjustHealth(characterId uint32, amount int16) {
-	p.characterUpdate(characterId, p.persistHealthUpdate(amount), p.healthUpdateSuccess())
+func AdjustHealth(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, amount int16) {
+	return func(characterId uint32, amount int16) {
+		characterUpdate(l, db)(characterId, persistHealthUpdate(l, db)(amount), healthUpdateSuccess(l))
+	}
 }
 
 // Produces a function which persists a character health update, given the amount, respecting the MaxHP bound.
-func (p *processor) persistHealthUpdate(amount int16) characterFunc {
-	return func(c *Model) error {
-		adjustedAmount := p.enforceBounds(amount, c.HP(), c.MaxHP(), 0)
-		p.l.Debugf("Adjusting health of character %d by %d to %d.", c.Id(), amount, adjustedAmount)
-		return p.characterDatabaseUpdate(SetHealth(adjustedAmount))(c)
+func persistHealthUpdate(l logrus.FieldLogger, db *gorm.DB) func(amount int16) characterFunc {
+	return func(amount int16) characterFunc {
+		return func(c *Model) error {
+			adjustedAmount := enforceBounds(amount, c.HP(), c.MaxHP(), 0)
+			l.Debugf("Adjusting health of character %d by %d to %d.", c.Id(), amount, adjustedAmount)
+			return characterDatabaseUpdate(l, db)(SetHealth(adjustedAmount))(c)
+		}
 	}
 }
 
 // When a Health update is successful, emit a CharacterStatUpdateEvent.
-func (p *processor) healthUpdateSuccess() characterFunc {
-	return p.statisticUpdateSuccess("HP")
+func healthUpdateSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticUpdateSuccess(l)("HP")
 }
 
 // AdjustMana - Adjusts the Mana statistic for a character, and emits a CharacterStatUpdateEvent when successful.
-func (p *processor) AdjustMana(characterId uint32, amount int16) {
-	p.characterUpdate(characterId, p.persistManaUpdate(amount), p.manaUpdateSuccess())
-}
-
-// Produces a function which persists a character mana update, given the amount, respecting the MaxMP bound.
-func (p *processor) persistManaUpdate(amount int16) characterFunc {
-	return func(c *Model) error {
-		adjustedAmount := p.enforceBounds(amount, c.MP(), c.MaxMP(), 0)
-		p.l.Debugf("Adjusting mana of character %d by %d to %d.", c.Id(), amount, adjustedAmount)
-		return p.characterDatabaseUpdate(SetMana(adjustedAmount))(c)
+func AdjustMana(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, amount int16) {
+	return func(characterId uint32, amount int16) {
+		characterUpdate(l, db)(characterId, persistManaUpdate(l, db)(amount), manaUpdateSuccess(l))
 	}
 }
 
-func (p *processor) enforceBounds(change int16, current uint16, upperBound uint16, lowerBound uint16) uint16 {
+// Produces a function which persists a character mana update, given the amount, respecting the MaxMP bound.
+func persistManaUpdate(l logrus.FieldLogger, db *gorm.DB) func(amount int16) characterFunc {
+	return func(amount int16) characterFunc {
+		return func(c *Model) error {
+			adjustedAmount := enforceBounds(amount, c.MP(), c.MaxMP(), 0)
+			l.Debugf("Adjusting mana of character %d by %d to %d.", c.Id(), amount, adjustedAmount)
+			return characterDatabaseUpdate(l, db)(SetMana(adjustedAmount))(c)
+		}
+	}
+}
+
+func enforceBounds(change int16, current uint16, upperBound uint16, lowerBound uint16) uint16 {
 	var adjusted = int16(current) + change
 	return uint16(math.Min(math.Max(float64(adjusted), float64(lowerBound)), float64(upperBound)))
 }
 
 // When a Mana update is successful, emit a CharacterStatUpdateEvent.
-func (p *processor) manaUpdateSuccess() characterFunc {
-	return p.statisticUpdateSuccess("MP")
+func manaUpdateSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticUpdateSuccess(l)("MP")
 }
 
 // Produces a function which emits a CharacterStatUpdateEvent for the given characterId and statistic
-func (p *processor) statisticUpdateSuccess(statistic string) characterFunc {
-	return func(c *Model) error {
-		producers.CharacterStatUpdate(p.l, context.Background()).Emit(c.Id(), []string{statistic})
-		return nil
+func statisticUpdateSuccess(l logrus.FieldLogger) func(statistic string) characterFunc {
+	return func(statistic string) characterFunc {
+		return func(c *Model) error {
+			producers.CharacterStatUpdate(l, context.Background()).Emit(c.Id(), []string{statistic})
+			return nil
+		}
 	}
 }
 
 // Produces a function which emits a CharacterStatUpdateEvent for the given characterId and statistic
-func (p *processor) statisticsUpdateSuccess(statistics ...string) characterFunc {
-	return func(c *Model) error {
-		producers.CharacterStatUpdate(p.l, context.Background()).Emit(c.Id(), statistics)
-		return nil
+func statisticsUpdateSuccess(l logrus.FieldLogger) func(statistics ...string) characterFunc {
+	return func(statistics ...string) characterFunc {
+		return func(c *Model) error {
+			producers.CharacterStatUpdate(l, context.Background()).Emit(c.Id(), statistics)
+			return nil
+		}
 	}
 }
 
 // AdjustMeso - Adjusts the Meso count for a character, and emits a MesoGainedEvent when successful.
-func (p *processor) AdjustMeso(characterId uint32, amount int32, show bool) {
-	p.characterUpdate(characterId, p.persistMesoUpdate(amount), p.statisticUpdateSuccess("MESO"), p.mesoUpdateSuccess(amount, show))
+func AdjustMeso(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, amount int32, show bool) {
+	return func(characterId uint32, amount int32, show bool) {
+		characterUpdate(l, db)(characterId, persistMesoUpdate(l, db)(amount), statisticUpdateSuccess(l)("MESO"), mesoUpdateSuccess(l)(amount, show))
+	}
 }
 
 // Produces a function which persists a character meso update, given the amount.
-func (p *processor) persistMesoUpdate(amount int32) characterFunc {
-	return func(c *Model) error {
-		final := uint32(math.Max(0, float64(amount)+float64(c.Meso())))
-		p.l.Debugf("Adjusting meso of character %d by %d to %d.", c.Id(), amount, final)
-		return p.characterDatabaseUpdate(SetMeso(final))(c)
+func persistMesoUpdate(l logrus.FieldLogger, db *gorm.DB) func(amount int32) characterFunc {
+	return func(amount int32) characterFunc {
+		return func(c *Model) error {
+			final := uint32(math.Max(0, float64(amount)+float64(c.Meso())))
+			l.Debugf("Adjusting meso of character %d by %d to %d.", c.Id(), amount, final)
+			return characterDatabaseUpdate(l, db)(SetMeso(final))(c)
+		}
 	}
 }
 
 // Produces a function which emits a MesoGainedEvent for the given characterId and amount.
-func (p *processor) mesoUpdateSuccess(amount int32, show bool) characterFunc {
-	return func(c *Model) error {
-		if show {
-			producers.MesoGained(p.l, context.Background()).Emit(c.Id(), amount)
+func mesoUpdateSuccess(l logrus.FieldLogger) func(amount int32, show bool) characterFunc {
+	return func(amount int32, show bool) characterFunc {
+		return func(c *Model) error {
+			if show {
+				producers.MesoGained(l, context.Background()).Emit(c.Id(), amount)
+			}
+			return nil
 		}
-		return nil
 	}
 }
 
 // ChangeMap - Changes the map for a character in the database, updates the temporal position, and emits a MapChangedEvent when successful.
-func (p *processor) ChangeMap(characterId uint32, worldId byte, channelId byte, mapId uint32, portalId uint32) {
-	p.characterUpdate(characterId, p.performChangeMap(mapId, portalId), p.changeMapSuccess(worldId, channelId, mapId, portalId))
+func ChangeMap(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, worldId byte, channelId byte, mapId uint32, portalId uint32) {
+	return func(characterId uint32, worldId byte, channelId byte, mapId uint32, portalId uint32) {
+		characterUpdate(l, db)(characterId, performChangeMap(l, db)(mapId, portalId), changeMapSuccess(l)(worldId, channelId, mapId, portalId))
+	}
 }
 
 // Produces a function which persists a character map update, then updates the temporal position.
-func (p *processor) performChangeMap(mapId uint32, portalId uint32) characterFunc {
-	return func(c *Model) error {
-		err := p.characterDatabaseUpdate(SetMapId(mapId))(c)
-		if err != nil {
-			return err
+func performChangeMap(l logrus.FieldLogger, db *gorm.DB) func(mapId uint32, portalId uint32) characterFunc {
+	return func(mapId uint32, portalId uint32) characterFunc {
+		return func(c *Model) error {
+			err := characterDatabaseUpdate(l, db)(SetMapId(mapId))(c)
+			if err != nil {
+				return err
+			}
+			por, err := portal.Processor(l).GetMapPortalById(mapId, portalId)
+			if err != nil {
+				return err
+			}
+			GetTemporalRegistry().UpdatePosition(c.Id(), por.X(), por.Y())
+			return nil
 		}
-		por, err := portal.Processor(p.l).GetMapPortalById(mapId, portalId)
-		if err != nil {
-			return err
-		}
-		GetTemporalRegistry().UpdatePosition(c.Id(), por.X(), por.Y())
-		return nil
 	}
 }
 
 // Produces a function which emits a MapChangedEvent for the given characterId.
-func (p *processor) changeMapSuccess(worldId byte, channelId byte, mapId uint32, portalId uint32) characterFunc {
-	return func(c *Model) error {
-		producers.MapChanged(p.l, context.Background()).Emit(worldId, channelId, mapId, portalId, c.Id())
-		return nil
+func changeMapSuccess(l logrus.FieldLogger) func(worldId byte, channelId byte, mapId uint32, portalId uint32) characterFunc {
+	return func(worldId byte, channelId byte, mapId uint32, portalId uint32) characterFunc {
+		return func(c *Model) error {
+			producers.MapChanged(l, context.Background()).Emit(worldId, channelId, mapId, portalId, c.Id())
+			return nil
+		}
 	}
 }
 
 // GainExperience - Updates the character based on the experience gained, may trigger level updates depending on amount gained.
-func (p *processor) GainExperience(characterId uint32, amount uint32) {
-	p.characterUpdate(characterId, p.performGainExperience(amount))
-}
-
-func (p *processor) performGainExperience(amount uint32) characterFunc {
-	return func(c *Model) error {
-		p.gainExperience(c.Id(), c.Level(), c.MaxClassLevel(), c.Experience(), amount)
-		return nil
+func GainExperience(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, amount uint32) {
+	return func(characterId uint32, amount uint32) {
+		characterUpdate(l, db)(characterId, performGainExperience(l, db)(amount))
 	}
 }
 
-func (p *processor) gainExperience(characterId uint32, level byte, masterLevel byte, experience uint32, gain uint32) {
-	if level < masterLevel {
-		p.l.Debugf("Character %d received experience, and is not max level.", characterId)
-		maxNext := GetExperienceNeededForLevel(level)
-		toNext := maxNext - experience
-		p.l.Debugf("Character %d needs a total of %d experience for their level. They have %d, and gained %d.", characterId, maxNext, experience, gain)
-		if toNext <= gain {
-			p.l.Debugf("Character %d leveled. Set experience to 0 during the level, and perform level.", characterId)
-			p.setExperience(characterId, 0)
-			producers.CharacterLevel(p.l, context.Background()).Emit(characterId)
-			if gain-toNext > 0 {
-				p.l.Debugf("Character %d has %d experience left to process.", characterId, gain-toNext)
-				p.gainExperience(characterId, level+1, masterLevel, 0, gain-toNext)
+func performGainExperience(l logrus.FieldLogger, db *gorm.DB) func(amount uint32) characterFunc {
+	return func(amount uint32) characterFunc {
+		return func(c *Model) error {
+			gainExperience(l, db)(c.Id(), c.Level(), c.MaxClassLevel(), c.Experience(), amount)
+			return nil
+		}
+	}
+}
+
+func gainExperience(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, level byte, masterLevel byte, experience uint32, gain uint32) {
+	return func(characterId uint32, level byte, masterLevel byte, experience uint32, gain uint32) {
+		if level < masterLevel {
+			l.Debugf("Character %d received experience, and is not max level.", characterId)
+			maxNext := GetExperienceNeededForLevel(level)
+			toNext := maxNext - experience
+			l.Debugf("Character %d needs a total of %d experience for their level. They have %d, and gained %d.", characterId, maxNext, experience, gain)
+			if toNext <= gain {
+				l.Debugf("Character %d leveled. Set experience to 0 during the level, and perform level.", characterId)
+				setExperience(l, db)(characterId, 0)
+				producers.CharacterLevel(l, context.Background()).Emit(characterId)
+				if gain-toNext > 0 {
+					l.Debugf("Character %d has %d experience left to process.", characterId, gain-toNext)
+					gainExperience(l, db)(characterId, level+1, masterLevel, 0, gain-toNext)
+				}
+			} else {
+				l.Debugf("Character %d received less experience than what is needed to level.", characterId)
+				increaseExperience(l, db)(characterId, gain)
 			}
 		} else {
-			p.l.Debugf("Character %d received less experience than what is needed to level.", characterId)
-			p.increaseExperience(characterId, gain)
+			l.Debugf("Character %d received experience while at max level, retain 0 experience.", characterId)
+			setExperience(l, db)(characterId, 0)
 		}
-	} else {
-		p.l.Debugf("Character %d received experience while at max level, retain 0 experience.", characterId)
-		p.setExperience(characterId, 0)
 	}
 }
 
-func (p *processor) persistSetExperience(experience uint32) characterFunc {
-	return func(c *Model) error {
-		p.l.Debugf("Setting character %d experience to %d from %d.", c.Id(), experience, c.Experience())
-		return p.characterDatabaseUpdate(SetExperience(experience))(c)
+func persistSetExperience(l logrus.FieldLogger, db *gorm.DB) func(experience uint32) characterFunc {
+	return func(experience uint32) characterFunc {
+		return func(c *Model) error {
+			l.Debugf("Setting character %d experience to %d from %d.", c.Id(), experience, c.Experience())
+			return characterDatabaseUpdate(l, db)(SetExperience(experience))(c)
+		}
 	}
 }
 
-func (p *processor) experienceChangeSuccess() characterFunc {
-	return p.statisticUpdateSuccess("EXPERIENCE")
+func experienceChangeSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticUpdateSuccess(l)("EXPERIENCE")
 }
 
-func (p *processor) setExperience(characterId uint32, experience uint32) {
-	p.characterUpdate(characterId, p.persistSetExperience(experience), p.experienceChangeSuccess())
-}
-
-func (p *processor) persistIncreaseExperience(experience uint32) characterFunc {
-	return func(c *Model) error {
-		p.l.Debugf("Increasing character %d experience by %d to %d.", c.Id(), experience, experience+c.Experience())
-		return p.characterDatabaseUpdate(SetExperience(experience + c.Experience()))(c)
+func setExperience(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, experience uint32) {
+	return func(characterId uint32, experience uint32) {
+		characterUpdate(l, db)(characterId, persistSetExperience(l, db)(experience), experienceChangeSuccess(l))
 	}
 }
 
-func (p *processor) increaseExperience(characterId uint32, gain uint32) {
-	p.characterUpdate(characterId, p.persistIncreaseExperience(gain), p.experienceChangeSuccess())
+func persistIncreaseExperience(l logrus.FieldLogger, db *gorm.DB) func(experience uint32) characterFunc {
+	return func(experience uint32) characterFunc {
+		return func(c *Model) error {
+			l.Debugf("Increasing character %d experience by %d to %d.", c.Id(), experience, experience+c.Experience())
+			return characterDatabaseUpdate(l, db)(SetExperience(experience + c.Experience()))(c)
+		}
+	}
 }
 
-func (p *processor) MoveCharacter(characterId uint32, x int16, y int16, stance byte) {
-	p.characterUpdate(characterId, p.updateTemporalPosition(x, y, stance), p.updateSpawnPoint(x, y))
+func increaseExperience(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, gain uint32) {
+	return func(characterId uint32, gain uint32) {
+		characterUpdate(l, db)(characterId, persistIncreaseExperience(l, db)(gain), experienceChangeSuccess(l))
+	}
 }
 
-func (p *processor) updateTemporalPosition(x int16, y int16, stance byte) characterFunc {
+func MoveCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, x int16, y int16, stance byte) {
+	return func(characterId uint32, x int16, y int16, stance byte) {
+		characterUpdate(l, db)(characterId, updateTemporalPosition(x, y, stance), updateSpawnPoint(l, db)(x, y))
+	}
+}
+
+func updateTemporalPosition(x int16, y int16, stance byte) characterFunc {
 	return func(c *Model) error {
 		GetTemporalRegistry().Update(c.Id(), x, y, stance)
 		return nil
 	}
 }
 
-func (p *processor) updateSpawnPoint(x int16, y int16) characterFunc {
-	return func(c *Model) error {
-		sp, err := _map.Processor(p.l).FindClosestSpawnPoint(c.MapId(), x, y)
-		if err != nil {
-			return err
+func updateSpawnPoint(l logrus.FieldLogger, db *gorm.DB) func(x int16, y int16) characterFunc {
+	return func(x int16, y int16) characterFunc {
+		return func(c *Model) error {
+			sp, err := _map.Processor(l).FindClosestSpawnPoint(c.MapId(), x, y)
+			if err != nil {
+				return err
+			}
+			return characterDatabaseUpdate(l, db)(UpdateSpawnPoint(sp.Id()))(c)
 		}
-		return p.characterDatabaseUpdate(UpdateSpawnPoint(sp.Id()))(c)
 	}
 }
 
-func (p *processor) UpdateStance(characterId uint32, stance byte) {
-	p.characterUpdate(characterId, p.updateStance(stance))
+func UpdateStance(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, stance byte) {
+	return func(characterId uint32, stance byte) {
+		characterUpdate(l, db)(characterId, updateStance(stance))
+	}
 }
 
-func (p *processor) updateStance(stance byte) characterFunc {
+func updateStance(stance byte) characterFunc {
 	return func(c *Model) error {
 		GetTemporalRegistry().UpdateStance(c.Id(), stance)
 		return nil
 	}
 }
 
-func (p *processor) GetById(characterId uint32) (*Model, error) {
-	return GetById(p.db, characterId)
-}
-
-func (p *processor) InMap(characterId uint32, mapId uint32) bool {
-	c, err := p.GetById(characterId)
-	if err != nil {
-		p.l.WithError(err).Errorf("Unable to validate character %d is in map %d. Assuming not.", characterId, mapId)
-		return false
+func GetById(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) (*Model, error) {
+	return func(characterId uint32) (*Model, error) {
+		return getById(db, characterId)
 	}
-	return c.MapId() == mapId
 }
 
-func (p *processor) outOfRange(new uint16, change uint16) bool {
+func outOfRange(new uint16, change uint16) bool {
 	return new < 4 && change != 0 || new > configuration.Get().MaxAp
 }
 
-func (p *processor) persistAttributeUpdate(getter func(*Model) uint16, modifierGetter func(uint16, uint16) []EntityUpdateFunction) characterFunc {
-	return func(c *Model) error {
-		value := getter(c) + 1
-		if p.outOfRange(value, 1) {
-			return nil
+func persistAttributeUpdate(l logrus.FieldLogger, db *gorm.DB) func(getter func(*Model) uint16, modifierGetter func(uint16, uint16) []EntityUpdateFunction) characterFunc {
+	return func(getter func(*Model) uint16, modifierGetter func(uint16, uint16) []EntityUpdateFunction) characterFunc {
+		return func(c *Model) error {
+			value := getter(c) + 1
+			if outOfRange(value, 1) {
+				return nil
+			}
+			return characterDatabaseUpdate(l, db)(modifierGetter(value, c.AP()-1)...)(c)
 		}
-		return p.characterDatabaseUpdate(modifierGetter(value, c.AP()-1)...)(c)
 	}
 }
 
-func (p *processor) AssignStrength(characterId uint32) {
-	p.characterUpdate(characterId, p.persistStrengthUpdate(), p.strengthUpdateSuccess())
+func AssignStrength(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) {
+	return func(characterId uint32) {
+		characterUpdate(l, db)(characterId, persistStrengthUpdate(l, db), strengthUpdateSuccess(l))
+	}
 }
 
-func (p *processor) persistStrengthUpdate() characterFunc {
-	return p.persistAttributeUpdate((*Model).Strength, SpendOnStrength)
+func persistStrengthUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
+	return persistAttributeUpdate(l, db)((*Model).Strength, SpendOnStrength)
 }
 
-func (p *processor) strengthUpdateSuccess() characterFunc {
-	return p.statisticsUpdateSuccess("STRENGTH", "AVAILABLE_AP")
+func strengthUpdateSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticsUpdateSuccess(l)("STRENGTH", "AVAILABLE_AP")
 }
 
-func (p *processor) AssignDexterity(characterId uint32) {
-	p.characterUpdate(characterId, p.persistDexterityUpdate(), p.dexterityUpdateSuccess())
+func AssignDexterity(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) {
+	return func(characterId uint32) {
+		characterUpdate(l, db)(characterId, persistDexterityUpdate(l, db), dexterityUpdateSuccess(l))
+	}
 }
 
-func (p *processor) persistDexterityUpdate() characterFunc {
-	return p.persistAttributeUpdate((*Model).Dexterity, SpendOnDexterity)
+func persistDexterityUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
+	return persistAttributeUpdate(l, db)((*Model).Dexterity, SpendOnDexterity)
 }
 
-func (p *processor) dexterityUpdateSuccess() characterFunc {
-	return p.statisticsUpdateSuccess("DEXTERITY", "AVAILABLE_AP")
+func dexterityUpdateSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticsUpdateSuccess(l)("DEXTERITY", "AVAILABLE_AP")
 }
 
-func (p *processor) AssignIntelligence(characterId uint32) {
-	p.characterUpdate(characterId, p.persistIntelligenceUpdate(), p.intelligenceUpdateSuccess())
+func AssignIntelligence(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) {
+	return func(characterId uint32) {
+		characterUpdate(l, db)(characterId, persistIntelligenceUpdate(l, db), intelligenceUpdateSuccess(l))
+	}
 }
 
-func (p *processor) persistIntelligenceUpdate() characterFunc {
-	return p.persistAttributeUpdate((*Model).Intelligence, SpendOnIntelligence)
+func persistIntelligenceUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
+	return persistAttributeUpdate(l, db)((*Model).Intelligence, SpendOnIntelligence)
 }
 
-func (p *processor) intelligenceUpdateSuccess() characterFunc {
-	return p.statisticsUpdateSuccess("INTELLIGENCE", "AVAILABLE_AP")
+func intelligenceUpdateSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticsUpdateSuccess(l)("INTELLIGENCE", "AVAILABLE_AP")
 }
 
-func (p *processor) AssignLuck(characterId uint32) {
-	p.characterUpdate(characterId, p.persistLuckUpdate(), p.luckUpdateSuccess())
+func AssignLuck(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) {
+	return func(characterId uint32) {
+		characterUpdate(l, db)(characterId, persistLuckUpdate(l, db), luckUpdateSuccess(l))
+	}
 }
 
-func (p *processor) persistLuckUpdate() characterFunc {
-	return p.persistAttributeUpdate((*Model).Luck, SpendOnLuck)
+func persistLuckUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
+	return persistAttributeUpdate(l, db)((*Model).Luck, SpendOnLuck)
 }
 
-func (p *processor) luckUpdateSuccess() characterFunc {
-	return p.statisticsUpdateSuccess("LUCK", "AVAILABLE_AP")
+func luckUpdateSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticsUpdateSuccess(l)("LUCK", "AVAILABLE_AP")
 }
 
-func (p *processor) AssignHp(characterId uint32) {
-	p.characterUpdate(characterId, p.persistHpUpdate(), p.hpUpdateSuccess())
+func AssignHp(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) {
+	return func(characterId uint32) {
+		characterUpdate(l, db)(characterId, persistHpUpdate(l, db), hpUpdateSuccess(l))
+	}
 }
 
-func (p *processor) persistHpUpdate() characterFunc {
+func persistHpUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
 	return func(c *Model) error {
-		adjustedHP := p.calculateHPChange(c, false)
-		return p.characterDatabaseUpdate(SetMaxHP(adjustedHP))(c)
+		adjustedHP := calculateHPChange(c, false)
+		return characterDatabaseUpdate(l, db)(SetMaxHP(adjustedHP))(c)
 	}
 }
 
-func (p *processor) calculateHPChange(c *Model, usedAPReset bool) uint16 {
+func calculateHPChange(c *Model, usedAPReset bool) uint16 {
 	var maxHP uint16 = 0
 	if job.IsA(c.JobId(), job.Warrior, job.DawnWarrior1) {
 		//TODO apply IMPROVED HP INCREASE OR IMPROVED MAX HP
-		maxHP = p.adjustHPMPGain(usedAPReset, maxHP, 20, 22, 18, 18, 20)
+		maxHP = adjustHPMPGain(usedAPReset, maxHP, 20, 22, 18, 18, 20)
 	} else if job.IsA(c.JobId(), job.Aran1) {
-		maxHP = p.adjustHPMPGain(usedAPReset, maxHP, 20, 30, 26, 26, 28)
+		maxHP = adjustHPMPGain(usedAPReset, maxHP, 20, 30, 26, 26, 28)
 	} else if job.IsA(c.JobId(), job.Magician, job.BlazeWizard1) {
-		maxHP = p.adjustHPMPGain(usedAPReset, maxHP, 6, 9, 5, 5, 6)
+		maxHP = adjustHPMPGain(usedAPReset, maxHP, 6, 9, 5, 5, 6)
 	} else if job.IsA(c.JobId(), job.Thief, job.NightWalker1) {
-		maxHP = p.adjustHPMPGain(usedAPReset, maxHP, 16, 18, 14, 14, 16)
+		maxHP = adjustHPMPGain(usedAPReset, maxHP, 16, 18, 14, 14, 16)
 	} else if job.IsA(c.JobId(), job.Bowman, job.WindArcher1) {
-		maxHP = p.adjustHPMPGain(usedAPReset, maxHP, 16, 18, 14, 14, 16)
+		maxHP = adjustHPMPGain(usedAPReset, maxHP, 16, 18, 14, 14, 16)
 	} else if job.IsA(c.JobId(), job.Pirate, job.ThunderBreaker1) {
 		//TODO apply IMPROVE HP INCREASE OR IMPROVE MAX HP
-		maxHP = p.adjustHPMPGain(usedAPReset, maxHP, 18, 20, 16, 16, 18)
+		maxHP = adjustHPMPGain(usedAPReset, maxHP, 18, 20, 16, 16, 18)
 	} else {
-		maxHP = p.adjustHPMPGain(usedAPReset, maxHP, 8, 12, 8, 8, 10)
+		maxHP = adjustHPMPGain(usedAPReset, maxHP, 8, 12, 8, 8, 10)
 	}
 	return maxHP
 }
 
-func (p *processor) adjustHPMPGain(usedAPReset bool, maxHP uint16, apResetAmount uint16, upperBound uint16, lowerBound uint16, floor uint16, staticAmount uint16) uint16 {
+func adjustHPMPGain(usedAPReset bool, maxHP uint16, apResetAmount uint16, upperBound uint16, lowerBound uint16, floor uint16, staticAmount uint16) uint16 {
 	if configuration.Get().UseRandomizeHpMpGain {
 		if usedAPReset {
 			maxHP = maxHP + apResetAmount
@@ -392,97 +436,112 @@ func (p *processor) adjustHPMPGain(usedAPReset bool, maxHP uint16, apResetAmount
 	return maxHP
 }
 
-func (p *processor) hpUpdateSuccess() characterFunc {
-	return p.statisticsUpdateSuccess("MAX_HP")
+func hpUpdateSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticsUpdateSuccess(l)("MAX_HP")
 }
 
-func (p *processor) AssignMp(characterId uint32) {
-	p.characterUpdate(characterId, p.persistMpUpdate(), p.mpUpdateSuccess())
-}
-
-func (p *processor) persistMpUpdate() characterFunc {
-	return func(c *Model) error {
-		adjustedMP := p.calculateMPChange(c, false)
-		return p.characterDatabaseUpdate(SetMaxMP(adjustedMP))(c)
+func AssignMp(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) {
+	return func(characterId uint32) {
+		characterUpdate(l, db)(characterId, persistMpUpdate(l, db), mpUpdateSuccess(l))
 	}
 }
 
-func (p *processor) calculateMPChange(c *Model, usedAPReset bool) uint16 {
+func persistMpUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
+	return func(c *Model) error {
+		adjustedMP := calculateMPChange(c, false)
+		return characterDatabaseUpdate(l, db)(SetMaxMP(adjustedMP))(c)
+	}
+}
+
+func calculateMPChange(c *Model, usedAPReset bool) uint16 {
 	jobId := c.JobId()
 	var maxMP uint16 = 0
 
 	if job.IsA(jobId, job.Warrior, job.DawnWarrior1, job.Aran1) {
-		maxMP = p.adjustHPMPGain(usedAPReset, maxMP, 2, 4, 2, c.Intelligence()/10, 3)
+		maxMP = adjustHPMPGain(usedAPReset, maxMP, 2, 4, 2, c.Intelligence()/10, 3)
 	} else if job.IsA(jobId, job.Magician, job.BlazeWizard1) {
 		//TODO apply IMPROVED MP INCREASE OR IMPROVED MAX MP
-		maxMP = p.adjustHPMPGain(usedAPReset, maxMP, 18, 16, 12, c.Intelligence()/20, 18)
+		maxMP = adjustHPMPGain(usedAPReset, maxMP, 18, 16, 12, c.Intelligence()/20, 18)
 	} else if job.IsA(jobId, job.Thief, job.NightWalker1) {
-		maxMP = p.adjustHPMPGain(usedAPReset, maxMP, 10, 8, 6, c.Intelligence()/10, 10)
+		maxMP = adjustHPMPGain(usedAPReset, maxMP, 10, 8, 6, c.Intelligence()/10, 10)
 	} else if job.IsA(jobId, job.Bowman, job.WindArcher1) {
-		maxMP = p.adjustHPMPGain(usedAPReset, maxMP, 10, 8, 6, c.Intelligence()/10, 10)
+		maxMP = adjustHPMPGain(usedAPReset, maxMP, 10, 8, 6, c.Intelligence()/10, 10)
 	} else if job.IsA(jobId, job.Pirate, job.ThunderBreaker1) {
-		maxMP = p.adjustHPMPGain(usedAPReset, maxMP, 14, 9, 7, c.Intelligence()/10, 14)
+		maxMP = adjustHPMPGain(usedAPReset, maxMP, 14, 9, 7, c.Intelligence()/10, 14)
 	} else {
-		maxMP = p.adjustHPMPGain(usedAPReset, maxMP, 6, 6, 4, c.Intelligence()/10, 6)
+		maxMP = adjustHPMPGain(usedAPReset, maxMP, 6, 6, 4, c.Intelligence()/10, 6)
 	}
 	return maxMP
 }
 
-func (p *processor) mpUpdateSuccess() characterFunc {
-	return p.statisticsUpdateSuccess("MAX_MP")
+func mpUpdateSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticsUpdateSuccess(l)("MAX_MP")
 }
 
-func (p *processor) TotalIntelligence(c *Model) uint16 {
-	return p.totalStat(*c, (*Model).Intelligence, (*statistics.Model).Intelligence)
-}
-
-func (p *processor) TotalDexterity(c *Model) uint16 {
-	return p.totalStat(*c, (*Model).Dexterity, (*statistics.Model).Dexterity)
-}
-
-func (p *processor) TotalStrength(c *Model) uint16 {
-	return p.totalStat(*c, (*Model).Strength, (*statistics.Model).Strength)
-}
-
-func (p *processor) TotalLuck(c *Model) uint16 {
-	return p.totalStat(*c, (*Model).Luck, (*statistics.Model).Luck)
-}
-
-func (p *processor) totalStat(c Model, baseGetter func(*Model) uint16, equipGetter func(*statistics.Model) uint16) uint16 {
-	value := baseGetter(&c)
-
-	//TODO apply MapleWarrior
-
-	equips, err := equipment.Processor(p.l, p.db).GetEquipmentForCharacter(c.Id())
-	if err != nil {
-		p.l.WithError(err).Errorf("Unable to retrieve equipment for character %d.", c.Id())
+func TotalIntelligence(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint16 {
+	return func(c *Model) uint16 {
+		return totalStat(l, db)(*c, (*Model).Intelligence, (*statistics.Model).Intelligence)
 	}
-	for _, equip := range equips {
-		es, err := statistics.Processor(p.l, p.db).GetEquipmentStatistics(equip.EquipmentId())
+}
+
+func TotalDexterity(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint16 {
+	return func(c *Model) uint16 {
+		return totalStat(l, db)(*c, (*Model).Dexterity, (*statistics.Model).Dexterity)
+	}
+}
+
+func TotalStrength(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint16 {
+	return func(c *Model) uint16 {
+		return totalStat(l, db)(*c, (*Model).Strength, (*statistics.Model).Strength)
+	}
+}
+
+func TotalLuck(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint16 {
+	return func(c *Model) uint16 {
+		return totalStat(l, db)(*c, (*Model).Luck, (*statistics.Model).Luck)
+	}
+}
+
+func totalStat(l logrus.FieldLogger, db *gorm.DB) func(c Model, baseGetter func(*Model) uint16, equipGetter func(*statistics.Model) uint16) uint16 {
+	return func(c Model, baseGetter func(*Model) uint16, equipGetter func(*statistics.Model) uint16) uint16 {
+		value := baseGetter(&c)
+
+		//TODO apply MapleWarrior
+
+		equips, err := equipment.Processor(l, db).GetEquipmentForCharacter(c.Id())
 		if err != nil {
-			p.l.WithError(err).Errorf("Unable to retrieve statistics for equipment %d.", equip.EquipmentId())
-		} else {
-			value += equipGetter(es)
+			l.WithError(err).Errorf("Unable to retrieve equipment for character %d.", c.Id())
 		}
+		for _, equip := range equips {
+			es, err := statistics.Processor(l, db).GetEquipmentStatistics(equip.EquipmentId())
+			if err != nil {
+				l.WithError(err).Errorf("Unable to retrieve statistics for equipment %d.", equip.EquipmentId())
+			} else {
+				value += equipGetter(es)
+			}
+		}
+		return value
 	}
-	return value
 }
 
-func (p *processor) GainLevel(characterId uint32) {
-	p.characterUpdate(characterId, p.persistLevelUpdate(), p.levelUpdateSuccess())
+func GainLevel(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) {
+	return func(characterId uint32) {
+		characterUpdate(l, db)(characterId, persistLevelUpdate(l, db), levelUpdateSuccess(l))
+	}
 }
 
-func (p *processor) persistLevelUpdate() characterFunc {
+func persistLevelUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
 	return func(c *Model) error {
 		var modifiers = make([]EntityUpdateFunction, 0)
 		modifiers = append(modifiers, SetLevel(c.Level()+1))
-		modifiers = append(modifiers, p.onLevelAdjustAP(c)...)
-		modifiers = append(modifiers, p.onLevelAdjustHealthAndMana(c)...)
-		return p.characterDatabaseUpdate(modifiers...)(c)
+		modifiers = append(modifiers, onLevelAdjustAP(c)...)
+		modifiers = append(modifiers, onLevelAdjustSP(c)...)
+		modifiers = append(modifiers, onLevelAdjustHealthAndMana(l, db)(c)...)
+		return characterDatabaseUpdate(l, db)(modifiers...)(c)
 	}
 }
 
-func (p *processor) onLevelAdjustAP(c *Model) []EntityUpdateFunction {
+func onLevelAdjustAP(c *Model) []EntityUpdateFunction {
 	var modifiers = make([]EntityUpdateFunction, 0)
 	autoAssignStarterAp := configuration.Get().UseAutoAssignStartersAp
 	if autoAssignStarterAp && c.IsBeginner() && c.Level() <= 10 {
@@ -506,143 +565,164 @@ func (p *processor) onLevelAdjustAP(c *Model) []EntityUpdateFunction {
 	return modifiers
 }
 
+func onLevelAdjustSP(c *Model) []EntityUpdateFunction {
+	var modifiers = make([]EntityUpdateFunction, 0)
+	if c.IsBeginner() {
+		return modifiers
+	}
+
+	//TODO account for Evan like SP.
+	modifiers = append(modifiers, SetSP(c.SP(0)+3, 0))
+	return modifiers
+}
+
 func randRange(lowerBound uint16, upperBound uint16) uint16 {
 	return uint16(rand.Int31n(int32(upperBound-lowerBound))) + lowerBound
 }
 
-func (p *processor) onLevelAdjustHealthAndMana(c *Model) []EntityUpdateFunction {
-	var modifiers = make([]EntityUpdateFunction, 0)
-	hp := c.HP()
-	mp := c.MP()
-	if c.IsBeginner() {
-		hp += randRange(12, 16)
-		mp += randRange(10, 12)
-	} else if job.IsA(c.JobId(), job.Warrior, job.DawnWarrior1) {
-		//TODO process DawnWarrior.MAX_HP_INCREASE : Warrior.IMPROVED_MAX_HP
-		hp += randRange(24, 28)
-		mp += randRange(4, 6)
-	} else if job.IsA(c.JobId(), job.Magician, job.BlazeWizard1) {
-		//TODO process BlazeWizard.INCREASING_MAX_MP : Magician.IMPROVED_MAX_MP_INCREASE
-		hp += randRange(10, 14)
-		mp += randRange(22, 24)
-	} else if job.IsA(c.JobId(), job.Bowman, job.WindArcher1, job.Thief, job.NightWalker1) {
-		hp += randRange(20, 24)
-		mp += randRange(14, 16)
-	} else if job.IsA(c.JobId(), job.GM) {
-		hp += 30000
-		mp += 30000
-	} else if job.IsA(c.JobId(), job.Pirate, job.ThunderBreaker1) {
-		//TODO process ThunderBreaker.IMPROVE_MAX_HP : Brawler.IMPROVE_MAX_HP
-		hp += randRange(22, 28)
-		mp += randRange(18, 23)
-	} else if job.IsA(c.JobId(), job.Aran1) {
-		mpSeed := rand.Int31n(8-4) + 4
-		hp += randRange(44, 48)
-		mp += uint16(mpSeed) + uint16(math.Floor(float64(mpSeed)*0.1))
-	}
-
-	if configuration.Get().UseRandomizeHpMpGain {
-		if job.GetJobStyle(c.JobId(), c.Strength(), c.Dexterity()) == job.Magician {
-			mp += p.TotalIntelligence(c) / 20
-		} else {
-			mp += p.TotalIntelligence(c) / 10
+func onLevelAdjustHealthAndMana(l logrus.FieldLogger, db *gorm.DB) func(c *Model) []EntityUpdateFunction {
+	return func(c *Model) []EntityUpdateFunction {
+		var modifiers = make([]EntityUpdateFunction, 0)
+		hp := c.HP()
+		mp := c.MP()
+		if c.IsBeginner() {
+			hp += randRange(12, 16)
+			mp += randRange(10, 12)
+		} else if job.IsA(c.JobId(), job.Warrior, job.DawnWarrior1) {
+			//TODO process DawnWarrior.MAX_HP_INCREASE : Warrior.IMPROVED_MAX_HP
+			hp += randRange(24, 28)
+			mp += randRange(4, 6)
+		} else if job.IsA(c.JobId(), job.Magician, job.BlazeWizard1) {
+			//TODO process BlazeWizard.INCREASING_MAX_MP : Magician.IMPROVED_MAX_MP_INCREASE
+			hp += randRange(10, 14)
+			mp += randRange(22, 24)
+		} else if job.IsA(c.JobId(), job.Bowman, job.WindArcher1, job.Thief, job.NightWalker1) {
+			hp += randRange(20, 24)
+			mp += randRange(14, 16)
+		} else if job.IsA(c.JobId(), job.GM) {
+			hp += 30000
+			mp += 30000
+		} else if job.IsA(c.JobId(), job.Pirate, job.ThunderBreaker1) {
+			//TODO process ThunderBreaker.IMPROVE_MAX_HP : Brawler.IMPROVE_MAX_HP
+			hp += randRange(22, 28)
+			mp += randRange(18, 23)
+		} else if job.IsA(c.JobId(), job.Aran1) {
+			mpSeed := rand.Int31n(8-4) + 4
+			hp += randRange(44, 48)
+			mp += uint16(mpSeed) + uint16(math.Floor(float64(mpSeed)*0.1))
 		}
-	}
-	modifiers = append(modifiers, SetHealth(hp), SetMana(mp), SetMaxHP(hp), SetMaxMP(mp))
-	return modifiers
-}
 
-func (p *processor) levelUpdateSuccess() characterFunc {
-	return p.statisticsUpdateSuccess("EXPERIENCE", "LEVEL", "AVAILABLE_AP", "HP", "MP", "MAX_HP", "MAX_MP", "STRENGTH", "DEXTERITY", "LUCK", "INTELLIGENCE")
-}
-
-func (p *processor) AssignSP(characterId uint32, skillId uint32) {
-	p.characterUpdate(characterId, p.assignSP(skillId))
-}
-
-func (p *processor) assignSP(skillId uint32) characterFunc {
-	return func(c *Model) error {
-		if s, ok := skill.Processor(p.l, p.db).GetSkill(c.Id(), skillId); ok {
-			skillBookId := skill.GetSkillBook(skillId / 10000)
-			remainingSP := c.SP(int(skillBookId))
-
-			beginnerSkill := false
-			if skillId%10000000 > 999 && skillId%10000000 < 1003 {
-				total := uint32(0)
-				for i := uint32(0); i < 3; i++ {
-					if bs, ok := skill.Processor(p.l, p.db).GetSkill(c.Id(), uint32(c.JobType())*10000000+1000+i); ok {
-						total += bs.Level()
-					}
-				}
-				remainingSP = uint32(math.Min(float64(c.Level()-1), 6)) - total
-				beginnerSkill = true
-				p.l.Debugf("Skill %d was identified as a beginner skill.", skillId)
-			}
-
-			skillMaxLevel := uint32(20)
-			if si, ok := information.Processor(p.l, p.db).GetSkillInformation(skillId); ok {
-				skillMaxLevel = uint32(len(si.Effects()))
-			}
-			var maxLevel = uint32(0)
-			if skill.IsFourthJob(c.JobId(), skillId) {
-				maxLevel = s.MasterLevel()
+		if configuration.Get().UseRandomizeHpMpGain {
+			if job.GetJobStyle(c.JobId(), c.Strength(), c.Dexterity()) == job.Magician {
+				mp += TotalIntelligence(l, db)(c) / 20
 			} else {
-				maxLevel = skillMaxLevel
+				mp += TotalIntelligence(l, db)(c) / 10
 			}
+		}
+		modifiers = append(modifiers, SetHealth(hp), SetMana(mp), SetMaxHP(hp), SetMaxMP(mp))
+		return modifiers
+	}
+}
 
-			if remainingSP <= 0 {
-				p.l.Debugf("Skill %d update for character %d skipped. Needs more SP.")
-				return nil
-			}
+func levelUpdateSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticsUpdateSuccess(l)("EXPERIENCE", "LEVEL", "AVAILABLE_AP", "AVAILABLE_SP", "HP", "MP", "MAX_HP", "MAX_MP", "STRENGTH", "DEXTERITY", "LUCK", "INTELLIGENCE")
+}
 
-			if s.Level()+1 > maxLevel {
-				p.l.Debugf("Skill %d update for character %d skipped. Increasing level would push above max level.")
-				return nil
-			}
+func AssignSP(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillId uint32) {
+	return func(characterId uint32, skillId uint32) {
+		characterUpdate(l, db)(characterId, assignSP(l, db)(skillId))
+	}
+}
 
-			if !beginnerSkill {
-				err := p.adjustSP(c, -1, skillBookId)
+func assignSP(l logrus.FieldLogger, db *gorm.DB) func(skillId uint32) characterFunc {
+	return func(skillId uint32) characterFunc {
+		return func(c *Model) error {
+			if s, ok := skill.Processor(l, db).GetSkill(c.Id(), skillId); ok {
+				skillBookId := skill.GetSkillBook(skillId / 10000)
+				remainingSP := c.SP(int(skillBookId))
+
+				beginnerSkill := false
+				if skillId%10000000 > 999 && skillId%10000000 < 1003 {
+					total := uint32(0)
+					for i := uint32(0); i < 3; i++ {
+						if bs, ok := skill.Processor(l, db).GetSkill(c.Id(), uint32(c.JobType())*10000000+1000+i); ok {
+							total += bs.Level()
+						}
+					}
+					remainingSP = uint32(math.Min(float64(c.Level()-1), 6)) - total
+					beginnerSkill = true
+					l.Debugf("Skill %d was identified as a beginner skill.", skillId)
+				}
+
+				skillMaxLevel := uint32(20)
+				if si, ok := information.Processor(l, db).GetSkillInformation(skillId); ok {
+					skillMaxLevel = uint32(len(si.Effects()))
+				}
+				var maxLevel = uint32(0)
+				if skill.IsFourthJob(c.JobId(), skillId) {
+					maxLevel = s.MasterLevel()
+				} else {
+					maxLevel = skillMaxLevel
+				}
+
+				if remainingSP <= 0 {
+					l.Debugf("Skill %d update for character %d skipped. Needs more SP.")
+					return nil
+				}
+
+				if s.Level()+1 > maxLevel {
+					l.Debugf("Skill %d update for character %d skipped. Increasing level would push above max level.")
+					return nil
+				}
+
+				if !beginnerSkill {
+					err := adjustSP(l, db)(c, -1, skillBookId)
+					if err != nil {
+						return err
+					}
+				} else {
+					producers.EnableActions(l, context.Background()).Emit(c.Id())
+				}
+
+				//TODO special handling for aran full swing and over swing.
+				err := skill.Processor(l, db).UpdateSkill(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
 				if err != nil {
 					return err
 				}
+				producers.CharacterSkillUpdate(l, context.Background()).Emit(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
 			} else {
-				producers.EnableActions(p.l, context.Background()).Emit(c.Id())
+				l.Warnf("Received a skill %d assignment for character %d who does not have the skill.", skillId, c.Id())
 			}
-
-			//TODO special handling for aran full swing and over swing.
-			err := skill.Processor(p.l, p.db).UpdateSkill(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
-			if err != nil {
-				return err
-			}
-			producers.CharacterSkillUpdate(p.l, context.Background()).Emit(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
-		} else {
-			p.l.Warnf("Received a skill %d assignment for character %d who does not have the skill.", skillId, c.Id())
+			return nil
 		}
-		return nil
 	}
 }
 
-func (p *processor) adjustSP(c *Model, amount int32, bookId uint32) error {
-	nv := uint32(math.Max(0, float64(int32(c.SP(int(bookId)))+amount)))
-	err := p.characterDatabaseUpdate(SetSP(nv, bookId))(c)
-	if err != nil {
-		return err
-	}
-	return p.statisticUpdateSuccess("AVAILABLE_SP")(c)
-}
-
-func (p *processor) UpdateLoginPosition(characterId uint32) {
-	p.characterUpdate(characterId, p.updateTemporalPositionLogin())
-}
-
-func (p *processor) updateTemporalPositionLogin() characterFunc {
-	return func(c *Model) error {
-		port, err := portal.Processor(p.l).GetMapPortalById(c.MapId(), c.SpawnPoint())
+func adjustSP(l logrus.FieldLogger, db *gorm.DB) func(c *Model, amount int32, bookId uint32) error {
+	return func(c *Model, amount int32, bookId uint32) error {
+		nv := uint32(math.Max(0, float64(int32(c.SP(int(bookId)))+amount)))
+		err := characterDatabaseUpdate(l, db)(SetSP(nv, bookId))(c)
 		if err != nil {
-			p.l.Warnf("Unable to find spawn point %d in map %d for character %d.", c.SpawnPoint(), c.MapId(), c.Id())
-			port, err = portal.Processor(p.l).GetMapPortalById(c.MapId(), 0)
+			return err
+		}
+		return statisticUpdateSuccess(l)("AVAILABLE_SP")(c)
+	}
+}
+
+func UpdateLoginPosition(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) {
+	return func(characterId uint32) {
+		characterUpdate(l, db)(characterId, updateTemporalPositionLogin(l))
+	}
+}
+
+func updateTemporalPositionLogin(l logrus.FieldLogger) characterFunc {
+	return func(c *Model) error {
+		port, err := portal.Processor(l).GetMapPortalById(c.MapId(), c.SpawnPoint())
+		if err != nil {
+			l.Warnf("Unable to find spawn point %d in map %d for character %d.", c.SpawnPoint(), c.MapId(), c.Id())
+			port, err = portal.Processor(l).GetMapPortalById(c.MapId(), 0)
 			if err != nil {
-				p.l.Errorf("Unable to get a portal in map %d to update character %d position to.", c.MapId(), c.Id())
+				l.Errorf("Unable to get a portal in map %d to update character %d position to.", c.MapId(), c.Id())
 				return err
 			}
 		}
@@ -651,129 +731,145 @@ func (p *processor) updateTemporalPositionLogin() characterFunc {
 	}
 }
 
-func (p *processor) GetForAccountInWorld(accountId uint32, worldId byte) ([]*Model, error) {
-	return GetForAccountInWorld(p.db, accountId, worldId)
+func GetForAccountInWorld(_ logrus.FieldLogger, db *gorm.DB) func(accountId uint32, worldId byte) ([]*Model, error) {
+	return func(accountId uint32, worldId byte) ([]*Model, error) {
+		return getForAccountInWorld(db, accountId, worldId)
+	}
 }
 
-func (p *processor) GetForMapInWorld(worldId byte, mapId uint32) ([]*Model, error) {
-	return GetForMapInWorld(p.db, worldId, mapId)
+func GetForMapInWorld(_ logrus.FieldLogger, db *gorm.DB) func(worldId byte, mapId uint32) ([]*Model, error) {
+	return func(worldId byte, mapId uint32) ([]*Model, error) {
+		return getForMapInWorld(db, worldId, mapId)
+	}
 }
 
-func (p *processor) GetForName(name string) ([]*Model, error) {
-	return GetForName(p.db, name)
+func GetForName(_ logrus.FieldLogger, db *gorm.DB) func(name string) ([]*Model, error) {
+	return func(name string) ([]*Model, error) {
+		return getForName(db, name)
+	}
 }
 
-func (p *processor) GetMaximumBaseDamage(characterId uint32) uint32 {
-	c, err := p.GetById(characterId)
-	if err != nil {
-		p.l.WithError(err).Errorf("Unable to retrieve character %d for damage information request.", c.Id())
-		return 0
-	}
-
-	wa := p.WeaponAttack(c)
-
-	equip, err := equipment.Processor(p.l, p.db).GetEquippedItemForCharacterBySlot(c.Id(), -11)
-	if err != nil {
-		p.l.WithError(err).Errorf("Retrieving equipment for character %d.", c.Id())
-		return p.getMaximumBaseDamageNoWeapon(c)
-	}
-	es, err := statistics.Processor(p.l, p.db).GetEquipmentStatistics(equip.EquipmentId())
-	if err != nil {
-		p.l.WithError(err).Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), c.Id())
-		return p.getMaximumBaseDamageNoWeapon(c)
-	}
-	return p.getMaximumBaseDamage(c, wa, item.GetWeaponType(es.ItemId()))
-}
-
-func (p *processor) WeaponAttack(c *Model) uint16 {
-	wa := uint16(0)
-
-	equips, err := equipment.Processor(p.l, p.db).GetEquipmentForCharacter(c.Id())
-	if err != nil {
-		p.l.WithError(err).Errorf("Retrieving equipment for character %d.", c.Id())
-		return 0
-	}
-	for _, equip := range equips {
-		es, err := statistics.Processor(p.l, p.db).GetEquipmentStatistics(equip.EquipmentId())
+func GetMaximumBaseDamage(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) uint32 {
+	return func(characterId uint32) uint32 {
+		c, err := GetById(l, db)(characterId)
 		if err != nil {
-			p.l.WithError(err).Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), c.Id())
+			l.WithError(err).Errorf("Unable to retrieve character %d for damage information request.", c.Id())
+			return 0
+		}
+
+		wa := WeaponAttack(l, db)(c)
+
+		equip, err := equipment.Processor(l, db).GetEquippedItemForCharacterBySlot(c.Id(), -11)
+		if err != nil {
+			l.WithError(err).Errorf("Retrieving equipment for character %d.", c.Id())
+			return getMaximumBaseDamageNoWeapon(l, db)(c)
+		}
+		es, err := statistics.Processor(l, db).GetEquipmentStatistics(equip.EquipmentId())
+		if err != nil {
+			l.WithError(err).Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), c.Id())
+			return getMaximumBaseDamageNoWeapon(l, db)(c)
+		}
+		return getMaximumBaseDamage(l, db)(c, wa, item.GetWeaponType(es.ItemId()))
+	}
+}
+
+func WeaponAttack(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint16 {
+	return func(c *Model) uint16 {
+		wa := uint16(0)
+
+		equips, err := equipment.Processor(l, db).GetEquipmentForCharacter(c.Id())
+		if err != nil {
+			l.WithError(err).Errorf("Retrieving equipment for character %d.", c.Id())
+			return 0
+		}
+		for _, equip := range equips {
+			es, err := statistics.Processor(l, db).GetEquipmentStatistics(equip.EquipmentId())
+			if err != nil {
+				l.WithError(err).Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), c.Id())
+			} else {
+				wa += es.WeaponAttack()
+			}
+		}
+
+		//TODO
+		// apply Aran Combo
+		// apply ThunderBreaker Marauder energy charge
+		// apply Marksman Boost or Bowmaster Expert
+		// apply weapon attack buffs
+		// apply blessing
+		// apply active projectile
+		return wa
+	}
+}
+
+func getMaximumBaseDamage(l logrus.FieldLogger, db *gorm.DB) func(c *Model, weaponAttack uint16, weaponType int) uint32 {
+	return func(c *Model, weaponAttack uint16, weaponType int) uint32 {
+		workingWeaponType := weaponType
+
+		if job.IsA(c.JobId(), job.Thief) && workingWeaponType == item.WeaponTypeDaggerOther {
+			workingWeaponType = item.WeaponTypeDaggerThieves
+		}
+
+		var mainStat uint16
+		var secondaryStat uint16
+
+		if workingWeaponType == item.WeaponTypeBow || workingWeaponType == item.WeaponTypeCrossbow || workingWeaponType == item.WeaponTypeGun {
+			mainStat = TotalDexterity(l, db)(c)
+			secondaryStat = TotalStrength(l, db)(c)
+		} else if workingWeaponType == item.WeaponTypeClaw || workingWeaponType == item.WeaponTypeDaggerThieves {
+			mainStat = TotalLuck(l, db)(c)
+			secondaryStat = TotalDexterity(l, db)(c) + TotalStrength(l, db)(c)
 		} else {
-			wa += es.WeaponAttack()
+			mainStat = TotalStrength(l, db)(c)
+			secondaryStat = TotalDexterity(l, db)(c)
 		}
-	}
 
-	//TODO
-	// apply Aran Combo
-	// apply ThunderBreaker Marauder energy charge
-	// apply Marksman Boost or Bowmaster Expert
-	// apply weapon attack buffs
-	// apply blessing
-	// apply active projectile
-	return wa
+		return uint32(math.Ceil(((item.GetWeaponDamageMultiplier(workingWeaponType) * float64(mainStat*secondaryStat)) / 100.0) * float64(weaponAttack)))
+	}
 }
 
-func (p *processor) getMaximumBaseDamage(c *Model, weaponAttack uint16, weaponType int) uint32 {
-	workingWeaponType := weaponType
-
-	if job.IsA(c.JobId(), job.Thief) && workingWeaponType == item.WeaponTypeDaggerOther {
-		workingWeaponType = item.WeaponTypeDaggerThieves
-	}
-
-	var mainStat uint16
-	var secondaryStat uint16
-
-	if workingWeaponType == item.WeaponTypeBow || workingWeaponType == item.WeaponTypeCrossbow || workingWeaponType == item.WeaponTypeGun {
-		mainStat = p.TotalDexterity(c)
-		secondaryStat = p.TotalStrength(c)
-	} else if workingWeaponType == item.WeaponTypeClaw || workingWeaponType == item.WeaponTypeDaggerThieves {
-		mainStat = p.TotalLuck(c)
-		secondaryStat = p.TotalDexterity(c) + p.TotalStrength(c)
-	} else {
-		mainStat = p.TotalStrength(c)
-		secondaryStat = p.TotalDexterity(c)
-	}
-
-	return uint32(math.Ceil(((item.GetWeaponDamageMultiplier(workingWeaponType) * float64(mainStat*secondaryStat)) / 100.0) * float64(weaponAttack)))
-}
-
-func (p *processor) getMaximumBaseDamageNoWeapon(c *Model) uint32 {
-	if job.IsA(c.JobId(), job.Pirate, job.ThunderBreaker1) {
-		wm := 3.0
-		if c.JobId()%100 != 0 {
-			wm = 4.2
+func getMaximumBaseDamageNoWeapon(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint32 {
+	return func(c *Model) uint32 {
+		if job.IsA(c.JobId(), job.Pirate, job.ThunderBreaker1) {
+			wm := 3.0
+			if c.JobId()%100 != 0 {
+				wm = 4.2
+			}
+			attack := uint32(math.Min(math.Floor(float64(2*c.Level()+31)/3.0), 31))
+			strength := TotalStrength(l, db)(c)
+			dexterity := TotalDexterity(l, db)(c)
+			return uint32(math.Ceil((float64(strength) * wm * float64(dexterity)) * float64(attack) / 100.0))
 		}
-		attack := uint32(math.Min(math.Floor(float64(2*c.Level()+31)/3.0), 31))
-		strength := p.TotalStrength(c)
-		dexterity := p.TotalDexterity(c)
-		return uint32(math.Ceil((float64(strength) * wm * float64(dexterity)) * float64(attack) / 100.0))
+		return 1
 	}
-	return 1
 }
 
-func (p *processor) Create(b *Builder) (*Model, error) {
-	c := b.Build()
-	c, err := Create(p.db, c.AccountId(), c.WorldId(), c.Name(), c.Level(), c.Strength(), c.Dexterity(), c.Intelligence(), c.Luck(), c.MaxHP(), c.MaxMP(), c.JobId(), c.Gender(), c.Hair(), c.Face(), c.SkinColor(), c.MapId())
-	if err != nil {
-		return nil, err
-	}
+func Create(l logrus.FieldLogger, db *gorm.DB) func(b *Builder) (*Model, error) {
+	return func(b *Builder) (*Model, error) {
+		c := b.Build()
+		c, err := create(db, c.AccountId(), c.WorldId(), c.Name(), c.Level(), c.Strength(), c.Dexterity(), c.Intelligence(), c.Luck(), c.MaxHP(), c.MaxMP(), c.JobId(), c.Gender(), c.Hair(), c.Face(), c.SkinColor(), c.MapId())
+		if err != nil {
+			return nil, err
+		}
 
-	err = inventory.Processor(p.l, p.db).CreateInitialInventories(c.Id())
-	if err != nil {
-		return nil, err
-	}
+		err = inventory.Processor(l, db).CreateInitialInventories(c.Id())
+		if err != nil {
+			return nil, err
+		}
 
-	producers.CharacterCreated(p.l, context.Background()).Emit(c.Id(), c.WorldId(), c.Name())
-	return c, nil
+		producers.CharacterCreated(l, context.Background()).Emit(c.Id(), c.WorldId(), c.Name())
+		return c, nil
+	}
 }
 
-func AdjustJob(l log.FieldLogger, db *gorm.DB) func(characterId uint32, jobId uint16) error {
+func AdjustJob(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, jobId uint16) error {
 	return func(characterId uint32, jobId uint16) error {
-		Processor(l, db).characterUpdate(characterId, adjustJob(l, db)(jobId), awardSkillsForJobUpdate(l, db)(jobId), jobUpdateSuccess(l, db))
+		characterUpdate(l, db)(characterId, adjustJob(l, db)(jobId), awardSkillsForJobUpdate(l, db)(jobId), jobUpdateSuccess(l))
 		return nil
 	}
 }
 
-func awardSkillsForJobUpdate(l log.FieldLogger, db *gorm.DB) func(jobId uint16) characterFunc {
+func awardSkillsForJobUpdate(_ logrus.FieldLogger, _ *gorm.DB) func(jobId uint16) characterFunc {
 	return func(jobId uint16) characterFunc {
 		return func(model *Model) error {
 			return nil
@@ -781,11 +877,11 @@ func awardSkillsForJobUpdate(l log.FieldLogger, db *gorm.DB) func(jobId uint16) 
 	}
 }
 
-func jobUpdateSuccess(l log.FieldLogger, db *gorm.DB) characterFunc {
-	return Processor(l, db).statisticsUpdateSuccess("HP", "MP", "MAX_HP", "MAX_MP", "AVAILABLE_AP", "AVAILABLE_SP", "JOB")
+func jobUpdateSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticsUpdateSuccess(l)("HP", "MP", "MAX_HP", "MAX_MP", "AVAILABLE_AP", "AVAILABLE_SP", "JOB")
 }
 
-func adjustJob(l log.FieldLogger, db *gorm.DB) func(jobId uint16) characterFunc {
+func adjustJob(l logrus.FieldLogger, db *gorm.DB) func(jobId uint16) characterFunc {
 	return func(jobId uint16) characterFunc {
 		return func(c *Model) error {
 			hp := uint16(0)
@@ -818,23 +914,23 @@ func adjustJob(l log.FieldLogger, db *gorm.DB) func(jobId uint16) characterFunc 
 				SetMaxMP(c.maxMp + mp),
 				SetJob(jobId),
 			}
-			return Processor(l, db).characterDatabaseUpdate(modifiers...)(c)
+			return characterDatabaseUpdate(l, db)(modifiers...)(c)
 		}
 	}
 }
 
-func ResetAP(l log.FieldLogger, db *gorm.DB) func(characterId uint32) error {
+func ResetAP(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) error {
 	return func(characterId uint32) error {
-		Processor(l, db).characterUpdate(characterId, resetAP(l, db), apResetSuccess(l, db))
+		characterUpdate(l, db)(characterId, resetAP(l, db), apResetSuccess(l))
 		return nil
 	}
 }
 
-func apResetSuccess(l log.FieldLogger, db *gorm.DB) characterFunc {
-	return Processor(l, db).statisticsUpdateSuccess("AVAILABLE_AP", "AVAILABLE_SP", "STRENGTH", "DEXTERITY", "LUCK", "INTELLIGENCE")
+func apResetSuccess(l logrus.FieldLogger) characterFunc {
+	return statisticsUpdateSuccess(l)("AVAILABLE_AP", "AVAILABLE_SP", "STRENGTH", "DEXTERITY", "LUCK", "INTELLIGENCE")
 }
 
-func resetAP(l log.FieldLogger, db *gorm.DB) characterFunc {
+func resetAP(l logrus.FieldLogger, db *gorm.DB) characterFunc {
 	return func(c *Model) error {
 		tap := c.AP() + c.Strength() + c.Dexterity() + c.Intelligence() + c.Luck()
 		tstr := uint16(4)
@@ -871,13 +967,13 @@ func resetAP(l log.FieldLogger, db *gorm.DB) characterFunc {
 		}
 
 		modifiers := []EntityUpdateFunction{SetStrength(tstr), SetDexterity(tdex), SetIntelligence(tint), SetLuck(tluk), SetAP(tap), SetSP(tsp, 0)}
-		return Processor(l, db).characterDatabaseUpdate(modifiers...)(c)
+		return characterDatabaseUpdate(l, db)(modifiers...)(c)
 	}
 }
 
-func DropItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) error {
+func DropItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) error {
 	return func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) error {
-		c, err := Processor(l, db).GetById(characterId)
+		c, err := GetById(l, db)(characterId)
 		if err != nil {
 			l.WithError(err).Errorf("Cannot retrieve character %d performing the drop.", characterId)
 			return err
@@ -899,7 +995,7 @@ func DropItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte,
 	}
 }
 
-func dropItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, c *Model, ctd *temporalData, inventoryType int8, slot int16, quantity int16) error {
+func dropItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, c *Model, ctd *temporalData, inventoryType int8, slot int16, quantity int16) error {
 	return func(worldId byte, channelId byte, c *Model, ctd *temporalData, inventoryType int8, slot int16, quantity int16) error {
 		itemId, err := item.DropItem(l, db)(worldId, channelId, c.Id(), inventoryType, slot, quantity)
 		if err != nil {
@@ -911,7 +1007,7 @@ func dropItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte,
 	}
 }
 
-func dropEquipItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
+func dropEquipItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
 	return func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
 		eid, err := equipment.DropEquipment(l, db)(worldId, channelId, c.Id(), slot)
 		if err != nil {
@@ -930,7 +1026,7 @@ func dropEquipItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId 
 	}
 }
 
-func dropEquippedItem(l log.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
+func dropEquippedItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
 	return func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
 		eid, err := equipment.DropEquippedItem(l, db)(worldId, channelId, c.Id(), slot)
 		if err != nil {

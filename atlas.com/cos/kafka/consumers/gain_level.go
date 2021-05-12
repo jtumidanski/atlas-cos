@@ -20,7 +20,7 @@ func HandleGainLevelEvent(db *gorm.DB) EventProcessor {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*gainLevelEvent); ok {
 			l.Debugf("Begin event handling.")
-			character.Processor(l, db).GainLevel(event.CharacterId)
+			character.GainLevel(l, db)(event.CharacterId)
 			l.Debugf("Complete event handling.")
 		} else {
 			l.Errorln("Unable to cast event provided to handler")

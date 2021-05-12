@@ -24,7 +24,7 @@ func HandleChangeMapCommand(db *gorm.DB) EventProcessor {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*changeMapCommand); ok {
 			l.Debugf("Begin event handling.")
-			character.Processor(l, db).ChangeMap(event.CharacterId, event.WorldId, event.ChannelId, event.MapId, event.PortalId)
+			character.ChangeMap(l, db)(event.CharacterId, event.WorldId, event.ChannelId, event.MapId, event.PortalId)
 			l.Debugf("Complete event handling.")
 		} else {
 			l.Errorf("Unable to cast event provided to handler")

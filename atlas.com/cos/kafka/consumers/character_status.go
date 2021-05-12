@@ -25,7 +25,7 @@ func HandleCharacterStatusEvent(db *gorm.DB) EventProcessor {
 		if event, ok := e.(*characterStatusEvent); ok {
 			l.Debugf("Begin event handling.")
 			if event.Type == "LOGIN" {
-				character.Processor(l, db).UpdateLoginPosition(event.CharacterId)
+				character.UpdateLoginPosition(l, db)(event.CharacterId)
 			}
 			l.Debugf("Complete event handling.")
 		} else {

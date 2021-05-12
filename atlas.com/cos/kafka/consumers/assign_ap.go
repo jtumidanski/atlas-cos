@@ -23,22 +23,22 @@ func HandleAssignAPCommand(db *gorm.DB) EventProcessor {
 			l.Debugf("Begin event handling.")
 			switch event.Type {
 			case "STRENGTH":
-				character.Processor(l, db).AssignStrength(event.CharacterId)
+				character.AssignStrength(l, db)(event.CharacterId)
 				break
 			case "DEXTERITY":
-				character.Processor(l, db).AssignDexterity(event.CharacterId)
+				character.AssignDexterity(l, db)(event.CharacterId)
 				break
 			case "INTELLIGENCE":
-				character.Processor(l, db).AssignIntelligence(event.CharacterId)
+				character.AssignIntelligence(l, db)(event.CharacterId)
 				break
 			case "LUCK":
-				character.Processor(l, db).AssignLuck(event.CharacterId)
+				character.AssignLuck(l, db)(event.CharacterId)
 				break
 			case "HP":
-				character.Processor(l, db).AssignHp(event.CharacterId)
+				character.AssignHp(l, db)(event.CharacterId)
 				break
 			case "MP":
-				character.Processor(l, db).AssignMp(event.CharacterId)
+				character.AssignMp(l, db)(event.CharacterId)
 				break
 			}
 			l.Debugf("Complete event handling.")

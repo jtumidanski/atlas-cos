@@ -24,7 +24,7 @@ func HandleAdjustHealthCommand(db *gorm.DB) EventProcessor {
 			if event.Amount == 0 {
 				l.Infoln("Received erroneous command to adjust by 0. This should be cleaned up.")
 			} else {
-				character.Processor(l, db).AdjustHealth(event.CharacterId, event.Amount)
+				character.AdjustHealth(l, db)(event.CharacterId, event.Amount)
 			}
 			l.Debugf("Complete event handling.")
 		} else {

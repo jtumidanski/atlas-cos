@@ -56,19 +56,19 @@ func (p *processor) getCreator(jobId uint16) (BuilderCreator, bool) {
 func (p *processor) createBeginner(b *character.Builder) (*character.Model, error) {
 	b.SetJobId(job.Beginner)
 	b.SetMapId(10000)
-	return character.Processor(p.l, p.db).Create(b)
+	return character.Create(p.l, p.db)(b)
 }
 
 func (p *processor) createNoblesse(b *character.Builder) (*character.Model, error) {
 	b.SetJobId(job.Noblesse)
 	b.SetMapId(130030000)
-	return character.Processor(p.l, p.db).Create(b)
+	return character.Create(p.l, p.db)(b)
 }
 
 func (p *processor) createLegend(b *character.Builder) (*character.Model, error) {
 	b.SetJobId(job.Legend)
 	b.SetMapId(914000000)
-	return character.Processor(p.l, p.db).Create(b)
+	return character.Create(p.l, p.db)(b)
 }
 
 func (p *processor) addEquippedItems(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {

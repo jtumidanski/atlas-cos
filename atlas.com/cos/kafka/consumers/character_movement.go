@@ -29,9 +29,9 @@ func HandleCharacterMovementEvent(db *gorm.DB) EventProcessor {
 		if event, ok := e.(*characterMovementEvent); ok {
 			l.Debugf("Begin event handling.")
 			if event.X != 0 || event.Y != 0 {
-				character.Processor(l, db).MoveCharacter(event.CharacterId, event.X, event.Y, event.Stance)
+				character.MoveCharacter(l, db)(event.CharacterId, event.X, event.Y, event.Stance)
 			} else if event.Stance != 0 {
-				character.Processor(l, db).UpdateStance(event.CharacterId, event.Stance)
+				character.UpdateStance(l, db)(event.CharacterId, event.Stance)
 			}
 			l.Debugf("Complete event handling.")
 		} else {

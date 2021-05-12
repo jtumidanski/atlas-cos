@@ -21,7 +21,7 @@ func HandleAssignSPCommand(db *gorm.DB) EventProcessor {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*assignSPCommand); ok {
 			l.Debugf("Begin event handling.")
-			character.Processor(l, db).AssignSP(event.CharacterId, event.SkillId)
+			character.AssignSP(l, db)(event.CharacterId, event.SkillId)
 			l.Debugf("Complete event handling.")
 		} else {
 			l.Errorf("Unable to cast event provided to handler")
