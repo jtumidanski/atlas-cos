@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -18,13 +19,13 @@ type characterMovementEvent struct {
 
 type rawMovement []byte
 
-func CharacterMovementEventCreator() EmptyEventCreator {
+func CharacterMovementEventCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &characterMovementEvent{}
 	}
 }
 
-func HandleCharacterMovementEvent(db *gorm.DB) EventProcessor {
+func HandleCharacterMovementEvent(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*characterMovementEvent); ok {
 			l.Debugf("Begin event handling.")

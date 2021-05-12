@@ -4,7 +4,7 @@ type Model struct {
 	id            int8
 	inventoryType string
 	capacity      uint32
-	items         []InventoryItem
+	items         []Item
 }
 
 func (m Model) Id() int8 {
@@ -19,24 +19,24 @@ func (m Model) Capacity() uint32 {
 	return m.capacity
 }
 
-func (m Model) Items() []InventoryItem {
+func (m Model) Items() []Item {
 	return m.items
 }
 
-type InventoryItem struct {
+type Item struct {
 	id       uint32
 	itemType string
 	slot     int16
 }
 
-func (i InventoryItem) Type() string {
+func (i Item) Type() string {
 	return i.itemType
 }
 
-func (i InventoryItem) Id() uint32 {
+func (i Item) Id() uint32 {
 	return i.id
 }
 
-func (i InventoryItem) Slot() int16 {
+func (i Item) Slot() int16 {
 	return i.slot
 }

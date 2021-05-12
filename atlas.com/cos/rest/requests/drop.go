@@ -7,7 +7,7 @@ import (
 
 const (
 	dropRegistryServicePrefix string = "/ms/drg/"
-	dropRegistryService = baseRequest + dropRegistryServicePrefix
+	dropRegistryService = BaseRequest + dropRegistryServicePrefix
 	dropResource        = dropRegistryService + "drops/%d"
 )
 

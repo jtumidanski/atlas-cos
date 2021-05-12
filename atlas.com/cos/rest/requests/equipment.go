@@ -7,7 +7,7 @@ import (
 
 const (
 	equipmentServicePrefix string = "/ms/eso/"
-	equipmentService              = baseRequest + equipmentServicePrefix
+	equipmentService              = BaseRequest + equipmentServicePrefix
 	equipmentResource             = equipmentService + "equipment"
 	equipResource                 = equipmentResource + "/%d"
 )

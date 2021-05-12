@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -11,13 +12,13 @@ type adjustJobCommand struct {
 	JobId       uint16 `json:"jobId"`
 }
 
-func AdjustJobCommandCreator() EmptyEventCreator {
+func AdjustJobCommandCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &adjustJobCommand{}
 	}
 }
 
-func HandleAdjustJobCommand(db *gorm.DB) EventProcessor {
+func HandleAdjustJobCommand(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*adjustJobCommand); ok {
 			err := character.AdjustJob(l, db)(event.CharacterId, event.JobId)

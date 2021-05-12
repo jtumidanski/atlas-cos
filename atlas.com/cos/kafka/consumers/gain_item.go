@@ -3,6 +3,7 @@ package consumers
 import (
 	"atlas-cos/inventory"
 	"atlas-cos/item"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -13,13 +14,13 @@ type gainItemCommand struct {
 	Quantity    int32  `json:"quantity"`
 }
 
-func GainItemCommandCreator() EmptyEventCreator {
+func GainItemCommandCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &gainItemCommand{}
 	}
 }
 
-func HandleGainItemCommand(db *gorm.DB) EventProcessor {
+func HandleGainItemCommand(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*gainItemCommand); ok {
 			if it, ok := inventory.GetInventoryType(event.ItemId); ok {

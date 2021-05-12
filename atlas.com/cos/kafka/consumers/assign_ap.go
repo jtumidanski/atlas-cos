@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -11,13 +12,13 @@ type assignAPCommand struct {
 	Type        string `json:"type"`
 }
 
-func AssignAPCommandCreator() EmptyEventCreator {
+func AssignAPCommandCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &assignAPCommand{}
 	}
 }
 
-func HandleAssignAPCommand(db *gorm.DB) EventProcessor {
+func HandleAssignAPCommand(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*assignAPCommand); ok {
 			l.Debugf("Begin event handling.")

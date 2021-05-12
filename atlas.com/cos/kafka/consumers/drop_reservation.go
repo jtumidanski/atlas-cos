@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/drop"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -12,13 +13,13 @@ type dropReservationEvent struct {
 	Type        string `json:"type"`
 }
 
-func DropReservationEventCreator() EmptyEventCreator {
+func DropReservationEventCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &dropReservationEvent{}
 	}
 }
 
-func HandleDropReservationEvent(db *gorm.DB) EventProcessor {
+func HandleDropReservationEvent(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*dropReservationEvent); ok {
 			l.Debugf("Begin event handling.")

@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -10,13 +11,13 @@ type resetAPCommand struct {
 	CharacterId uint32 `json:"characterId"`
 }
 
-func ResetAPCommandCreator() EmptyEventCreator {
+func ResetAPCommandCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &resetAPCommand{}
 	}
 }
 
-func HandleResetAPCommand(db *gorm.DB) EventProcessor {
+func HandleResetAPCommand(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*resetAPCommand); ok {
 			err := character.ResetAP(l, db)(event.CharacterId)

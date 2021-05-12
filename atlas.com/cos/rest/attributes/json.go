@@ -107,10 +107,6 @@ func mapperFunc(dpf concreteObjectProvider) objectMapper {
 	}
 }
 
-func unmarshalData(tf string, dpf concreteObjectProvider) (string, objectMapper) {
-	return tf, mapperFunc(dpf)
-}
-
 // addInclude processes a map structure representing the jsonapi.org data object to produce a concrete struct.
 // given a set of functions which could produce a concrete struct
 func addInclude(x objectMap, options ...conditionalMapperProvider) interface{} {

@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -15,13 +16,13 @@ type gainExperienceEvent struct {
 	White        bool   `json:"white"`
 }
 
-func GainExperienceEventCreator() EmptyEventCreator {
+func GainExperienceEventCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &gainExperienceEvent{}
 	}
 }
 
-func HandleGainExperienceEvent(db *gorm.DB) EventProcessor {
+func HandleGainExperienceEvent(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*gainExperienceEvent); ok {
 			l.Debugf("Begin event handling.")

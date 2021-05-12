@@ -1,8 +1,7 @@
 package producers
 
 import (
-	"context"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type pickedUpItemEvent struct {
@@ -11,19 +10,10 @@ type pickedUpItemEvent struct {
 	Quantity    uint32 `json:"quantity"`
 }
 
-var PickedUpItem = func(l log.FieldLogger, ctx context.Context) *pickedUpItem {
-	return &pickedUpItem{
-		l:   l,
-		ctx: ctx,
+func PickedUpItem(l logrus.FieldLogger) func(characterId uint32, itemId uint32, quantity uint32) {
+	producer := ProduceEvent(l, "TOPIC_PICKED_UP_ITEM")
+	return func(characterId uint32, itemId uint32, quantity uint32) {
+		event := &pickedUpItemEvent{characterId, itemId, quantity}
+		producer(CreateKey(int(characterId)), event)
 	}
-}
-
-type pickedUpItem struct {
-	l   log.FieldLogger
-	ctx context.Context
-}
-
-func (e *pickedUpItem) Emit(characterId uint32, itemId uint32, quantity uint32) {
-	event := &pickedUpItemEvent{characterId, itemId, quantity}
-	produceEvent(e.l, "TOPIC_PICKED_UP_ITEM", createKey(int(characterId)), event)
 }

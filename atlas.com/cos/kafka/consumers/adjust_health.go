@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -11,13 +12,13 @@ type adjustHealthCommand struct {
 	Amount      int16  `json:"amount"`
 }
 
-func AdjustHealthCommandCreator() EmptyEventCreator {
+func AdjustHealthCommandCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &adjustHealthCommand{}
 	}
 }
 
-func HandleAdjustHealthCommand(db *gorm.DB) EventProcessor {
+func HandleAdjustHealthCommand(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*adjustHealthCommand); ok {
 			l.Debugf("Begin event handling.")

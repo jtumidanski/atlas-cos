@@ -1,27 +1,17 @@
 package producers
 
 import (
-	"context"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type characterLevelEvent struct {
-	CharacterId uint32   `json:"characterId"`
+	CharacterId uint32 `json:"characterId"`
 }
 
-var CharacterLevel = func(l log.FieldLogger, ctx context.Context) *characterLevel {
-	return &characterLevel{
-		l:   l,
-		ctx: ctx,
+func CharacterLevel(l logrus.FieldLogger) func(characterId uint32) {
+	producer := ProduceEvent(l, "TOPIC_CHARACTER_LEVEL_EVENT")
+	return func(characterId uint32) {
+		event := &characterLevelEvent{characterId}
+		producer(CreateKey(int(characterId)), event)
 	}
-}
-
-type characterLevel struct {
-	l   log.FieldLogger
-	ctx context.Context
-}
-
-func (e *characterLevel) Emit(characterId uint32) {
-	event := &characterLevelEvent{characterId}
-	produceEvent(e.l, "TOPIC_CHARACTER_LEVEL_EVENT", createKey(int(characterId)), event)
 }

@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/equipment"
+	"atlas-cos/kafka/handler"
 	"atlas-cos/rest/requests"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -13,13 +14,13 @@ type gainEquipmentCommand struct {
 	ItemId      uint32 `json:"itemId"`
 }
 
-func GainEquipmentCommandCreator() EmptyEventCreator {
+func GainEquipmentCommandCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &gainEquipmentCommand{}
 	}
 }
 
-func HandleGainEquipmentCommand(db *gorm.DB) EventProcessor {
+func HandleGainEquipmentCommand(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*gainEquipmentCommand); ok {
 			ro, err := requests.EquipmentRegistry().Create(event.ItemId)

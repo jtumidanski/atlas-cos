@@ -3,7 +3,6 @@ package equipment
 import (
 	"atlas-cos/kafka/producers"
 	"atlas-cos/rest/requests"
-	"context"
 	"errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -139,7 +138,7 @@ func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId u
 			l.Debugf("Moved item %d from slot %d to %d for character %d.", itemId, currentSlot, slot, characterId)
 
 			events = append(events, func() {
-				producers.InventoryModificationReservation(l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, slot, currentSlot)
+				producers.InventoryModificationReservation(l)(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, slot, currentSlot)
 			})
 
 			if equip, err := getEquipmentForCharacterBySlot(tx, characterId, temporarySlot); err == nil && equip.EquipmentId() != 0 {
@@ -191,7 +190,7 @@ func UnequipItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId
 
 			l.Debugf("Unequipped %d for character %d and place it in slot %d, from %d.", equipmentId, characterId, val, oldSlot)
 			events = append(events, func() {
-				producers.InventoryModificationReservation(l, context.Background()).Emit(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, val, oldSlot)
+				producers.InventoryModificationReservation(l)(characterId, true, 2, ea.Data.Attributes.ItemId, 1, 1, val, oldSlot)
 			})
 			events = append(events, func() {
 				producers.CharacterUnEquippedItem(l)(characterId)
@@ -245,8 +244,7 @@ func GainItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, itemId
 			l.WithError(err).Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
 			return err
 		}
-		producers.InventoryModificationReservation(l, context.Background()).
-			Emit(characterId, true, 0, itemId, 1, 1, e.Slot(), 0)
+		producers.InventoryModificationReservation(l)(characterId, true, 0, itemId, 1, 1, e.Slot(), 0)
 		return nil
 	}
 }
@@ -272,8 +270,7 @@ func DropEquippedItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, chan
 			return 0, err
 		}
 
-		producers.InventoryModificationReservation(l, context.Background()).
-			Emit(characterId, true, 3, ea.Data.Attributes.ItemId, 1, 1, slot, 0)
+		producers.InventoryModificationReservation(l)(characterId, true, 3, ea.Data.Attributes.ItemId, 1, 1, slot, 0)
 		return e.EquipmentId(), nil
 	}
 }
@@ -299,8 +296,7 @@ func DropEquipment(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channel
 			return 0, err
 		}
 
-		producers.InventoryModificationReservation(l, context.Background()).
-			Emit(characterId, true, 3, ea.Data.Attributes.ItemId, 1, 1, slot, 0)
+		producers.InventoryModificationReservation(l)(characterId, true, 3, ea.Data.Attributes.ItemId, 1, 1, slot, 0)
 
 		producers.CharacterUnEquippedItem(l)(characterId)
 		return e.EquipmentId(), nil

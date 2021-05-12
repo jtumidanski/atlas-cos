@@ -1,8 +1,7 @@
 package producers
 
 import (
-	"context"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type pickedUpNxEvent struct {
@@ -10,19 +9,10 @@ type pickedUpNxEvent struct {
 	Gain        uint32 `json:"gain"`
 }
 
-var PickedUpNx = func(l log.FieldLogger, ctx context.Context) *pickedUpNx {
-	return &pickedUpNx{
-		l:   l,
-		ctx: ctx,
+func PickedUpNx(l logrus.FieldLogger) func(characterId uint32, gain uint32) {
+	producer := ProduceEvent(l, "TOPIC_PICKED_UP_NX")
+	return func(characterId uint32, gain uint32) {
+		event := &pickedUpNxEvent{characterId, gain}
+		producer(CreateKey(int(characterId)), event)
 	}
-}
-
-type pickedUpNx struct {
-	l   log.FieldLogger
-	ctx context.Context
-}
-
-func (e *pickedUpNx) Emit(characterId uint32, gain uint32) {
-	event := &pickedUpNxEvent{characterId, gain}
-	produceEvent(e.l, "TOPIC_PICKED_UP_NX", createKey(int(characterId)), event)
 }

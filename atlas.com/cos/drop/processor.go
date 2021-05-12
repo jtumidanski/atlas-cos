@@ -9,7 +9,6 @@ import (
 	"atlas-cos/party"
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/requests"
-	"context"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math"
@@ -68,19 +67,19 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, d
 		if elapsed < 400 {
 			l.Debugf("Cancelling drop for character %d, drop %d, the drop has not yet met minimum time. Time elapsed %d", c.Id(), d.Id(), elapsed)
 			l.Debugf("Now %d, DropTime %d, Elapsed %d.", now, d.DropTime(), elapsed)
-			producers.CancelDropReservation(l, context.Background()).Emit(d.Id(), c.Id())
+			producers.CancelDropReservation(l)(d.Id(), c.Id())
 			return
 		}
 
-		if !canBePickedBy(l, db)(c, d) {
+		if !canBePickedBy(db)(c, d) {
 			l.Debugf("Cancelling drop for character %d, drop %d, the drop cannot be picked up by character.", c.Id(), d.Id())
-			producers.CancelDropReservation(l, context.Background()).Emit(d.Id(), c.Id())
+			producers.CancelDropReservation(l)(d.Id(), c.Id())
 			return
 		}
 
 		if isOwnerLockedMap(c.MapId()) && d.CharacterDrop() && d.OwnerId() != c.Id() {
 			l.Debugf("Cancelling drop for character %d, drop %d, the drop is not owned by this character, in a owner locked map.", c.Id(), d.Id())
-			producers.CancelDropReservation(l, context.Background()).Emit(d.Id(), c.Id())
+			producers.CancelDropReservation(l)(d.Id(), c.Id())
 			// emit item unavailable.
 			return
 		}
@@ -91,19 +90,19 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, d
 		} else if d.Meso() > 0 {
 			l.Debugf("Picking up meso drop for character %d.", c.Id())
 			pickupMeso(l)(c, d)
-		} else if consumeOnPickup(d.ItemId()) {
+		} else if consumeOnPickup() {
 		} else {
 
-			if !needsQuestItem(c, d) {
+			if !needsQuestItem() {
 				l.Debugf("Cancelling drop for character %d, drop %d, the character does not need this quest item.", c.Id(), d.Id())
-				producers.CancelDropReservation(l, context.Background()).Emit(d.Id(), c.Id())
+				producers.CancelDropReservation(l)(d.Id(), c.Id())
 				// emit item unavailable.
 				return
 			}
 
 			if !hasInventorySpace(l, db)(c, d) {
 				l.Debugf("Cancelling drop for character %d, drop %d, the character does not have inventory space.", c.Id(), d.Id())
-				producers.CancelDropReservation(l, context.Background()).Emit(d.Id(), c.Id())
+				producers.CancelDropReservation(l)(d.Id(), c.Id())
 				// emit inventory full.
 				// emit show inventory full.
 				return
@@ -122,26 +121,26 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, d
 					pickupItem(l, db)(c, val, d)
 				}
 				// TODO update ariant score if 4031868
-				producers.PickedUpItem(l, context.Background()).Emit(c.Id(), d.ItemId(), d.Quantity())
+				producers.PickedUpItem(l)(c.Id(), d.ItemId(), d.Quantity())
 			}
 		}
-		producers.PickedUpDrop(l, context.Background()).Emit(c.Id(), d.Id())
+		producers.PickedUpDrop(l)(c.Id(), d.Id())
 	}
 }
 
-func canBePickedBy(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, d *Model) bool {
+func canBePickedBy(db *gorm.DB) func(c *character.Model, d *Model) bool {
 	return func(c *character.Model, d *Model) bool {
 		if d.OwnerId() <= 0 || d.FFADrop() {
 			return true
 		}
 
-		ownerParty, err := party.PartyForCharacter(d.OwnerId())
+		ownerParty, err := party.ForCharacter()
 		if err != nil {
 			if c.Id() == d.OwnerId() {
 				return true
 			}
 		} else {
-			characterParty, err := party.PartyForCharacter(c.Id())
+			characterParty, err := party.ForCharacter()
 			if err == nil && ownerParty.Id() == characterParty.Id() {
 				return true
 			} else if c.Id() == d.OwnerId() {
@@ -159,24 +158,24 @@ func isOwnerLockedMap(mapId uint32) bool {
 func pickupNX(l logrus.FieldLogger) func(c *character.Model, d *Model) {
 	return func(c *character.Model, d *Model) {
 		if d.ItemId() == 4031865 {
-			producers.PickedUpNx(l, context.Background()).Emit(c.Id(), 100)
+			producers.PickedUpNx(l)(c.Id(), 100)
 		} else {
-			producers.PickedUpNx(l, context.Background()).Emit(c.Id(), 250)
+			producers.PickedUpNx(l)(c.Id(), 250)
 		}
 	}
 }
 
 func pickupMeso(l logrus.FieldLogger) func(c *character.Model, d *Model) {
 	return func(c *character.Model, d *Model) {
-		producers.AdjustMeso(l, context.Background()).Emit(c.Id(), int32(d.Meso()))
+		producers.AdjustMeso(l)(c.Id(), int32(d.Meso()))
 	}
 }
 
-func consumeOnPickup(itemId uint32) bool {
+func consumeOnPickup() bool {
 	return false
 }
 
-func needsQuestItem(c *character.Model, d *Model) bool {
+func needsQuestItem() bool {
 	return true
 }
 
@@ -205,12 +204,12 @@ func hasItemInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c *character.
 	return func(c *character.Model, d *Model, i *inventory.Model) bool {
 
 		l.Debugf("Checking inventory capacity for item %d, quantity %d for character %d.", d.ItemId(), d.Quantity(), c.Id())
-		slotMax := maxInSlot(c, d)
+		slotMax := maxInSlot()
 		runningQuantity := d.Quantity()
 
 		existingItems, err := item.GetForCharacterByInventory(l, db)(c.Id(), i.Id())
 		if err != nil {
-			l.WithError(err).Errorf("Unable to retrieve existing inventory %d items for character %d.", i.Type(), c.Id())
+			l.WithError(err).Errorf("Unable to retrieve existing inventory %s items for character %d.", i.Type(), c.Id())
 			return false
 		}
 
@@ -295,6 +294,6 @@ func pickupItem(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, it i
 	}
 }
 
-func maxInSlot(c *character.Model, d *Model) uint32 {
+func maxInSlot() uint32 {
 	return 200
 }

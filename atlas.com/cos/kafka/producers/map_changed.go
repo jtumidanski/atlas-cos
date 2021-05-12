@@ -1,8 +1,7 @@
 package producers
 
 import (
-	"context"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type mapChangedEvent struct {
@@ -13,19 +12,10 @@ type mapChangedEvent struct {
 	CharacterId uint32 `json:"characterId"`
 }
 
-var MapChanged = func(l log.FieldLogger, ctx context.Context) *mapChanged {
-	return &mapChanged{
-		l:   l,
-		ctx: ctx,
+func MapChanged(l logrus.FieldLogger) func(worldId byte, channelId byte, mapId uint32, portalId uint32, characterId uint32) {
+	producer := ProduceEvent(l, "TOPIC_CHANGE_MAP_EVENT")
+	return func(worldId byte, channelId byte, mapId uint32, portalId uint32, characterId uint32) {
+		event := &mapChangedEvent{worldId, channelId, mapId, portalId, characterId}
+		producer(CreateKey(int(characterId)), event)
 	}
-}
-
-type mapChanged struct {
-	l   log.FieldLogger
-	ctx context.Context
-}
-
-func (e *mapChanged) Emit(worldId byte, channelId byte, mapId uint32, portalId uint32, characterId uint32) {
-	event := &mapChangedEvent{worldId, channelId, mapId, portalId, characterId}
-	produceEvent(e.l, "TOPIC_CHANGE_MAP_EVENT", createKey(int(characterId)), event)
 }

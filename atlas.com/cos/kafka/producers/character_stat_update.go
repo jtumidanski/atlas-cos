@@ -1,8 +1,7 @@
 package producers
 
 import (
-	"context"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type characterStatUpdateEvent struct {
@@ -10,19 +9,10 @@ type characterStatUpdateEvent struct {
 	Updates     []string `json:"updates"`
 }
 
-var CharacterStatUpdate = func(l log.FieldLogger, ctx context.Context) *characterStatUpdate {
-	return &characterStatUpdate{
-		l:   l,
-		ctx: ctx,
+func CharacterStatUpdate(l logrus.FieldLogger) func(characterId uint32, updates []string) {
+	producer := ProduceEvent(l, "TOPIC_CHARACTER_STAT_EVENT")
+	return func(characterId uint32, updates []string) {
+		event := &characterStatUpdateEvent{characterId, updates}
+		producer(CreateKey(int(characterId)), event)
 	}
-}
-
-type characterStatUpdate struct {
-	l   log.FieldLogger
-	ctx context.Context
-}
-
-func (e *characterStatUpdate) Emit(characterId uint32, updates []string) {
-	event := &characterStatUpdateEvent{characterId, updates}
-	produceEvent(e.l, "TOPIC_CHARACTER_STAT_EVENT", createKey(int(characterId)), event)
 }

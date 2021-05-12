@@ -23,6 +23,7 @@ type command struct {
 }
 
 func SpawnCharacterItemDrop(l logrus.FieldLogger) func(worldId byte, channelId byte, mapId uint32, itemId uint32, quantity uint32, mesos uint32, dropType byte, x int16, y int16, characterId uint32, characterPartyId uint32) {
+	producer := ProduceEvent(l, "TOPIC_SPAWN_CHARACTER_DROP_COMMAND")
 	return func(worldId byte, channelId byte, mapId uint32, itemId uint32, quantity uint32, mesos uint32, dropType byte, x int16, y int16, characterId uint32, characterPartyId uint32) {
 		e := command{
 			WorldId:      worldId,
@@ -43,11 +44,12 @@ func SpawnCharacterItemDrop(l logrus.FieldLogger) func(worldId byte, channelId b
 			PlayerDrop:   true,
 			Mod:          1,
 		}
-		produceEvent(l, "TOPIC_SPAWN_CHARACTER_DROP_COMMAND", createKey(int(worldId)*1000+int(channelId)), e)
+		producer(CreateKey(int(worldId)*1000+int(channelId)), e)
 	}
 }
 
 func SpawnCharacterEquipDrop(l logrus.FieldLogger) func(worldId byte, channelId byte, mapId uint32, itemId uint32, equipmentId uint32, dropType byte, x int16, y int16, characterId uint32, characterPartyId uint32) {
+	producer := ProduceEvent(l, "TOPIC_SPAWN_CHARACTER_DROP_COMMAND")
 	return func(worldId byte, channelId byte, mapId uint32, itemId uint32, equipmentId uint32, dropType byte, x int16, y int16, characterId uint32, characterPartyId uint32) {
 		e := command{
 			WorldId:      worldId,
@@ -68,6 +70,6 @@ func SpawnCharacterEquipDrop(l logrus.FieldLogger) func(worldId byte, channelId 
 			PlayerDrop:   true,
 			Mod:          1,
 		}
-		produceEvent(l, "TOPIC_SPAWN_CHARACTER_DROP_COMMAND", createKey(int(worldId)*1000+int(channelId)), e)
+		producer(CreateKey(int(worldId)*1000+int(channelId)), e)
 	}
 }

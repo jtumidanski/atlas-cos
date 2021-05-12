@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -14,13 +15,13 @@ type changeMapCommand struct {
 	PortalId    uint32 `json:"portalId"`
 }
 
-func ChangeMapCommandCreator() EmptyEventCreator {
+func ChangeMapCommandCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &changeMapCommand{}
 	}
 }
 
-func HandleChangeMapCommand(db *gorm.DB) EventProcessor {
+func HandleChangeMapCommand(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*changeMapCommand); ok {
 			l.Debugf("Begin event handling.")

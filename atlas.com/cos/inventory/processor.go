@@ -53,7 +53,7 @@ func GetInventoryByTypeValFilterSlot(l logrus.FieldLogger, db *gorm.DB) func(cha
 			return nil, err
 		}
 
-		var items []InventoryItem
+		var items []Item
 		if inventoryType == TypeValueEquip {
 			items = getEquipInventoryItems(l, db)(characterId)
 		} else {
@@ -70,15 +70,15 @@ func GetInventoryByTypeValFilterSlot(l logrus.FieldLogger, db *gorm.DB) func(cha
 	}
 }
 
-func getInventoryItems(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8) []InventoryItem {
-	return func(characterId uint32, inventoryType int8) []InventoryItem {
+func getInventoryItems(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8) []Item {
+	return func(characterId uint32, inventoryType int8) []Item {
 		results, err := item.GetForCharacterByInventory(l, db)(characterId, inventoryType)
 		if err != nil {
-			return make([]InventoryItem, 0)
+			return make([]Item, 0)
 		} else {
-			var items = make([]InventoryItem, 0)
+			var items = make([]Item, 0)
 			for _, i := range results {
-				items = append(items, InventoryItem{
+				items = append(items, Item{
 					id:       i.Id(),
 					itemType: ItemTypeItem,
 					slot:     i.Slot(),
@@ -89,15 +89,15 @@ func getInventoryItems(l logrus.FieldLogger, db *gorm.DB) func(characterId uint3
 	}
 }
 
-func getEquipInventoryItems(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) []InventoryItem {
-	return func(characterId uint32) []InventoryItem {
+func getEquipInventoryItems(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) []Item {
+	return func(characterId uint32) []Item {
 		results, err := equipment.GetEquipmentForCharacter(l, db)(characterId)
 		if err != nil {
-			return make([]InventoryItem, 0)
+			return make([]Item, 0)
 		} else {
-			var equips = make([]InventoryItem, 0)
+			var equips = make([]Item, 0)
 			for _, e := range results {
-				equips = append(equips, InventoryItem{
+				equips = append(equips, Item{
 					id:       e.Id(),
 					itemType: ItemTypeEquip,
 					slot:     e.Slot(),
@@ -108,7 +108,7 @@ func getEquipInventoryItems(l logrus.FieldLogger, db *gorm.DB) func(characterId 
 	}
 }
 
-func CreateInventory(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, capacity uint32) (*Model, error) {
+func CreateInventory(db *gorm.DB) func(characterId uint32, inventoryType int8, capacity uint32) (*Model, error) {
 	return func(characterId uint32, inventoryType int8, capacity uint32) (*Model, error) {
 		return create(db, characterId, inventoryType, capacity)
 	}
@@ -116,23 +116,23 @@ func CreateInventory(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32,
 
 func CreateInitialInventories(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) error {
 	return func(characterId uint32) error {
-		_, err := CreateInventory(l, db)(characterId, TypeValueEquip, DefaultInventoryCapacity)
+		_, err := CreateInventory(db)(characterId, TypeValueEquip, DefaultInventoryCapacity)
 		if err != nil {
 			return err
 		}
-		_, err = CreateInventory(l, db)(characterId, TypeValueUse, DefaultInventoryCapacity)
+		_, err = CreateInventory(db)(characterId, TypeValueUse, DefaultInventoryCapacity)
 		if err != nil {
 			return err
 		}
-		_, err = CreateInventory(l, db)(characterId, TypeValueSetup, DefaultInventoryCapacity)
+		_, err = CreateInventory(db)(characterId, TypeValueSetup, DefaultInventoryCapacity)
 		if err != nil {
 			return err
 		}
-		_, err = CreateInventory(l, db)(characterId, TypeValueETC, DefaultInventoryCapacity)
+		_, err = CreateInventory(db)(characterId, TypeValueETC, DefaultInventoryCapacity)
 		if err != nil {
 			return err
 		}
-		_, err = CreateInventory(l, db)(characterId, TypeValueCash, DefaultInventoryCapacity)
+		_, err = CreateInventory(db)(characterId, TypeValueCash, DefaultInventoryCapacity)
 		if err != nil {
 			return err
 		}

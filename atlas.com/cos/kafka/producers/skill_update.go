@@ -1,8 +1,7 @@
 package producers
 
 import (
-	"context"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type characterSkillUpdateEvent struct {
@@ -13,19 +12,10 @@ type characterSkillUpdateEvent struct {
 	Expiration  int64  `json:"expiration"`
 }
 
-var CharacterSkillUpdate = func(l log.FieldLogger, ctx context.Context) *characterSkillUpdate {
-	return &characterSkillUpdate{
-		l:   l,
-		ctx: ctx,
+func CharacterSkillUpdate(l logrus.FieldLogger) func(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) {
+	producer := ProduceEvent(l, "TOPIC_CHARACTER_SKILL_UPDATE_EVENT")
+	return func(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) {
+		event := &characterSkillUpdateEvent{characterId, skillId, level, masterLevel, expiration}
+		producer(CreateKey(int(characterId)), event)
 	}
-}
-
-type characterSkillUpdate struct {
-	l   log.FieldLogger
-	ctx context.Context
-}
-
-func (c *characterSkillUpdate) Emit(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) {
-	event := &characterSkillUpdateEvent{characterId, skillId, level, masterLevel, expiration}
-	produceEvent(c.l, "TOPIC_CHARACTER_SKILL_UPDATE_EVENT", createKey(int(characterId)), event)
 }

@@ -1,8 +1,7 @@
 package producers
 
 import (
-	"context"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type characterCreatedEvent struct {
@@ -11,19 +10,10 @@ type characterCreatedEvent struct {
 	Name        string `json:"name"`
 }
 
-var CharacterCreated = func(l log.FieldLogger, ctx context.Context) *characterCreated {
-	return &characterCreated{
-		l:   l,
-		ctx: ctx,
+func CharacterCreated(l logrus.FieldLogger) func(characterId uint32, worldId byte, name string) {
+	producer := ProduceEvent(l, "TOPIC_CHARACTER_CREATED_EVENT")
+	return func(characterId uint32, worldId byte, name string) {
+		event := &characterCreatedEvent{characterId, worldId, name}
+		producer(CreateKey(int(characterId)), event)
 	}
-}
-
-type characterCreated struct {
-	l   log.FieldLogger
-	ctx context.Context
-}
-
-func (e *characterCreated) Emit(characterId uint32, worldId byte, name string) {
-	event := &characterCreatedEvent{characterId, worldId, name}
-	produceEvent(e.l, "TOPIC_CHARACTER_CREATED_EVENT", createKey(int(characterId)), event)
 }

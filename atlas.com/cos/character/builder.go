@@ -40,12 +40,14 @@ type Builder struct {
 	mapId        uint32
 }
 
-func (b *Builder) SetJobId(jobId uint16) {
+func (b *Builder) SetJobId(jobId uint16) *Builder {
 	b.jobId = jobId
+	return b
 }
 
-func (b *Builder) SetMapId(mapId uint32) {
+func (b *Builder) SetMapId(mapId uint32) *Builder {
 	b.mapId = mapId
+	return b
 }
 
 func (b *Builder) Build() *Model {
@@ -127,8 +129,3 @@ func NewBuilder2(c BuilderConfiguration, accountId uint32, worldId byte, name st
 	return b
 }
 
-func NewBuilder3(c BuilderConfiguration, accountId uint32, worldId byte, name string, skinColor byte, gender byte, hair uint32, face uint32, level byte, mapId uint32, jobId uint16) *Builder {
-	b := NewBuilder2(c, accountId, worldId, name, skinColor, gender, hair, face, level, mapId)
-	b.jobId = jobId
-	return b
-}

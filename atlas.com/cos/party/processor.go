@@ -4,6 +4,6 @@ import (
 	"errors"
 )
 
-func PartyForCharacter(characterId uint32) (*Model, error) {
+func ForCharacter() (*Model, error) {
 	return nil, errors.New("party not found")
 }

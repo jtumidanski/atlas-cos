@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -10,13 +11,13 @@ type gainLevelEvent struct {
 	CharacterId uint32 `json:"characterId"`
 }
 
-func GainLevelEventCreator() EmptyEventCreator {
+func GainLevelEventCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &gainLevelEvent{}
 	}
 }
 
-func HandleGainLevelEvent(db *gorm.DB) EventProcessor {
+func HandleGainLevelEvent(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*gainLevelEvent); ok {
 			l.Debugf("Begin event handling.")

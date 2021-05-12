@@ -7,7 +7,7 @@ import (
 
 const (
 	itemInformationServicePrefix     string = "/ms/iis/"
-	itemInformationService                  = baseRequest + itemInformationServicePrefix
+	itemInformationService                  = BaseRequest + itemInformationServicePrefix
 	itemInformationEquipmentResource        = itemInformationService + "equipment"
 	itemInformationEquipResource            = itemInformationEquipmentResource + "/%d"
 	itemInformationEquipSlotResource        = itemInformationEquipResource + "/slots"

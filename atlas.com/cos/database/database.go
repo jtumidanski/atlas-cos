@@ -13,9 +13,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func connectToDatabase() retry.RetryResponseFunc {
-	return func(attempt int) (bool, interface{}, error) {
-		db, err := gorm.Open(mysql.New(mysql.Config{
+func ConnectToDatabase(l logrus.FieldLogger) *gorm.DB {
+	var db *gorm.DB
+
+	tryToConnect := func(attempt int) (bool, error) {
+		var err error
+		db, err = gorm.Open(mysql.New(mysql.Config{
 			DSN:                       "root:the@tcp(atlas-db:3306)/atlas-cos?charset=utf8&parseTime=True&loc=Local",
 			DefaultStringSize:         256,
 			DisableDatetimePrecision:  true,
@@ -24,18 +27,15 @@ func connectToDatabase() retry.RetryResponseFunc {
 			SkipInitializeWithVersion: false,
 		}), &gorm.Config{})
 		if err != nil {
-			return true, nil, err
+			return true, err
 		}
-		return false, db, err
+		return false, err
 	}
-}
 
-func ConnectToDatabase(l logrus.FieldLogger) *gorm.DB {
-	r, err := retry.RetryResponse(connectToDatabase(), 10)
+	err := retry.Try(tryToConnect, 10)
 	if err != nil {
 		l.WithError(err).Fatalf("Failed to connect to database.")
 	}
-	db := r.(*gorm.DB)
 
 	// Migrate the schema
 	character.Migration(db)

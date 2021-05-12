@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/equipment"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -12,13 +13,13 @@ type characterUnequipItem struct {
 	Destination int16  `json:"destination"`
 }
 
-func CharacterUnequipItemCommandCreator() EmptyEventCreator {
+func CharacterUnequipItemCommandCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &characterUnequipItem{}
 	}
 }
 
-func HandleCharacterUnequipItemCommand(db *gorm.DB) EventProcessor {
+func HandleCharacterUnequipItemCommand(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*characterUnequipItem); ok {
 			l.Debugf("Begin event handling.")

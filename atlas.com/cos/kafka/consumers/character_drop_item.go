@@ -2,6 +2,7 @@ package consumers
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/kafka/handler"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -15,13 +16,13 @@ type characterDropItem struct {
 	Quantity      int16  `json:"quantity"`
 }
 
-func CharacterDropItemCommandCreator() EmptyEventCreator {
+func CharacterDropItemCommandCreator() handler.EmptyEventCreator {
 	return func() interface{} {
 		return &characterDropItem{}
 	}
 }
 
-func HandleCharacterDropItemCommand(db *gorm.DB) EventProcessor {
+func HandleCharacterDropItemCommand(db *gorm.DB) handler.EventHandler {
 	return func(l log.FieldLogger, e interface{}) {
 		if event, ok := e.(*characterDropItem); ok {
 			l.Debugf("Begin event handling.")

@@ -7,7 +7,7 @@ import (
 
 const (
 	skillServicePrefix string = "/ms/sis/"
-	skillService              = baseRequest + skillServicePrefix
+	skillService              = BaseRequest + skillServicePrefix
 	skillsResource            = skillService + "skills"
 	skillResource             = skillsResource + "/%d"
 )

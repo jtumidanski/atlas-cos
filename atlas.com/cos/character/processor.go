@@ -13,7 +13,6 @@ import (
 	"atlas-cos/rest/requests"
 	"atlas-cos/skill"
 	"atlas-cos/skill/information"
-	"context"
 	"errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -115,7 +114,7 @@ func manaUpdateSuccess(l logrus.FieldLogger) characterFunc {
 func statisticUpdateSuccess(l logrus.FieldLogger) func(statistic string) characterFunc {
 	return func(statistic string) characterFunc {
 		return func(c *Model) error {
-			producers.CharacterStatUpdate(l, context.Background()).Emit(c.Id(), []string{statistic})
+			producers.CharacterStatUpdate(l)(c.Id(), []string{statistic})
 			return nil
 		}
 	}
@@ -125,7 +124,7 @@ func statisticUpdateSuccess(l logrus.FieldLogger) func(statistic string) charact
 func statisticsUpdateSuccess(l logrus.FieldLogger) func(statistics ...string) characterFunc {
 	return func(statistics ...string) characterFunc {
 		return func(c *Model) error {
-			producers.CharacterStatUpdate(l, context.Background()).Emit(c.Id(), statistics)
+			producers.CharacterStatUpdate(l)(c.Id(), statistics)
 			return nil
 		}
 	}
@@ -154,7 +153,7 @@ func mesoUpdateSuccess(l logrus.FieldLogger) func(amount int32, show bool) chara
 	return func(amount int32, show bool) characterFunc {
 		return func(c *Model) error {
 			if show {
-				producers.MesoGained(l, context.Background()).Emit(c.Id(), amount)
+				producers.MesoGained(l)(c.Id(), amount)
 			}
 			return nil
 		}
@@ -190,7 +189,7 @@ func performChangeMap(l logrus.FieldLogger, db *gorm.DB) func(mapId uint32, port
 func changeMapSuccess(l logrus.FieldLogger) func(worldId byte, channelId byte, mapId uint32, portalId uint32) characterFunc {
 	return func(worldId byte, channelId byte, mapId uint32, portalId uint32) characterFunc {
 		return func(c *Model) error {
-			producers.MapChanged(l, context.Background()).Emit(worldId, channelId, mapId, portalId, c.Id())
+			producers.MapChanged(l)(worldId, channelId, mapId, portalId, c.Id())
 			return nil
 		}
 	}
@@ -222,7 +221,7 @@ func gainExperience(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, 
 			if toNext <= gain {
 				l.Debugf("Character %d leveled. Set experience to 0 during the level, and perform level.", characterId)
 				setExperience(l, db)(characterId, 0)
-				producers.CharacterLevel(l, context.Background()).Emit(characterId)
+				producers.CharacterLevel(l)(characterId)
 				if gain-toNext > 0 {
 					l.Debugf("Character %d has %d experience left to process.", characterId, gain-toNext)
 					gainExperience(l, db)(characterId, level+1, masterLevel, 0, gain-toNext)
@@ -681,7 +680,7 @@ func assignSP(l logrus.FieldLogger, db *gorm.DB) func(skillId uint32) characterF
 						return err
 					}
 				} else {
-					producers.EnableActions(l, context.Background()).Emit(c.Id())
+					producers.EnableActions(l)(c.Id())
 				}
 
 				//TODO special handling for aran full swing and over swing.
@@ -689,7 +688,7 @@ func assignSP(l logrus.FieldLogger, db *gorm.DB) func(skillId uint32) characterF
 				if err != nil {
 					return err
 				}
-				producers.CharacterSkillUpdate(l, context.Background()).Emit(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
+				producers.CharacterSkillUpdate(l)(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
 			} else {
 				l.Warnf("Received a skill %d assignment for character %d who does not have the skill.", skillId, c.Id())
 			}
@@ -857,7 +856,7 @@ func Create(l logrus.FieldLogger, db *gorm.DB) func(b *Builder) (*Model, error) 
 			return nil, err
 		}
 
-		producers.CharacterCreated(l, context.Background()).Emit(c.Id(), c.WorldId(), c.Name())
+		producers.CharacterCreated(l)(c.Id(), c.WorldId(), c.Name())
 		return c, nil
 	}
 }

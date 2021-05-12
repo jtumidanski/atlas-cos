@@ -2,7 +2,6 @@ package item
 
 import (
 	"atlas-cos/kafka/producers"
-	"context"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math"
@@ -85,8 +84,7 @@ func GainItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int
 						if err != nil {
 							l.WithError(err).Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
 						} else {
-							producers.InventoryModificationReservation(l, context.Background()).
-								Emit(characterId, true, 1, itemId, i.InventoryType(), newQuantity, i.Slot(), 0)
+							producers.InventoryModificationReservation(l)(characterId, true, 1, itemId, i.InventoryType(), newQuantity, i.Slot(), 0)
 						}
 					}
 					index++
@@ -103,8 +101,7 @@ func GainItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int
 				l.WithError(err).Errorf("Unable to create item %d that character %d picked up.", itemId, characterId)
 				return err
 			}
-			producers.InventoryModificationReservation(l, context.Background()).
-				Emit(characterId, true, 0, itemId, it, newQuantity, i.Slot(), 0)
+			producers.InventoryModificationReservation(l)(characterId, true, 0, itemId, it, newQuantity, i.Slot(), 0)
 		}
 
 		return nil
@@ -131,8 +128,7 @@ func LoseItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int
 						if err != nil {
 							l.WithError(err).Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
 						} else {
-							producers.InventoryModificationReservation(l, context.Background()).
-								Emit(characterId, true, 1, itemId, i.InventoryType(), newQuantity, i.Slot(), 0)
+							producers.InventoryModificationReservation(l)(characterId, true, 1, itemId, i.InventoryType(), newQuantity, i.Slot(), 0)
 						}
 						runningQuantity = 0
 						break
@@ -142,8 +138,7 @@ func LoseItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int
 						if err != nil {
 							l.WithError(err).Errorf("Removing quantity %d of item %d.", oldQuantity, i.Id())
 						} else {
-							producers.InventoryModificationReservation(l, context.Background()).
-								Emit(characterId, true, 3, itemId, i.InventoryType(), oldQuantity, i.Slot(), 0)
+							producers.InventoryModificationReservation(l)(characterId, true, 3, itemId, i.InventoryType(), oldQuantity, i.Slot(), 0)
 						}
 					}
 					index++
@@ -171,8 +166,7 @@ func DropItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId by
 				l.WithError(err).Errorf("Could not remove item %d from character %d inventory.", i.Id(), characterId)
 				return 0, err
 			}
-			producers.InventoryModificationReservation(l, context.Background()).
-				Emit(characterId, true, 3, i.ItemId(), i.InventoryType(), uint32(quantity), i.Slot(), 0)
+			producers.InventoryModificationReservation(l)(characterId, true, 3, i.ItemId(), i.InventoryType(), uint32(quantity), i.Slot(), 0)
 		} else {
 			newQuantity := i.Quantity() - uint32(quantity)
 			err := UpdateItemQuantity(l, db)(i.Id(), newQuantity)
@@ -180,8 +174,7 @@ func DropItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId by
 				l.WithError(err).Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
 				return 0, err
 			} else {
-				producers.InventoryModificationReservation(l, context.Background()).
-					Emit(characterId, true, 1, i.ItemId(), i.InventoryType(), newQuantity, i.Slot(), 0)
+				producers.InventoryModificationReservation(l)(characterId, true, 1, i.ItemId(), i.InventoryType(), newQuantity, i.Slot(), 0)
 			}
 		}
 
