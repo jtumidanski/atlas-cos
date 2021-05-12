@@ -23,12 +23,12 @@ func HandleCharacterEquipItemCommand(db *gorm.DB) EventProcessor {
 		if event, ok := e.(*characterEquipItemCommand); ok {
 			l.Debugf("Begin event handling.")
 			l.Debugf("CharacterId = %d, Source = %d, Destination = %d.", event.CharacterId, event.Source, event.CharacterId)
-			e, err := equipment.Processor(l, db).GetEquippedItemForCharacterBySlot(event.CharacterId, event.Source)
+			e, err := equipment.GetEquippedItemForCharacterBySlot(l, db)(event.CharacterId, event.Source)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to retrieve item to equip for character %d in slot %d.", event.CharacterId, event.Source)
 				return
 			}
-			equipment.Processor(l, db).EquipItemForCharacter(event.CharacterId, e.EquipmentId())
+			equipment.EquipItemForCharacter(l, db)(event.CharacterId, e.EquipmentId())
 			l.Debugf("Complete event handling.")
 		} else {
 			l.Errorf("Unable to cast event provided to handler")

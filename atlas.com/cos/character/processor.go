@@ -30,7 +30,7 @@ func characterDatabaseUpdate(_ logrus.FieldLogger, db *gorm.DB) func(modifiers .
 	return func(modifiers ...EntityUpdateFunction) characterFunc {
 		return func(c *Model) error {
 			if len(modifiers) > 0 {
-				err := Update(db, c.Id(), modifiers...)
+				err := update(db, c.Id(), modifiers...)
 				if err != nil {
 					return err
 				}
@@ -508,12 +508,12 @@ func totalStat(l logrus.FieldLogger, db *gorm.DB) func(c Model, baseGetter func(
 
 		//TODO apply MapleWarrior
 
-		equips, err := equipment.Processor(l, db).GetEquipmentForCharacter(c.Id())
+		equips, err := equipment.GetEquipmentForCharacter(l, db)(c.Id())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment for character %d.", c.Id())
 		}
 		for _, equip := range equips {
-			es, err := statistics.Processor(l, db).GetEquipmentStatistics(equip.EquipmentId())
+			es, err := statistics.GetEquipmentStatistics(l)(equip.EquipmentId())
 			if err != nil {
 				l.WithError(err).Errorf("Unable to retrieve statistics for equipment %d.", equip.EquipmentId())
 			} else {
@@ -759,12 +759,12 @@ func GetMaximumBaseDamage(l logrus.FieldLogger, db *gorm.DB) func(characterId ui
 
 		wa := WeaponAttack(l, db)(c)
 
-		equip, err := equipment.Processor(l, db).GetEquippedItemForCharacterBySlot(c.Id(), -11)
+		equip, err := equipment.GetEquippedItemForCharacterBySlot(l, db)(c.Id(), -11)
 		if err != nil {
 			l.WithError(err).Errorf("Retrieving equipment for character %d.", c.Id())
 			return getMaximumBaseDamageNoWeapon(l, db)(c)
 		}
-		es, err := statistics.Processor(l, db).GetEquipmentStatistics(equip.EquipmentId())
+		es, err := statistics.GetEquipmentStatistics(l)(equip.EquipmentId())
 		if err != nil {
 			l.WithError(err).Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), c.Id())
 			return getMaximumBaseDamageNoWeapon(l, db)(c)
@@ -777,13 +777,13 @@ func WeaponAttack(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint16 {
 	return func(c *Model) uint16 {
 		wa := uint16(0)
 
-		equips, err := equipment.Processor(l, db).GetEquipmentForCharacter(c.Id())
+		equips, err := equipment.GetEquipmentForCharacter(l, db)(c.Id())
 		if err != nil {
 			l.WithError(err).Errorf("Retrieving equipment for character %d.", c.Id())
 			return 0
 		}
 		for _, equip := range equips {
-			es, err := statistics.Processor(l, db).GetEquipmentStatistics(equip.EquipmentId())
+			es, err := statistics.GetEquipmentStatistics(l)(equip.EquipmentId())
 			if err != nil {
 				l.WithError(err).Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), c.Id())
 			} else {

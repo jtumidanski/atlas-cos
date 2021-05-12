@@ -28,16 +28,16 @@ func getEquipments(db *gorm.DB, query interface{}) ([]*Model, error) {
 	return equipment, nil
 }
 
-func GetByEquipmentId(db *gorm.DB, equipmentId uint32) (*Model, error) {
+func getByEquipmentId(db *gorm.DB, equipmentId uint32) (*Model, error) {
 	return getEquipment(db, &entity{EquipmentId: equipmentId})
 }
 
-func GetById(db *gorm.DB, id uint32) (*Model, error) {
+func getById(db *gorm.DB, id uint32) (*Model, error) {
 	return getEquipment(db, &entity{Id: id})
 }
 
-func GetNextFreeEquipmentSlot(db *gorm.DB, characterId uint32) (int16, error) {
-	equipment, err := GetEquipmentForCharacter(db, characterId)
+func getNextFreeEquipmentSlot(db *gorm.DB, characterId uint32) (int16, error) {
+	equipment, err := getEquipmentForCharacter(db, characterId)
 	if err != nil {
 		return 1, err
 	}
@@ -69,10 +69,10 @@ func minFreeSlot(items []*Model) int16 {
 	}
 }
 
-func GetEquipmentForCharacter(db *gorm.DB, characterId uint32) ([]*Model, error) {
+func getEquipmentForCharacter(db *gorm.DB, characterId uint32) ([]*Model, error) {
 	return getEquipments(db, &entity{CharacterId: characterId})
 }
 
-func GetEquipmentForCharacterBySlot(db *gorm.DB, characterId uint32, slot int16) (*Model, error) {
+func getEquipmentForCharacterBySlot(db *gorm.DB, characterId uint32, slot int16) (*Model, error) {
 	return getEquipment(db, &entity{CharacterId: characterId, Slot: slot})
 }

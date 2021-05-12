@@ -112,14 +112,14 @@ func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc
 
 func createIncludedEquipmentStatistics(fl log.FieldLogger, db *gorm.DB, characterId uint32) []interface{} {
 	var results = make([]interface{}, 0)
-	e, err := equipment.Processor(fl, db).GetEquipmentForCharacter(characterId)
+	e, err := equipment.GetEquipmentForCharacter(fl, db)(characterId)
 	if err != nil {
 		fl.WithError(err).Errorf("Unable to retrieve equipment for character %d.", characterId)
 		return results
 	}
 
 	for _, equip := range e {
-		es, err := statistics.Processor(fl, db).GetEquipmentStatistics(equip.EquipmentId())
+		es, err := statistics.GetEquipmentStatistics(fl)(equip.EquipmentId())
 		if err != nil {
 			fl.WithError(err).Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), characterId)
 		} else {
@@ -133,7 +133,7 @@ func createIncludedInventoryItems(fl log.FieldLogger, db *gorm.DB, characterId u
 	var results = make([]interface{}, 0)
 	for _, inventoryItem := range inv.Items() {
 		if inventoryItem.Type() == ItemTypeEquip {
-			e, err := equipment.Processor(fl, db).GetEquipmentById(inventoryItem.Id())
+			e, err := equipment.GetEquipmentById(fl, db)(inventoryItem.Id())
 			if err != nil {
 				fl.WithError(err).Errorf("Unable to retrieve equipment %d for character %d.", inventoryItem.Id(), characterId)
 			} else {

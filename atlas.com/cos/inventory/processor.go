@@ -89,7 +89,7 @@ func (p processor) getInventoryItems(characterId uint32, inventoryType int8) []I
 }
 
 func (p processor) getEquipInventoryItems(characterId uint32) []InventoryItem {
-	results, err := equipment.Processor(p.l, p.db).GetEquipmentForCharacter(characterId)
+	results, err := equipment.GetEquipmentForCharacter(p.l, p.db)(characterId)
 	if err != nil {
 		return make([]InventoryItem, 0)
 	} else {

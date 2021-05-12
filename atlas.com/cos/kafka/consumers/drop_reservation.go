@@ -23,7 +23,7 @@ func HandleDropReservationEvent(db *gorm.DB) EventProcessor {
 		if event, ok := e.(*dropReservationEvent); ok {
 			l.Debugf("Begin event handling.")
 			if event.Type == "SUCCESS" {
-				drop.Processor(l, db).AttemptPickup(event.CharacterId, event.DropId)
+				drop.AttemptPickup(l, db)(event.CharacterId, event.DropId)
 			}
 			l.Debugf("Complete event handling.")
 		} else {

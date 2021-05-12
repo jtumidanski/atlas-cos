@@ -2,7 +2,7 @@ package equipment
 
 import "gorm.io/gorm"
 
-func Create(db *gorm.DB, characterId uint32, equipmentId uint32, slot int16) (*Model, error) {
+func create(db *gorm.DB, characterId uint32, equipmentId uint32, slot int16) (*Model, error) {
 	e := &entity{
 		CharacterId: characterId,
 		EquipmentId: equipmentId,
@@ -20,8 +20,8 @@ func remove(db *gorm.DB, characterId uint32, id uint32) error {
 	return db.Delete(&entity{CharacterId: characterId, Id: id}).Error
 }
 
-func UpdateSlot(db *gorm.DB, equipmentId uint32, slot int16) error {
-	equip, err := GetByEquipmentId(db, equipmentId)
+func updateSlot(db *gorm.DB, equipmentId uint32, slot int16) error {
+	equip, err := getByEquipmentId(db, equipmentId)
 	if err != nil {
 		return err
 	}

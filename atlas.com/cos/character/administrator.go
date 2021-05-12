@@ -38,7 +38,7 @@ func create(db *gorm.DB, accountId uint32, worldId byte, name string, level byte
 	return makeCharacter(e), nil
 }
 
-func Update(db *gorm.DB, characterId uint32, modifiers ...EntityUpdateFunction) error {
+func update(db *gorm.DB, characterId uint32, modifiers ...EntityUpdateFunction) error {
 	e := &entity{}
 
 	var columns []string

@@ -72,7 +72,7 @@ func (p *processor) createLegend(b *character.Builder) (*character.Model, error)
 }
 
 func (p *processor) addEquippedItems(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
-	equipment.Processor(p.l, p.db).CreateAndEquip(c.Id(), top, bottom, shoes, weapon)
+	equipment.CreateAndEquip(p.l, p.db)(c.Id(), top, bottom, shoes, weapon)
 }
 
 func (p *processor) addOtherItems(c *character.Model) {
