@@ -4,6 +4,7 @@ import (
 	"atlas-cos/equipment"
 	"atlas-cos/equipment/statistics"
 	"atlas-cos/item"
+	"atlas-cos/json"
 	"atlas-cos/rest/attributes"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -58,7 +59,7 @@ func GetItemForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}
@@ -103,7 +104,7 @@ func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc
 		}
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}

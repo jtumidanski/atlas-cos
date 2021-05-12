@@ -1,6 +1,7 @@
 package skill
 
 import (
+	"atlas-cos/json"
 	"atlas-cos/rest/attributes"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -31,7 +32,7 @@ func GetCharacterSkills(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		result := createListDataContainer(sl)
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}
@@ -67,7 +68,7 @@ func GetCharacterSkill(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		result := createDataContainer(sl)
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}

@@ -1,6 +1,7 @@
 package location
 
 import (
+	"atlas-cos/json"
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/resource"
 	"github.com/gorilla/mux"
@@ -34,7 +35,7 @@ func HandleGetSavedLocationsByType(l *log.Logger, db *gorm.DB) http.HandlerFunc 
 		result := createDataContainer(locations)
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}
@@ -63,7 +64,7 @@ func HandleGetSavedLocations(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		result := createDataContainer(locations)
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}
@@ -104,11 +105,11 @@ func HandleAddSavedLocation(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		}
 
 		li := &attributes.LocationInputDataContainer{}
-		err = attributes.FromJSON(li, r.Body)
+		err = json.FromJSON(li, r.Body)
 		if err != nil {
 			fl.Errorln("Deserializing input", err)
 			w.WriteHeader(http.StatusBadRequest)
-			err = attributes.ToJSON(&resource.GenericError{Message: err.Error()}, w)
+			err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
 			if err != nil {
 				fl.WithError(err).Fatalf("Writing error message.")
 			}

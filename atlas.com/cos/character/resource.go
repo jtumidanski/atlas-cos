@@ -1,6 +1,7 @@
 package character
 
 import (
+	"atlas-cos/json"
 	"atlas-cos/rest/attributes"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -36,7 +37,7 @@ func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) http.HandlerFunc
 		result := createCharacterDataListContainer(cs)
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}
@@ -70,7 +71,7 @@ func GetCharactersByMap(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		result := createCharacterDataListContainer(cs)
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}
@@ -98,7 +99,7 @@ func GetCharactersByName(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		result := createCharacterDataListContainer(cs)
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}
@@ -139,7 +140,7 @@ func GetCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		result.Data = createCharacterData(c)
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}
@@ -211,7 +212,7 @@ func GetCharacterDamage(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}

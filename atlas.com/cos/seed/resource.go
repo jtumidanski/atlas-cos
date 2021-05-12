@@ -2,6 +2,7 @@ package seed
 
 import (
 	"atlas-cos/character"
+	"atlas-cos/json"
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/resource"
 	log "github.com/sirupsen/logrus"
@@ -15,11 +16,11 @@ func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		fl := l.WithFields(log.Fields{"originator": "CreateCharacterFromSeed", "type": "rest_handler"})
 
 		li := &attributes.CharacterSeedInputDataContainer{}
-		err := attributes.FromJSON(li, r.Body)
+		err := json.FromJSON(li, r.Body)
 		if err != nil {
 			fl.WithError(err).Errorf("Deserializing input.")
 			w.WriteHeader(http.StatusBadRequest)
-			err = attributes.ToJSON(&resource.GenericError{Message: err.Error()}, w)
+			err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
 			if err != nil {
 				fl.WithError(err).Fatalf("Writing error message.")
 			}
@@ -38,7 +39,7 @@ func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 		result := createDataContainer(c)
 
 		w.WriteHeader(http.StatusOK)
-		err = attributes.ToJSON(result, w)
+		err = json.ToJSON(result, w)
 		if err != nil {
 			fl.WithError(err).Errorf("Writing response.")
 		}

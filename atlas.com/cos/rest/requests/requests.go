@@ -1,7 +1,7 @@
 package requests
 
 import (
-	"atlas-cos/rest/attributes"
+	json2 "atlas-cos/json"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -35,7 +35,7 @@ func post(url string, input interface{}) (*http.Response, error) {
 }
 
 func processResponse(r *http.Response, rb interface{}) error {
-	err := attributes.FromJSON(rb, r.Body)
+	err := json2.FromJSON(rb, r.Body)
 	if err != nil {
 		return err
 	}

@@ -122,10 +122,3 @@ func NewBuilder(c BuilderConfiguration, accountId uint32, worldId byte, name str
 	return b
 }
 
-func NewBuilder2(c BuilderConfiguration, accountId uint32, worldId byte, name string, skinColor byte, gender byte, hair uint32, face uint32, level byte, mapId uint32) *Builder {
-	b := NewBuilder(c, accountId, worldId, name, skinColor, gender, hair, face)
-	b.level = level
-	b.mapId = mapId
-	return b
-}
-
