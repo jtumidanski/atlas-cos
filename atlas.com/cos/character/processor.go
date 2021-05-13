@@ -868,10 +868,28 @@ func AdjustJob(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, jobId
 	}
 }
 
-func awardSkillsForJobUpdate(_ logrus.FieldLogger, _ *gorm.DB) func(jobId uint16) characterFunc {
+func awardSkillsForJobUpdate(l logrus.FieldLogger, db *gorm.DB) func(jobId uint16) characterFunc {
 	return func(jobId uint16) characterFunc {
-		return func(model *Model) error {
-			return nil
+		return func(c *Model) error {
+			skills := make([]uint32, 0)
+			switch jobId {
+			case job.Bowman:
+				skills = []uint32{skill.BowmanBlessingOfAmazon, skill.BowmanCriticalShot, skill.BowmanTheEyeOfAmazon, skill.BowmanFocus, skill.BowmanArrowBlow, skill.BowmanDoubleShot}
+			case job.Magician:
+				skills = []uint32{skill.MagicianImprovedMPRecovery, skill.MagicianImprovedMPIncrease, skill.MagicianMagicGuard, skill.MagicianMagicArmor, skill.MagicianEnergyBolt, skill.MagicianMagicClaw}
+			case job.Warrior:
+				skills = []uint32{skill.WarriorImprovedHPRecovery, skill.WarriorImprovedHPIncrease, skill.WarriorEndure, skill.WarriorIronBody, skill.WarriorPowerStrike, skill.WarriorSlashBlast}
+			case job.Thief:
+				skills = []uint32{skill.ThiefNimbleBody, skill.ThiefKeenEyes, skill.ThiefDisorder, skill.ThiefDarkSight, skill.ThiefDoubleStab, skill.ThiefLuckySeven}
+			case job.Pirate:
+				skills = []uint32{skill.PirateBulletTime, skill.PirateFlashFist, skill.PirateSomersaultKick, skill.PirateDoubleShot, skill.PirateDash}
+			}
+
+			err := skill.AwardSkills(l, db)(c.Id(), skills...)
+			if err != nil {
+				l.WithError(err).Errorf("Unable to award skills to character %d for job advancement to %d.", c.Id(), jobId)
+			}
+			return err
 		}
 	}
 }

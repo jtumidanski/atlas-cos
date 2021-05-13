@@ -103,8 +103,8 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, d
 			if !hasInventorySpace(l, db)(c, d) {
 				l.Debugf("Cancelling drop for character %d, drop %d, the character does not have inventory space.", c.Id(), d.Id())
 				producers.CancelDropReservation(l)(d.Id(), c.Id())
+				producers.InventoryFull(l)(c.Id())
 				// emit inventory full.
-				// emit show inventory full.
 				return
 			}
 

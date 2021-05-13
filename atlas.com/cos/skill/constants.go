@@ -7,6 +7,40 @@ const (
 	BeginnerRecovery    uint32 = 1001
 	BeginnerNimbleFeet  uint32 = 1002
 
+	WarriorImprovedHPRecovery uint32 = 1000000
+	WarriorImprovedHPIncrease uint32 = 1000001
+	WarriorEndure             uint32 = 1000002
+	WarriorIronBody           uint32 = 1001003
+	WarriorPowerStrike        uint32 = 1001004
+	WarriorSlashBlast         uint32 = 1001005
+
+	MagicianImprovedMPRecovery uint32 = 2000000
+	MagicianImprovedMPIncrease uint32 = 2000001
+	MagicianMagicGuard         uint32 = 2001002
+	MagicianMagicArmor         uint32 = 2001003
+	MagicianEnergyBolt         uint32 = 2001004
+	MagicianMagicClaw          uint32 = 2001005
+
+	BowmanBlessingOfAmazon uint32 = 3000000
+	BowmanCriticalShot     uint32 = 3000001
+	BowmanTheEyeOfAmazon   uint32 = 3000002
+	BowmanFocus            uint32 = 3001003
+	BowmanArrowBlow        uint32 = 3001004
+	BowmanDoubleShot       uint32 = 3001005
+
+	ThiefNimbleBody uint32 = 4000000
+	ThiefKeenEyes   uint32 = 4000001
+	ThiefDisorder   uint32 = 4001002
+	ThiefDarkSight  uint32 = 4001003
+	ThiefDoubleStab uint32 = 4001334
+	ThiefLuckySeven uint32 = 4001344
+
+	PirateBulletTime     uint32 = 5000000
+	PirateFlashFist      uint32 = 5001001
+	PirateSomersaultKick uint32 = 5001002
+	PirateDoubleShot     uint32 = 5001003
+	PirateDash           uint32 = 5001005
+
 	NoblesseThreeSnails uint32 = 10001000
 	NoblesseRecovery    uint32 = 10001001
 	NoblesseNimbleFeet  uint32 = 10001002
