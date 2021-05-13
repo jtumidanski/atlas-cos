@@ -23,7 +23,7 @@ type mapInformation struct {
 
 func (m *mapInformation) GetPortalById(mapId uint32, portalId uint32) (*attributes.PortalDataContainer, error) {
 	ar := &attributes.PortalDataContainer{}
-	err := get(fmt.Sprintf(portalResource, mapId, portalId), ar)
+	err := Get(fmt.Sprintf(portalResource, mapId, portalId), ar)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (m *mapInformation) GetPortalById(mapId uint32, portalId uint32) (*attribut
 
 func (m *mapInformation) GetPortalByName(mapId uint32, portalName string) (*attributes.PortalDataContainer, error) {
 	ar := &attributes.PortalDataContainer{}
-	err := get(fmt.Sprintf(portalsByName, mapId, portalName), ar)
+	err := Get(fmt.Sprintf(portalsByName, mapId, portalName), ar)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (m *mapInformation) GetPortalByName(mapId uint32, portalName string) (*attr
 
 func (m *mapInformation) GetPortals(mapId uint32) (*attributes.PortalDataContainer, error) {
 	ar := &attributes.PortalDataContainer{}
-	err := get(fmt.Sprintf(portalsResource, mapId), ar)
+	err := Get(fmt.Sprintf(portalsResource, mapId), ar)
 	if err != nil {
 		return nil, err
 	}

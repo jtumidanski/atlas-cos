@@ -395,31 +395,79 @@ func AssignHp(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) {
 
 func persistHpUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
 	return func(c *Model) error {
-		adjustedHP := calculateHPChange(c, false)
+		adjustedHP := calculateHPChange(l, db)(c, false)
 		return characterDatabaseUpdate(l, db)(SetMaxHP(adjustedHP))(c)
 	}
 }
 
-func calculateHPChange(c *Model, usedAPReset bool) uint16 {
-	var maxHP uint16 = 0
-	if job.IsA(c.JobId(), job.Warrior, job.DawnWarrior1) {
-		//TODO apply IMPROVED HP INCREASE OR IMPROVED MAX HP
-		maxHP = adjustHPMPGain(usedAPReset, maxHP, 20, 22, 18, 18, 20)
-	} else if job.IsA(c.JobId(), job.Aran1) {
-		maxHP = adjustHPMPGain(usedAPReset, maxHP, 20, 30, 26, 26, 28)
-	} else if job.IsA(c.JobId(), job.Magician, job.BlazeWizard1) {
-		maxHP = adjustHPMPGain(usedAPReset, maxHP, 6, 9, 5, 5, 6)
-	} else if job.IsA(c.JobId(), job.Thief, job.NightWalker1) {
-		maxHP = adjustHPMPGain(usedAPReset, maxHP, 16, 18, 14, 14, 16)
-	} else if job.IsA(c.JobId(), job.Bowman, job.WindArcher1) {
-		maxHP = adjustHPMPGain(usedAPReset, maxHP, 16, 18, 14, 14, 16)
-	} else if job.IsA(c.JobId(), job.Pirate, job.ThunderBreaker1) {
-		//TODO apply IMPROVE HP INCREASE OR IMPROVE MAX HP
-		maxHP = adjustHPMPGain(usedAPReset, maxHP, 18, 20, 16, 16, 18)
-	} else {
-		maxHP = adjustHPMPGain(usedAPReset, maxHP, 8, 12, 8, 8, 10)
+func calculateHPChange(l logrus.FieldLogger, db *gorm.DB) func(c *Model, usedAPReset bool) uint16 {
+	return func(c *Model, usedAPReset bool) uint16 {
+		var maxHP uint16 = 0
+		if job.IsA(c.JobId(), job.Warrior, job.DawnWarrior1) {
+			if !usedAPReset {
+				maxHP += getHPIncreaseEnhancementForAPAssignment(l, db)(c)
+			}
+			maxHP = adjustHPMPGain(usedAPReset, maxHP, 20, 22, 18, 18, 20)
+		} else if job.IsA(c.JobId(), job.Aran1) {
+			maxHP = adjustHPMPGain(usedAPReset, maxHP, 20, 30, 26, 26, 28)
+		} else if job.IsA(c.JobId(), job.Magician, job.BlazeWizard1) {
+			maxHP = adjustHPMPGain(usedAPReset, maxHP, 6, 9, 5, 5, 6)
+		} else if job.IsA(c.JobId(), job.Thief, job.NightWalker1) {
+			maxHP = adjustHPMPGain(usedAPReset, maxHP, 16, 18, 14, 14, 16)
+		} else if job.IsA(c.JobId(), job.Bowman, job.WindArcher1) {
+			maxHP = adjustHPMPGain(usedAPReset, maxHP, 16, 18, 14, 14, 16)
+		} else if job.IsA(c.JobId(), job.Pirate, job.ThunderBreaker1) {
+			if !usedAPReset {
+				maxHP += getHPIncreaseEnhancementForAPAssignment(l, db)(c)
+			}
+			maxHP = adjustHPMPGain(usedAPReset, maxHP, 18, 20, 16, 16, 18)
+		} else {
+			maxHP = adjustHPMPGain(usedAPReset, maxHP, 8, 12, 8, 8, 10)
+		}
+		return maxHP
 	}
-	return maxHP
+}
+
+func getHPIncreaseEnhancementSkill(c *Model) uint32 {
+	var skillId uint32
+	if job.IsA(c.JobId(), job.DawnWarrior1) {
+		skillId = skill.DawnWarriorMaxHPEnhancement
+	} else if job.IsA(c.JobId(), job.Warrior) {
+		skillId = skill.WarriorImprovedHPIncrease
+	} else if job.IsA(c.JobId(), job.ThunderBreaker1) {
+		skillId = skill.ThunderBreakerImproveMaxHP
+	} else if job.IsA(c.JobId(), job.Pirate) {
+		skillId = skill.BrawlerImproveMaxHP
+	}
+	return skillId
+}
+
+func getHPIncreaseEnhancementForAPAssignment(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint16 {
+	return func(c *Model) uint16 {
+		return getHPIncreaseEnhancementAmount(l, db)(c, func(effect *information.Effect) uint16 {
+			return uint16(effect.Y())
+		})
+	}
+}
+
+func getHPIncreaseEnhancementForLevelUp(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint16 {
+	return func(c *Model) uint16 {
+		return getHPIncreaseEnhancementAmount(l, db)(c, func(effect *information.Effect) uint16 {
+			return uint16(effect.X())
+		})
+	}
+}
+
+func getHPIncreaseEnhancementAmount(l logrus.FieldLogger, db *gorm.DB) func(c *Model, getter func(*information.Effect) uint16) uint16 {
+	return func(c *Model, getter func(*information.Effect) uint16) uint16 {
+		skillId := getHPIncreaseEnhancementSkill(c)
+		if effect, ok := skill.IfHasSkillGetEffect(l, db)(c.Id(), skillId); ok {
+			val := getter(effect)
+			l.Debugf("Character %d HP increase impacted by %d due to skill %d.", c.Id(), val, skillId)
+			return val
+		}
+		return 0
+	}
 }
 
 func adjustHPMPGain(usedAPReset bool, maxHP uint16, apResetAmount uint16, upperBound uint16, lowerBound uint16, floor uint16, staticAmount uint16) uint16 {
@@ -447,30 +495,73 @@ func AssignMp(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) {
 
 func persistMpUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
 	return func(c *Model) error {
-		adjustedMP := calculateMPChange(c, false)
+		adjustedMP := calculateMPChange(l, db)(c, false)
 		return characterDatabaseUpdate(l, db)(SetMaxMP(adjustedMP))(c)
 	}
 }
 
-func calculateMPChange(c *Model, usedAPReset bool) uint16 {
-	jobId := c.JobId()
-	var maxMP uint16 = 0
-
-	if job.IsA(jobId, job.Warrior, job.DawnWarrior1, job.Aran1) {
-		maxMP = adjustHPMPGain(usedAPReset, maxMP, 2, 4, 2, c.Intelligence()/10, 3)
-	} else if job.IsA(jobId, job.Magician, job.BlazeWizard1) {
-		//TODO apply IMPROVED MP INCREASE OR IMPROVED MAX MP
-		maxMP = adjustHPMPGain(usedAPReset, maxMP, 18, 16, 12, c.Intelligence()/20, 18)
-	} else if job.IsA(jobId, job.Thief, job.NightWalker1) {
-		maxMP = adjustHPMPGain(usedAPReset, maxMP, 10, 8, 6, c.Intelligence()/10, 10)
-	} else if job.IsA(jobId, job.Bowman, job.WindArcher1) {
-		maxMP = adjustHPMPGain(usedAPReset, maxMP, 10, 8, 6, c.Intelligence()/10, 10)
-	} else if job.IsA(jobId, job.Pirate, job.ThunderBreaker1) {
-		maxMP = adjustHPMPGain(usedAPReset, maxMP, 14, 9, 7, c.Intelligence()/10, 14)
+func getMPIncreaseEnhancementSkill(c *Model) uint32 {
+	var skillId uint32
+	if job.IsA(c.JobId(), job.BlazeWizard1) {
+		skillId = skill.BlazeWizardIncreasingMaxMP
 	} else {
-		maxMP = adjustHPMPGain(usedAPReset, maxMP, 6, 6, 4, c.Intelligence()/10, 6)
+		skillId = skill.MagicianImprovedMPIncrease
 	}
-	return maxMP
+	return skillId
+}
+
+func getMPIncreaseEnhancementForAPAssignment(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint16 {
+	return func(c *Model) uint16 {
+		return getMPIncreaseEnhancementAmount(l, db)(c, func(effect *information.Effect) uint16 {
+			return uint16(effect.Y())
+		})
+	}
+}
+
+func getMPIncreaseEnhancementForLevelUp(l logrus.FieldLogger, db *gorm.DB) func(c *Model) uint16 {
+	return func(c *Model) uint16 {
+		return getMPIncreaseEnhancementAmount(l, db)(c, func(effect *information.Effect) uint16 {
+			return uint16(effect.X())
+		})
+	}
+}
+
+func getMPIncreaseEnhancementAmount(l logrus.FieldLogger, db *gorm.DB) func(c *Model, getter func(*information.Effect) uint16) uint16 {
+	return func(c *Model, getter func(*information.Effect) uint16) uint16 {
+		skillId := getMPIncreaseEnhancementSkill(c)
+		if effect, ok := skill.IfHasSkillGetEffect(l, db)(c.Id(), skillId); ok {
+			val := getter(effect)
+			l.Debugf("Character %d MP increase impacted by %d due to skill %d.", c.Id(), val, skillId)
+			return val
+		}
+		return 0
+	}
+}
+
+func calculateMPChange(l logrus.FieldLogger, db *gorm.DB) func(c *Model, usedAPReset bool) uint16 {
+	return func(c *Model, usedAPReset bool) uint16 {
+		jobId := c.JobId()
+		var maxMP uint16 = 0
+
+		if job.IsA(jobId, job.Warrior, job.DawnWarrior1, job.Aran1) {
+			maxMP = adjustHPMPGain(usedAPReset, maxMP, 2, 4, 2, c.Intelligence()/10, 3)
+		} else if job.IsA(jobId, job.Magician, job.BlazeWizard1) {
+			if !usedAPReset {
+				maxMP += getMPIncreaseEnhancementForAPAssignment(l, db)(c)
+			}
+
+			maxMP = adjustHPMPGain(usedAPReset, maxMP, 18, 16, 12, c.Intelligence()/20, 18)
+		} else if job.IsA(jobId, job.Thief, job.NightWalker1) {
+			maxMP = adjustHPMPGain(usedAPReset, maxMP, 10, 8, 6, c.Intelligence()/10, 10)
+		} else if job.IsA(jobId, job.Bowman, job.WindArcher1) {
+			maxMP = adjustHPMPGain(usedAPReset, maxMP, 10, 8, 6, c.Intelligence()/10, 10)
+		} else if job.IsA(jobId, job.Pirate, job.ThunderBreaker1) {
+			maxMP = adjustHPMPGain(usedAPReset, maxMP, 14, 9, 7, c.Intelligence()/10, 14)
+		} else {
+			maxMP = adjustHPMPGain(usedAPReset, maxMP, 6, 6, 4, c.Intelligence()/10, 6)
+		}
+		return maxMP
+	}
 }
 
 func mpUpdateSuccess(l logrus.FieldLogger) characterFunc {
@@ -588,11 +679,11 @@ func onLevelAdjustHealthAndMana(l logrus.FieldLogger, db *gorm.DB) func(c *Model
 			hp += randRange(12, 16)
 			mp += randRange(10, 12)
 		} else if job.IsA(c.JobId(), job.Warrior, job.DawnWarrior1) {
-			//TODO process DawnWarrior.MAX_HP_INCREASE : Warrior.IMPROVED_MAX_HP
+			hp += getHPIncreaseEnhancementForLevelUp(l, db)(c)
 			hp += randRange(24, 28)
 			mp += randRange(4, 6)
 		} else if job.IsA(c.JobId(), job.Magician, job.BlazeWizard1) {
-			//TODO process BlazeWizard.INCREASING_MAX_MP : Magician.IMPROVED_MAX_MP_INCREASE
+			mp += getMPIncreaseEnhancementForLevelUp(l, db)(c)
 			hp += randRange(10, 14)
 			mp += randRange(22, 24)
 		} else if job.IsA(c.JobId(), job.Bowman, job.WindArcher1, job.Thief, job.NightWalker1) {
@@ -602,7 +693,7 @@ func onLevelAdjustHealthAndMana(l logrus.FieldLogger, db *gorm.DB) func(c *Model
 			hp += 30000
 			mp += 30000
 		} else if job.IsA(c.JobId(), job.Pirate, job.ThunderBreaker1) {
-			//TODO process ThunderBreaker.IMPROVE_MAX_HP : Brawler.IMPROVE_MAX_HP
+			hp += getHPIncreaseEnhancementForLevelUp(l, db)(c)
 			hp += randRange(22, 28)
 			mp += randRange(18, 23)
 		} else if job.IsA(c.JobId(), job.Aran1) {
@@ -654,7 +745,7 @@ func assignSP(l logrus.FieldLogger, db *gorm.DB) func(skillId uint32) characterF
 				}
 
 				skillMaxLevel := uint32(20)
-				if si, ok := information.GetSkillInformation(l)(skillId); ok {
+				if si, err := information.GetById(l)(skillId); err == nil {
 					skillMaxLevel = uint32(len(si.Effects()))
 				}
 				var maxLevel = uint32(0)

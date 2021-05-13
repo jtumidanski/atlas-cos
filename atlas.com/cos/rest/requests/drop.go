@@ -20,7 +20,7 @@ type dropRegistry struct {
 
 func (d *dropRegistry) GetDropById(dropId uint32) (*attributes.DropDataContainer, error) {
 	ar := &attributes.DropDataContainer{}
-	err := get(fmt.Sprintf(dropResource, dropId), ar)
+	err := Get(fmt.Sprintf(dropResource, dropId), ar)
 	if err != nil {
 		return nil, err
 	}

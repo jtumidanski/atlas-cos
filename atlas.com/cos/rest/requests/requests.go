@@ -11,7 +11,7 @@ const (
 	BaseRequest string = "http://atlas-nginx:80"
 )
 
-func get(url string, resp interface{}) error {
+func Get(url string, resp interface{}) error {
 	r, err := http.Get(url)
 	if err != nil {
 		return err

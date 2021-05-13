@@ -22,7 +22,7 @@ type itemInformationRegistry struct {
 
 func (r itemInformationRegistry) GetEquipmentSlotDestination(itemId uint32) (*attributes.EquipmentSlotDataListContainer, error) {
 	ar := &attributes.EquipmentSlotDataListContainer{}
-	err := get(fmt.Sprintf(itemInformationEquipSlotResource, itemId), ar)
+	err := Get(fmt.Sprintf(itemInformationEquipSlotResource, itemId), ar)
 	if err != nil {
 		return nil, err
 	}

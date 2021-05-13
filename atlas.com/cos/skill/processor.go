@@ -19,6 +19,22 @@ func GetSkill(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillI
 	}
 }
 
+func IfHasSkillGetEffect(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillId uint32) (*information.Effect, bool) {
+	return func(characterId uint32, skillId uint32) (*information.Effect, bool) {
+		if skill, ok := GetSkill(l, db)(characterId, skillId); ok && skill.Level() > 0 {
+			i, err := information.GetById(l)(skillId)
+			if err != nil {
+				l.WithError(err).Errorf("Unable to retrieve information for skill %d.", skillId)
+				return nil, false
+			} else {
+				return &i.Effects()[skill.Level() - 1], true
+			}
+		} else {
+			return nil, false
+		}
+	}
+}
+
 // UpdateSkill updates the skill for the given character. Returns an error if one occurred.
 func UpdateSkill(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) error {
 	return func(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) error {
@@ -53,7 +69,7 @@ func AwardSkills(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, ski
 // AwardSkill awards the given character the designated skill. Returns an error if one occurred.
 func AwardSkill(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillId uint32) error {
 	return func(characterId uint32, skillId uint32) error {
-		if i, ok := information.GetSkillInformation(l)(skillId); ok {
+		if i, err := information.GetById(l)(skillId); err == nil {
 			maxLevel := len(i.Effects())
 			_, err := create(db, characterId, skillId, setMasterLevel(uint32(maxLevel)), setExpiration(-1))
 			return err

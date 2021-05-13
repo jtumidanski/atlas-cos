@@ -43,7 +43,7 @@ func (e *equipmentRegistry) Create(itemId uint32) (*attributes.EquipmentDataCont
 
 func (e *equipmentRegistry) GetById(equipmentId uint32) (*attributes.EquipmentDataContainer, error) {
 	ar := &attributes.EquipmentDataContainer{}
-	err := get(fmt.Sprintf(equipResource, equipmentId), ar)
+	err := Get(fmt.Sprintf(equipResource, equipmentId), ar)
 	if err != nil {
 		return nil, err
 	}

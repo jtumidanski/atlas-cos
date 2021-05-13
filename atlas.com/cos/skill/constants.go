@@ -41,9 +41,17 @@ const (
 	PirateDoubleShot     uint32 = 5001003
 	PirateDash           uint32 = 5001005
 
+	BrawlerImproveMaxHP uint32 = 5100000
+
 	NoblesseThreeSnails uint32 = 10001000
 	NoblesseRecovery    uint32 = 10001001
 	NoblesseNimbleFeet  uint32 = 10001002
+
+	DawnWarriorMaxHPEnhancement uint32 = 11000000
+
+	BlazeWizardIncreasingMaxMP uint32 = 12000000
+
+	ThunderBreakerImproveMaxHP uint32 = 15100000
 
 	EvanMagicMastery uint32 = 22170001
 	EvanFlameWheel   uint32 = 22171003
