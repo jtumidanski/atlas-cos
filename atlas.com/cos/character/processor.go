@@ -673,8 +673,9 @@ func randRange(lowerBound uint16, upperBound uint16) uint16 {
 func onLevelAdjustHealthAndMana(l logrus.FieldLogger, db *gorm.DB) func(c *Model) []EntityUpdateFunction {
 	return func(c *Model) []EntityUpdateFunction {
 		var modifiers = make([]EntityUpdateFunction, 0)
-		hp := c.HP()
-		mp := c.MP()
+		hp := c.MaxHP()
+		mp := c.MaxMP()
+		l.Debugf("Adjusting HP/MP for character %d on level. Current HP/MP is %d/%d.", c.Id(), hp, mp)
 		if c.IsBeginner() {
 			hp += randRange(12, 16)
 			mp += randRange(10, 12)
@@ -709,6 +710,7 @@ func onLevelAdjustHealthAndMana(l logrus.FieldLogger, db *gorm.DB) func(c *Model
 				mp += TotalIntelligence(l, db)(c) / 10
 			}
 		}
+		l.Debugf("HP/MP for character %d on level will become %d/%d.", c.Id(), hp, mp)
 		modifiers = append(modifiers, SetHealth(hp), SetMana(mp), SetMaxHP(hp), SetMaxMP(mp))
 		return modifiers
 	}
@@ -1018,8 +1020,8 @@ func adjustJob(l logrus.FieldLogger, db *gorm.DB) func(jobId uint16) characterFu
 			modifiers := []EntityUpdateFunction{
 				SetHealth(c.HP() + hp),
 				SetMana(c.MP() + mp),
-				SetMaxHP(c.maxHp + hp),
-				SetMaxMP(c.maxMp + mp),
+				SetMaxHP(c.MaxHP() + hp),
+				SetMaxMP(c.MaxMP() + mp),
 				SetJob(jobId),
 			}
 			return characterDatabaseUpdate(l, db)(modifiers...)(c)
