@@ -1079,6 +1079,34 @@ func resetAP(l logrus.FieldLogger, db *gorm.DB) characterFunc {
 	}
 }
 
+func MoveItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, source int16, destination int16) error {
+	return func(characterId uint32, inventoryType int8, source int16, destination int16) error {
+		c, err := GetById(l, db)(characterId)
+		if err != nil {
+			l.WithError(err).Errorf("Cannot retrieve character %d performing the drop.", characterId)
+			return err
+		}
+
+		if inventoryType == inventory.TypeValueEquip {
+			return moveEquipItem(l, db)(c, inventoryType, source, destination)
+		}
+
+		return moveItem(l, db)(c, inventoryType, source, destination)
+	}
+}
+
+func moveItem(l logrus.FieldLogger, db *gorm.DB) func(c *Model, inventoryType int8, source int16, destination int16) error {
+	return func(c *Model, inventoryType int8, source int16, destination int16) error {
+		return item.MoveItem(l, db)(c.Id(), inventoryType, source, destination)
+	}
+}
+
+func moveEquipItem(l logrus.FieldLogger, db *gorm.DB) func(c *Model, inventoryType int8, source int16, destination int16) error {
+	return func(c *Model, inventoryType int8, source int16, destination int16) error {
+		return equipment.MoveItem(l, db)(c.Id(), source, destination)
+	}
+}
+
 func DropItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) error {
 	return func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) error {
 		c, err := GetById(l, db)(characterId)

@@ -42,3 +42,11 @@ func SetQuantity(quantity uint32) EntityUpdateFunction {
 		}
 	}
 }
+
+func SetSlot(slot int16) EntityUpdateFunction {
+	return func() ([]string, func(e *entity)) {
+		return []string{"Slot"}, func(e *entity) {
+			e.Slot = slot
+		}
+	}
+}

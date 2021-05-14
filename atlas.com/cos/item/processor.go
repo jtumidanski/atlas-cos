@@ -181,3 +181,39 @@ func DropItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId by
 		return i.ItemId(), nil
 	}
 }
+
+func MoveItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, source int16, destination int16) error {
+	return func(characterId uint32, inventoryType int8, source int16, destination int16) error {
+		return db.Transaction(func(tx *gorm.DB) error {
+			item, err := getItemForCharacter(tx, characterId, inventoryType, source)
+			if err != nil || item.Id() == 0 {
+				l.Warnf("Item movement requested, but no equipment for character %d in slot %d.", characterId, source)
+				return err
+			}
+
+			temporarySlot := int16(math.MinInt16)
+			otherItem, err := getItemForCharacter(tx, characterId, inventoryType, destination)
+			if err == nil && otherItem.Id() != 0 {
+				l.Debugf("Item %d already exists in slot %d, that item will be moved temporarily to %d for character %d.", otherItem.Id(), destination, temporarySlot, characterId)
+				_ = update(tx, otherItem.Id(), SetSlot(temporarySlot))
+			}
+
+			err = update(tx, item.Id(), SetSlot(destination))
+			if err != nil {
+				return err
+			}
+			l.Debugf("Moved item %d from slot %d to %d for character %d.", item.Id(), source, destination, characterId)
+
+			if otherItem != nil {
+				err = update(tx, otherItem.Id(), SetSlot(source))
+				if err != nil {
+					return err
+				}
+				l.Debugf("Moved item %d from slot %d to %d for character %d.", otherItem.Id(), temporarySlot, source, characterId)
+			}
+
+			producers.InventoryModificationReservation(l)(characterId, true, 2, item.ItemId(), inventoryType, item.Quantity(), destination, source)
+			return nil
+		})
+	}
+}
