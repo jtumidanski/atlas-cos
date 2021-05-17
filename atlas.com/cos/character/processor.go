@@ -966,16 +966,40 @@ func awardSkillsForJobUpdate(l logrus.FieldLogger, db *gorm.DB) func(jobId uint1
 		return func(c *Model) error {
 			skills := make([]uint32, 0)
 			switch jobId {
-			case job.Bowman:
-				skills = []uint32{skill.BowmanBlessingOfAmazon, skill.BowmanCriticalShot, skill.BowmanTheEyeOfAmazon, skill.BowmanFocus, skill.BowmanArrowBlow, skill.BowmanDoubleShot}
-			case job.Magician:
-				skills = []uint32{skill.MagicianImprovedMPRecovery, skill.MagicianImprovedMPIncrease, skill.MagicianMagicGuard, skill.MagicianMagicArmor, skill.MagicianEnergyBolt, skill.MagicianMagicClaw}
 			case job.Warrior:
 				skills = []uint32{skill.WarriorImprovedHPRecovery, skill.WarriorImprovedHPIncrease, skill.WarriorEndure, skill.WarriorIronBody, skill.WarriorPowerStrike, skill.WarriorSlashBlast}
+			case job.Fighter:
+				skills = []uint32{skill.FighterSwordMastery, skill.FighterAxeMastery, skill.FighterFinalAttackSword, skill.FighterFinalAttackAxe, skill.FighterSwordBooster, skill.FighterAxeBooster, skill.FighterRage, skill.FighterPowerGuard}
+			case job.Page:
+				skills = []uint32{skill.PageSwordMastery, skill.PageBluntWeaponMastery, skill.PageFinalAttackSword, skill.PageFinalAttackBluntWeapon, skill.PageSwordBooster, skill.PageBluntWeaponBooster, skill.PageThreaten, skill.PagePowerGuard}
+			case job.Spearman:
+				skills = []uint32{skill.SpearmanSpearMastery, skill.SpearmanPolearmMastery, skill.SpearmanFinalAttackSpear, skill.SpearmanFinalAttackPolearm, skill.SpearmanSpearBooster, skill.SpearmanPolearmBooster, skill.SpearmanIronWill, skill.SpearmanHyperBody}
+			case job.Magician:
+				skills = []uint32{skill.MagicianImprovedMPRecovery, skill.MagicianImprovedMPIncrease, skill.MagicianMagicGuard, skill.MagicianMagicArmor, skill.MagicianEnergyBolt, skill.MagicianMagicClaw}
+			case job.FirePoisonWizard:
+				skills = []uint32{skill.FirePoisonWizardMPEater, skill.FirePoisonWizardMeditation, skill.FirePoisonWizardTeleport, skill.FirePoisonWizardSlow, skill.FirePoisonWizardFireArrow, skill.FirePoisonWizardPoisonBreath}
+			case job.IceLighteningWizard:
+				skills = []uint32{skill.IceLightningWizardMPEater, skill.IceLightningWizardMeditation, skill.IceLightningWizardTeleport, skill.IceLightningWizardSlow, skill.IceLightningWizardColdBeam, skill.IceLightningWizardThunderBolt}
+			case job.Cleric:
+				skills = []uint32{skill.ClericMPEater, skill.ClericTeleport, skill.ClericHeal, skill.ClericInvincible, skill.ClericBless, skill.ClericHolyArrow}
+			case job.Bowman:
+				skills = []uint32{skill.BowmanBlessingOfAmazon, skill.BowmanCriticalShot, skill.BowmanTheEyeOfAmazon, skill.BowmanFocus, skill.BowmanArrowBlow, skill.BowmanDoubleShot}
+			case job.Hunter:
+				skills = []uint32{skill.HunterBowMastery, skill.HunterFinalAttack, skill.HunterBowBooster, skill.HunterPowerKnockback, skill.HunterSoulArrow, skill.HunterArrowBomb}
+			case job.CrossBowman:
+				skills = []uint32{skill.CrossbowmanCrossbowMastery, skill.CrossbowmanFinalAttack, skill.CrossbowmanCrossbowBooster, skill.CrossbowmanPowerKnockback, skill.CrossbowmanSoulArrow, skill.CrossbowmanIronArrow}
 			case job.Thief:
 				skills = []uint32{skill.ThiefNimbleBody, skill.ThiefKeenEyes, skill.ThiefDisorder, skill.ThiefDarkSight, skill.ThiefDoubleStab, skill.ThiefLuckySeven}
+			case job.Assassin:
+				skills = []uint32{skill.AssassinClawMastery, skill.AssassinCriticalThrow, skill.AssassinEndure, skill.AssassinClawBooster, skill.AssassinHaste, skill.AssassinDrain}
+			case job.Bandit:
+				skills = []uint32{skill.BanditDaggerMastery, skill.BanditEndure, skill.BanditDaggerBooster, skill.BanditHaste, skill.BanditSteal, skill.BanditSavageBlow}
 			case job.Pirate:
 				skills = []uint32{skill.PirateBulletTime, skill.PirateFlashFist, skill.PirateSomersaultKick, skill.PirateDoubleShot, skill.PirateDash}
+			case job.Brawler:
+				skills = []uint32{skill.BrawlerImproveMaxHP, skill.BrawlerKnucklerMastery, skill.BrawlerBackSpinBlow, skill.BrawlerDoubleUppercut, skill.BrawlerCorkscrewBlow, skill.BrawlerMPRecovery, skill.BrawlerKnucklerBooster, skill.BrawlerOakBarrel}
+			case job.Gunslinger:
+				skills = []uint32{skill.GunslingerGunMastery, skill.GunslingerInvisibleShot, skill.GunslingerGrenade, skill.GunslingerGunBooster, skill.GunslingerBlankShot, skill.GunslingerWings, skill.GunslingerRecoilShot}
 			}
 
 			err := skill.AwardSkills(l, db)(c.Id(), skills...)
