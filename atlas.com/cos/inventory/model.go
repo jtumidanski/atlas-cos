@@ -40,3 +40,7 @@ func (i Item) Id() uint32 {
 func (i Item) Slot() int16 {
 	return i.slot
 }
+
+func (i Item) ItemType() string {
+	return i.itemType
+}

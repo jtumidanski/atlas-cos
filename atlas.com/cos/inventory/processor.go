@@ -2,6 +2,7 @@ package inventory
 
 import (
 	"atlas-cos/equipment"
+	"atlas-cos/equipment/statistics"
 	"atlas-cos/item"
 	"errors"
 	"github.com/sirupsen/logrus"
@@ -12,42 +13,17 @@ const (
 	DefaultInventoryCapacity uint32 = 24
 )
 
-func GetInventoryByType(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType string) (*Model, error) {
-	return func(characterId uint32, inventoryType string) (*Model, error) {
+func GetInventory(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType string, filters ...ItemFilter) (*Model, error) {
+	return func(characterId uint32, inventoryType string, filters ...ItemFilter) (*Model, error) {
 		if it, ok := GetByteFromName(inventoryType); ok {
-			return GetInventoryByTypeVal(l, db)(characterId, it)
+			return GetInventoryByTypeVal(l, db)(characterId, it, filters...)
 		}
 		return nil, errors.New("invalid inventory type")
 	}
 }
 
-func GetInventoryByTypeFilterSlot(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType string, slot int16) (*Model, error) {
-	return func(characterId uint32, inventoryType string, slot int16) (*Model, error) {
-		if it, ok := GetByteFromName(inventoryType); ok {
-			return GetInventoryByTypeValFilterSlot(l, db)(characterId, it, slot)
-		}
-		return nil, errors.New("invalid inventory type")
-	}
-}
-
-func GetInventoryByTypeVal(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8) (*Model, error) {
-	return func(characterId uint32, inventoryType int8) (*Model, error) {
-		i, err := get(db, characterId, inventoryType)
-		if err != nil {
-			return nil, err
-		}
-
-		if inventoryType == TypeValueEquip {
-			i.items = getEquipInventoryItems(l, db)(characterId)
-		} else {
-			i.items = getInventoryItems(l, db)(characterId, inventoryType)
-		}
-		return i, nil
-	}
-}
-
-func GetInventoryByTypeValFilterSlot(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, slot int16) (*Model, error) {
-	return func(characterId uint32, inventoryType int8, slot int16) (*Model, error) {
+func GetInventoryByTypeVal(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, filters ...ItemFilter) (*Model, error) {
+	return func(characterId uint32, inventoryType int8, filters ...ItemFilter) (*Model, error) {
 		i, err := get(db, characterId, inventoryType)
 		if err != nil {
 			return nil, err
@@ -61,12 +37,51 @@ func GetInventoryByTypeValFilterSlot(l logrus.FieldLogger, db *gorm.DB) func(cha
 		}
 
 		for _, it := range items {
-			if it.Slot() == slot {
+			ok := true
+			for _, filter := range filters {
+				if !filter(it) {
+					ok = false
+					break
+				}
+			}
+			if ok {
 				i.items = append(i.items, it)
 			}
 		}
 
 		return i, nil
+	}
+}
+
+type ItemFilter func(i Item) bool
+
+func FilterSlot(slot int16) ItemFilter {
+	return func(i Item) bool {
+		return i.Slot() == slot
+	}
+}
+
+func FilterItemId(l logrus.FieldLogger, db *gorm.DB) func(itemId uint32) ItemFilter {
+	return func(itemId uint32) ItemFilter {
+		return func(i Item) bool {
+			if i.ItemType() == ItemTypeItem {
+				ii, err := item.GetItemById(l, db)(i.Id())
+				if err != nil {
+					return false
+				}
+				return ii.ItemId() == itemId
+			} else {
+				ee, err := equipment.GetEquipmentById(l, db)(i.Id())
+				if err != nil {
+					return false
+				}
+				es, err := statistics.GetEquipmentStatistics(l)(ee.EquipmentId())
+				if err != nil {
+					return false
+				}
+				return es.ItemId() == itemId
+			}
+		}
 	}
 }
 
@@ -116,24 +131,30 @@ func CreateInventory(db *gorm.DB) func(characterId uint32, inventoryType int8, c
 
 func CreateInitialInventories(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) error {
 	return func(characterId uint32) error {
+		l.Debugf("Creating default inventories for character %d.", characterId)
 		_, err := CreateInventory(db)(characterId, TypeValueEquip, DefaultInventoryCapacity)
 		if err != nil {
+			l.WithError(err).Errorf("Error creating default EQUIP inventory for character %d.", characterId)
 			return err
 		}
 		_, err = CreateInventory(db)(characterId, TypeValueUse, DefaultInventoryCapacity)
 		if err != nil {
+			l.WithError(err).Errorf("Error creating default USE inventory for character %d.", characterId)
 			return err
 		}
 		_, err = CreateInventory(db)(characterId, TypeValueSetup, DefaultInventoryCapacity)
 		if err != nil {
+			l.WithError(err).Errorf("Error creating default SETUP inventory for character %d.", characterId)
 			return err
 		}
 		_, err = CreateInventory(db)(characterId, TypeValueETC, DefaultInventoryCapacity)
 		if err != nil {
+			l.WithError(err).Errorf("Error creating default ETC inventory for character %d.", characterId)
 			return err
 		}
 		_, err = CreateInventory(db)(characterId, TypeValueCash, DefaultInventoryCapacity)
 		if err != nil {
+			l.WithError(err).Errorf("Error creating default CASH inventory for character %d.", characterId)
 			return err
 		}
 		return nil
