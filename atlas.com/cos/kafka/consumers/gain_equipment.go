@@ -25,12 +25,12 @@ func HandleGainEquipmentCommand(db *gorm.DB) handler.EventHandler {
 		if event, ok := e.(*gainEquipmentCommand); ok {
 			ro, err := requests.EquipmentRegistry().Create(event.ItemId)
 			if err != nil {
-				l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.")
+				l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.", event.ItemId, event.CharacterId)
 				return
 			}
 			eid, err := strconv.Atoi(ro.Data.Id)
 			if err != nil {
-				l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.")
+				l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.", event.ItemId, event.CharacterId)
 				return
 			}
 

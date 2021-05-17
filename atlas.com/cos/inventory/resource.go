@@ -6,6 +6,8 @@ import (
 	"atlas-cos/item"
 	"atlas-cos/json"
 	"atlas-cos/rest/attributes"
+	"atlas-cos/rest/requests"
+	"atlas-cos/rest/resource"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -13,6 +15,91 @@ import (
 	"strconv"
 	"strings"
 )
+
+func CreateItem(fl *log.Logger, db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		l := fl.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
+
+		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
+		if err != nil {
+			l.WithError(err).Errorf("Unable to properly parse characterId from path.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		inventoryType := mux.Vars(r)["type"]
+		if inventoryType == "" {
+			l.Errorf("Unable to retrieve requested inventory type.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if strings.ToUpper(inventoryType) == TypeEquip {
+			li := &attributes.EquipmentDataContainer{}
+			err := json.FromJSON(li, r.Body)
+			if err != nil {
+				l.WithError(err).Errorf("Deserializing input.")
+				w.WriteHeader(http.StatusBadRequest)
+				err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
+				if err != nil {
+					l.WithError(err).Fatalf("Writing error message.")
+				}
+				return
+			}
+
+			itemId := li.Data.Attributes.ItemId
+			ro, err := requests.EquipmentRegistry().Create(itemId)
+			if err != nil {
+				l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.", itemId, characterId)
+				return
+			}
+			eid, err := strconv.Atoi(ro.Data.Id)
+			if err != nil {
+				l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.", itemId, characterId)
+				return
+			}
+
+			err = equipment.GainItem(l, db)(uint32(characterId), itemId, uint32(eid))
+			if err != nil {
+				l.WithError(err).Errorf("Unable to give character %d item %d.", characterId, itemId)
+			}
+		} else {
+			li := &attributes.ItemDataContainer{}
+			err := json.FromJSON(li, r.Body)
+			if err != nil {
+				l.WithError(err).Errorf("Deserializing input.")
+				w.WriteHeader(http.StatusBadRequest)
+				err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
+				if err != nil {
+					l.WithError(err).Fatalf("Writing error message.")
+				}
+				return
+			}
+
+			itemId := li.Data.Attributes.ItemId
+			quantity := li.Data.Attributes.Quantity
+			it, ok := GetByteFromName(inventoryType)
+			if !ok {
+				l.WithError(err).Errorf("Invalid inventory type supplied %s.", inventoryType)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			if quantity > 0 {
+				err := item.GainItem(l, db)(uint32(characterId), it, itemId, uint32(quantity))
+				if err != nil {
+					l.WithError(err).Errorf("Unable to give character %d item %d.", characterId, itemId)
+				}
+			} else {
+				err := item.LoseItem(l, db)(uint32(characterId), it, itemId, quantity)
+				if err != nil {
+					l.WithError(err).Errorf("Unable to take item %d from character %d.", itemId, characterId)
+				}
+			}
+
+		}
+	}
+}
 
 func GetItemForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -203,7 +290,7 @@ func createItemData(i *item.Model) attributes.InventoryItemData {
 		Type: "com.atlas.cos.rest.attribute.ItemAttributes",
 		Attributes: attributes.InventoryItemAttributes{
 			ItemId:   i.ItemId(),
-			Quantity: i.Quantity(),
+			Quantity: int32(i.Quantity()),
 			Slot:     i.Slot(),
 		},
 	}

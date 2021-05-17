@@ -31,6 +31,10 @@ type Relationship struct {
 	Type string `json:"type"`
 }
 
+type ItemDataContainer struct {
+	Data InventoryItemData `json:"data"`
+}
+
 type InventoryItemData struct {
 	Id         string                  `json:"id"`
 	Type       string                  `json:"type"`
@@ -39,7 +43,7 @@ type InventoryItemData struct {
 
 type InventoryItemAttributes struct {
 	ItemId   uint32 `json:"itemId"`
-	Quantity uint32 `json:"quantity"`
+	Quantity int32  `json:"quantity"`
 	Slot     int16  `json:"slot"`
 }
 
