@@ -125,6 +125,12 @@ func IsA(characterJobId uint16, referenceJobId ...uint16) bool {
 	return is
 }
 
+func isA(characterJobId uint16, referenceJobId uint16) bool {
+	characterBranch := characterJobId / 10
+	referenceBranch := referenceJobId / 10
+	return characterBranch == referenceBranch && characterJobId >= referenceJobId || referenceBranch%10 == 0 && characterJobId/100 == referenceJobId/100
+}
+
 func GetJobStyle(jobId uint16, strength uint16, dexterity uint16) uint16 {
 	if strength > dexterity {
 		return getJobStyleInternal(jobId, 0x80)
@@ -152,12 +158,6 @@ func getJobStyleInternal(jobId uint16, opt byte) uint16 {
 		}
 	}
 	return Beginner
-}
-
-func isA(characterJobId uint16, referenceJobId uint16) bool {
-	characterBranch := characterJobId / 10
-	referenceBranch := referenceJobId / 10
-	return characterBranch == referenceBranch && characterJobId >= referenceJobId || referenceBranch%10 == 0 && characterJobId/100 == referenceJobId/100
 }
 
 func GetJobFromIndex(jobIndex uint32) (uint16, bool) {

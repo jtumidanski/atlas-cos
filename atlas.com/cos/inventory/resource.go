@@ -370,3 +370,63 @@ func getInventoryItemType(inventoryType string) string {
 		return "com.atlas.cos.rest.attribute.ItemAttributes"
 	}
 }
+
+func GetItemsForCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fl := l.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
+
+		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
+		if err != nil {
+			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		itemId, err := strconv.Atoi(mux.Vars(r)["itemId"])
+		if err != nil {
+			fl.WithError(err).Errorf("Unable to properly parse itemId from path.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		result := &ItemListDataContainer{}
+
+		types := []string{TypeEquip, TypeUse, TypeSetup, TypeETC, TypeCash}
+		for _, t := range types {
+			inv, err := GetInventory(fl, db)(uint32(characterId), t, FilterItemId(l, db)(uint32(itemId)))
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, t)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			for _, i := range inv.Items() {
+				quantity := uint32(1)
+				if i.ItemType() == ItemTypeItem {
+					ii, err := item.GetItemById(l, db)(i.Id())
+					if err != nil {
+						l.WithError(err).Errorf("Unable to lookup item by id %d.", i.Id())
+						continue
+					}
+					quantity = ii.Quantity()
+				}
+
+				result.Data = append(result.Data, ItemDataBody{
+					Id:   strconv.Itoa(int(i.Id())),
+					Type: i.Type(),
+					Attributes: ItemAttributes{
+						InventoryType: inv.Type(),
+						Slot:          i.Slot(),
+						Quantity:      quantity,
+					},
+				})
+			}
+		}
+
+		w.WriteHeader(http.StatusOK)
+		err = json.ToJSON(result, w)
+		if err != nil {
+			l.WithError(err).Errorf("Writing response.")
+		}
+	}
+}
