@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetCharactersForAccountInWorld(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
 
@@ -44,7 +44,7 @@ func GetCharactersForAccountInWorld(l *log.Logger, db *gorm.DB) http.HandlerFunc
 	}
 }
 
-func GetCharactersByMap(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetCharactersByMap(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetCharactersByMap", "type": "rest_handler"})
 
@@ -78,7 +78,7 @@ func GetCharactersByMap(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-func GetCharactersByName(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetCharactersByName(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetCharactersByName", "type": "rest_handler"})
 
@@ -115,7 +115,7 @@ func createCharacterDataListContainer(cs []*Model) *attributes.CharacterDataList
 	return result
 }
 
-func GetCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetCharacter(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetCharacter", "type": "rest_handler"})
 
@@ -187,7 +187,7 @@ func createCharacterData(c *Model) attributes.CharacterData {
 	}
 }
 
-func GetCharacterDamage(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetCharacterDamage(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetCharacterDamage", "type": "rest_handler"})
 

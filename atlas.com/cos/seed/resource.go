@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-func CreateCharacterFromSeed(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func CreateCharacterFromSeed(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "CreateCharacterFromSeed", "type": "rest_handler"})
 

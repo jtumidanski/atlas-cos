@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-func CreateItem(fl *log.Logger, db *gorm.DB) http.HandlerFunc {
+func CreateItem(fl log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		l := fl.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
 
@@ -101,7 +101,7 @@ func CreateItem(fl *log.Logger, db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-func GetItemForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetItemForCharacterByType(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
 
@@ -139,7 +139,7 @@ func GetItemForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-func GetItemsForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetItemsForCharacterByType(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
 
@@ -177,7 +177,7 @@ func GetItemsForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-func GetInventoryForCharacterByType(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetInventoryForCharacterByType(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetInventoryForCharacterByType", "type": "rest_handler"})
 
@@ -371,7 +371,7 @@ func getInventoryItemType(inventoryType string) string {
 	}
 }
 
-func GetItemsForCharacter(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetItemsForCharacter(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
 

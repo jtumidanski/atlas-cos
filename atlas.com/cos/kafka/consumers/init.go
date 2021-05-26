@@ -2,13 +2,15 @@ package consumers
 
 import (
 	"atlas-cos/kafka/handler"
+	"context"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"sync"
 )
 
-func CreateEventConsumers(l *logrus.Logger, db *gorm.DB) {
+func CreateEventConsumers(l *logrus.Logger, db *gorm.DB, ctx context.Context, wg *sync.WaitGroup) {
 	cec := func(topicToken string, emptyEventCreator handler.EmptyEventCreator, processor handler.EventHandler) {
-		createEventConsumer(l, topicToken, emptyEventCreator, processor)
+		createEventConsumer(l, ctx, wg, topicToken, emptyEventCreator, processor)
 	}
 	cec("TOPIC_ADJUST_HEALTH", AdjustHealthCommandCreator(), HandleAdjustHealthCommand(db))
 	cec("TOPIC_ADJUST_MANA", AdjustManaCommandCreator(), HandleAdjustManaCommand(db))
@@ -31,6 +33,7 @@ func CreateEventConsumers(l *logrus.Logger, db *gorm.DB) {
 	cec("TOPIC_MOVE_ITEM", MoveItemCommandCreator(), HandleMoveItemCommand(db))
 }
 
-func createEventConsumer(l *logrus.Logger, topicToken string, emptyEventCreator handler.EmptyEventCreator, processor handler.EventHandler) {
-	go NewConsumer(l, topicToken, "Character Orchestration Service", emptyEventCreator, processor)
+func createEventConsumer(l *logrus.Logger, ctx context.Context, wg *sync.WaitGroup, topicToken string, emptyEventCreator handler.EmptyEventCreator, processor handler.EventHandler) {
+	wg.Add(1)
+	go NewConsumer(l, ctx, wg, topicToken, "Character Orchestration Service", emptyEventCreator, processor)
 }

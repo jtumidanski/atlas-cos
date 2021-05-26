@@ -1,71 +1,77 @@
 package rest
 
 import (
-	"atlas-cos/character"
-	"atlas-cos/inventory"
-	"atlas-cos/location"
-	"atlas-cos/seed"
-	"atlas-cos/skill"
-	"github.com/gorilla/mux"
+	"context"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 	"log"
 	"net/http"
-	"os"
+	"sync"
 	"time"
 )
 
-type Server struct {
-	l  *logrus.Logger
-	hs *http.Server
+type ConfigFunc func(config *Config)
+
+type Config struct {
+	readTimeout  time.Duration
+	writeTimeout time.Duration
+	idleTimeout  time.Duration
+	addr         string
 }
 
-func NewServer(l *logrus.Logger, db *gorm.DB) *Server {
-	router := mux.NewRouter().PathPrefix("/ms/cos").Subrouter().StrictSlash(true)
-	router.Use(commonHeader)
+func NewServer(cl *logrus.Logger, ctx context.Context, wg *sync.WaitGroup, routerProducer func(l logrus.FieldLogger) http.Handler, configurators ...ConfigFunc) {
+	l := cl.WithFields(logrus.Fields{"originator": "HTTPServer"})
+	w := cl.Writer()
+	defer func() {
+		err := w.Close()
+		if err != nil {
+			l.WithError(err).Errorf("Closing log writer.")
+		}
+	}()
 
-	csr := router.PathPrefix("/characters").Subrouter()
-	csr.HandleFunc("", character.GetCharactersForAccountInWorld(l, db)).Methods(http.MethodGet).Queries("accountId", "{accountId}", "worldId", "{worldId}")
-	csr.HandleFunc("", character.GetCharactersByMap(l, db)).Methods(http.MethodGet).Queries("worldId", "{worldId}", "mapId", "{mapId}")
-	csr.HandleFunc("", character.GetCharactersByName(l, db)).Methods(http.MethodGet).Queries("name", "{name}")
-	csr.HandleFunc("/{characterId}", character.GetCharacter(l, db)).Methods(http.MethodGet)
-	csr.HandleFunc("/{characterId}/inventories", inventory.GetItemForCharacterByType(l, db)).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}", "slot", "{slot}")
-	csr.HandleFunc("/{characterId}/inventories", inventory.GetItemsForCharacterByType(l, db)).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}", "itemId", "{itemId}")
-	csr.HandleFunc("/{characterId}/inventories", inventory.GetInventoryForCharacterByType(l, db)).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}")
-	csr.HandleFunc("/{characterId}/inventories/{type}/items", inventory.CreateItem(l, db)).Methods(http.MethodPost)
-	csr.HandleFunc("/{characterId}/items", inventory.GetItemsForCharacter(l, db)).Methods(http.MethodGet).Queries("itemId", "{itemId}")
-	csr.HandleFunc("/seeds", seed.CreateCharacterFromSeed(l, db)).Methods(http.MethodPost)
-	csr.HandleFunc("/{characterId}/locations", location.HandleGetSavedLocationsByType(l, db)).Methods(http.MethodGet).Queries("type", "{type}")
-	csr.HandleFunc("/{characterId}/locations", location.HandleGetSavedLocations(l, db)).Methods(http.MethodGet)
-	csr.HandleFunc("/{characterId}/locations", location.HandleAddSavedLocation(l, db)).Methods(http.MethodPost)
-	csr.HandleFunc("/{characterId}/damage/weapon", character.GetCharacterDamage(l, db)).Methods(http.MethodGet)
-	csr.HandleFunc("/{characterId}/skills", skill.GetCharacterSkills(l, db)).Methods(http.MethodGet)
-	csr.HandleFunc("/{characterId}/skills/{skillId}", skill.GetCharacterSkill(l, db)).Methods(http.MethodGet)
+	config := &Config{
+		readTimeout:  time.Duration(5) * time.Second,
+		writeTimeout: time.Duration(10) * time.Second,
+		idleTimeout:  time.Duration(120) * time.Second,
+		addr:         ":8080",
+	}
 
-	w := l.Writer()
-	defer w.Close()
+	for _, configurator := range configurators {
+		configurator(config)
+	}
 
 	hs := http.Server{
-		Addr:         ":8080",
-		Handler:      router,
-		ErrorLog:     log.New(w, "", 0), // set the logger for the server
-		ReadTimeout:  5 * time.Second,   // max time to read request from the client
-		WriteTimeout: 10 * time.Second,  // max time to write response to the client
-		IdleTimeout:  120 * time.Second, // max time for connections using TCP Keep-Alive
+		Addr:         config.addr,
+		Handler:      routerProducer(l),
+		ErrorLog:     log.New(w, "", 0),
+		ReadTimeout:  config.readTimeout,
+		WriteTimeout: config.writeTimeout,
+		IdleTimeout:  config.idleTimeout,
 	}
-	return &Server{l, &hs}
-}
 
-func (s *Server) Run() {
-	s.l.Infoln("Starting server on port 8080")
-	err := s.hs.ListenAndServe()
+	l.Infoln("Starting server on port 8080")
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go func() {
+		wg.Add(1)
+		defer wg.Done()
+		err := hs.ListenAndServe()
+		if err != http.ErrServerClosed {
+			l.WithError(err).Errorf("Error while serving.")
+			return
+		}
+	}()
+
+	<-ctx.Done()
+	l.Infof("Shutting down server on port 8080")
+	err := hs.Close()
 	if err != nil {
-		s.l.Errorf("Starting server: %s\n", err)
-		os.Exit(1)
+		l.WithError(err).Errorf("Error shutting down HTTP service.")
 	}
 }
 
-func commonHeader(next http.Handler) http.Handler {
+func CommonHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		next.ServeHTTP(w, r)

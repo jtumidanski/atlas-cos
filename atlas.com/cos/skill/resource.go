@@ -11,7 +11,7 @@ import (
 )
 
 // GetCharacterSkills is a REST resource handler for retrieving the specified characters skills.
-func GetCharacterSkills(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetCharacterSkills(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetCharacterSkills", "type": "rest_handler"})
 
@@ -40,7 +40,7 @@ func GetCharacterSkills(l *log.Logger, db *gorm.DB) http.HandlerFunc {
 }
 
 // GetCharacterSkill is a REST resource handler for retrieving the specified characters skill.
-func GetCharacterSkill(l *log.Logger, db *gorm.DB) http.HandlerFunc {
+func GetCharacterSkill(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fl := l.WithFields(log.Fields{"originator": "GetCharacterSkills", "type": "rest_handler"})
 
