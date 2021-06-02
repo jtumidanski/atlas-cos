@@ -7,7 +7,7 @@ const (
 
 	Fighter  uint16 = 110
 	Crusader uint16 = 111
-	Hero     uint16 = 122
+	Hero     uint16 = 112
 
 	Page        uint16 = 120
 	WhiteKnight uint16 = 121
