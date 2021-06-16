@@ -2,7 +2,7 @@ package portal
 
 type Model struct {
 	id        uint32
-	theType   uint32
+	theType   uint8
 	x         int16
 	y         int16
 	targetMap uint32

@@ -44,8 +44,8 @@ func makePortal(data *attributes.PortalData) *Model {
 	return &Model{
 		id:        uint32(id),
 		theType:   data.Attributes.Type,
-		x:         int16(data.Attributes.X),
-		y:         int16(data.Attributes.Y),
-		targetMap: data.Attributes.TargetMap,
+		x:         data.Attributes.X,
+		y:         data.Attributes.Y,
+		targetMap: data.Attributes.TargetMapId,
 	}
 }

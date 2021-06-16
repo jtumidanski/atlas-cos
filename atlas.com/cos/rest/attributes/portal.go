@@ -14,13 +14,13 @@ type PortalData struct {
 }
 
 type PortalAttributes struct {
-	Name       string `json:"name"`
-	Target     string `json:"target"`
-	Type       uint32 `json:"type"`
-	X          int32  `json:"x"`
-	Y          int32  `json:"y"`
-	TargetMap  uint32 `json:"targetMap"`
-	ScriptName string `json:"scriptName"`
+	Name        string `json:"name"`
+	Target      string `json:"target"`
+	Type        uint8  `json:"type"`
+	X           int16  `json:"x"`
+	Y           int16  `json:"y"`
+	TargetMapId uint32 `json:"target_map_id"`
+	ScriptName  string `json:"script_name"`
 }
 
 func (a *PortalDataContainer) UnmarshalJSON(data []byte) error {
