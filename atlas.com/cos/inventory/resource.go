@@ -6,7 +6,6 @@ import (
 	"atlas-cos/item"
 	"atlas-cos/json"
 	"atlas-cos/rest/attributes"
-	"atlas-cos/rest/requests"
 	"atlas-cos/rest/resource"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -48,18 +47,13 @@ func CreateItem(fl log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 			}
 
 			itemId := li.Data.Attributes.ItemId
-			ro, err := requests.EquipmentRegistry().Create(itemId)
+			eid, err := statistics.Create(l)(itemId)
 			if err != nil {
 				l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.", itemId, characterId)
 				return
 			}
-			eid, err := strconv.Atoi(ro.Data.Id)
-			if err != nil {
-				l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.", itemId, characterId)
-				return
-			}
 
-			err = equipment.GainItem(l, db)(uint32(characterId), itemId, uint32(eid))
+			err = equipment.GainItem(l, db)(uint32(characterId), itemId, eid)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to give character %d item %d.", characterId, itemId)
 			}

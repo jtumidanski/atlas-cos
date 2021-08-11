@@ -2,14 +2,29 @@ package statistics
 
 import (
 	"atlas-cos/rest/attributes"
-	"atlas-cos/rest/requests"
 	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
+func Create(l logrus.FieldLogger) func(itemId uint32) (uint32, error) {
+	return func(itemId uint32) (uint32, error) {
+		ro, err := requestCreate(itemId)
+		if err != nil {
+			l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.")
+			return 0, err
+		}
+		eid, err := strconv.Atoi(ro.Data.Id)
+		if err != nil {
+			l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.")
+			return 0, err
+		}
+		return uint32(eid), nil
+	}
+}
+
 func GetEquipmentStatistics(l logrus.FieldLogger) func(equipmentId uint32) (*Model, error) {
 	return func(equipmentId uint32) (*Model, error) {
-		resp, err := requests.EquipmentRegistry().GetById(equipmentId)
+		resp, err := requestById(l)(equipmentId)
 		if err != nil {
 			l.WithError(err).Errorf("Retrieving equipment %d information.", equipmentId)
 			return nil, err

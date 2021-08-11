@@ -1,4 +1,4 @@
-package equipment
+package statistics
 
 import (
 	"atlas-cos/rest/attributes"
