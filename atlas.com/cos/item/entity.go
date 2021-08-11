@@ -2,8 +2,8 @@ package item
 
 import "gorm.io/gorm"
 
-func Migration(db *gorm.DB) {
-	_ = db.AutoMigrate(&entity{})
+func Migration(db *gorm.DB) error {
+	return db.AutoMigrate(&entity{})
 }
 
 type entity struct {

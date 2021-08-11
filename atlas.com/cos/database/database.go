@@ -1,25 +1,120 @@
 package database
 
 import (
-	"atlas-cos/character"
-	"atlas-cos/equipment"
-	"atlas-cos/inventory"
-	"atlas-cos/item"
-	"atlas-cos/location"
 	"atlas-cos/retry"
-	"atlas-cos/skill"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"os"
+	"strconv"
 )
 
-func ConnectToDatabase(l logrus.FieldLogger) *gorm.DB {
-	var db *gorm.DB
+type DSNBuilder struct {
+	user         string
+	password     string
+	host         string
+	port         uint16
+	databaseName string
+}
 
+func NewDSNBuilder() *DSNBuilder {
+	return &DSNBuilder{
+		user:         "",
+		password:     "",
+		host:         "",
+		port:         0,
+		databaseName: "",
+	}
+}
+
+func (d *DSNBuilder) SetUser(value string) *DSNBuilder {
+	d.user = value
+	return d
+}
+
+func (d *DSNBuilder) SetPassword(value string) *DSNBuilder {
+	d.password = value
+	return d
+}
+
+func (d *DSNBuilder) SetHost(value string) *DSNBuilder {
+	d.host = value
+	return d
+}
+
+func (d *DSNBuilder) SetPort(port uint16) *DSNBuilder {
+	d.port = port
+	return d
+}
+
+func (d *DSNBuilder) SetDatabaseName(value string) *DSNBuilder {
+	d.databaseName = value
+	return d
+}
+
+func (d *DSNBuilder) Build() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local", d.user, d.password, d.host, d.port, d.databaseName)
+}
+
+type Configuration struct {
+	dsn        string
+	migrations []Migrator
+}
+
+type Configurator func(c *Configuration)
+
+func SetMigrations(migrations ...Migrator) Configurator {
+	return func(c *Configuration) {
+		c.migrations = migrations
+	}
+}
+
+type Migrator func(db *gorm.DB) error
+
+func Connect(l logrus.FieldLogger, configurators ...Configurator) *gorm.DB {
+	dsnBuilder := NewDSNBuilder()
+	user, ok := os.LookupEnv("DB_USER")
+	if ok {
+		dsnBuilder = dsnBuilder.SetUser(user)
+	}
+
+	password, ok := os.LookupEnv("DB_PASSWORD")
+	if ok {
+		dsnBuilder = dsnBuilder.SetPassword(password)
+	}
+
+	host, ok := os.LookupEnv("DB_HOST")
+	if ok {
+		dsnBuilder = dsnBuilder.SetHost(host)
+	}
+
+	portStr, ok := os.LookupEnv("DB_PORT")
+	if ok {
+		port, err := strconv.Atoi(portStr)
+		if err == nil {
+			dsnBuilder = dsnBuilder.SetPort(uint16(port))
+		}
+	}
+
+	databaseName, ok := os.LookupEnv("DB_NAME")
+	if ok {
+		dsnBuilder = dsnBuilder.SetDatabaseName(databaseName)
+	}
+
+	c := &Configuration{
+		dsn:        dsnBuilder.Build(),
+		migrations: make([]Migrator, 0),
+	}
+	for _, configurator := range configurators {
+		configurator(c)
+	}
+
+	var db *gorm.DB
 	tryToConnect := func(attempt int) (bool, error) {
 		var err error
 		db, err = gorm.Open(mysql.New(mysql.Config{
-			DSN:                       "root:the@tcp(atlas-db:3306)/atlas-cos?charset=utf8&parseTime=True&loc=Local",
+			DSN:                       c.dsn,
 			DefaultStringSize:         256,
 			DisableDatetimePrecision:  true,
 			DontSupportRenameIndex:    true,
@@ -38,11 +133,11 @@ func ConnectToDatabase(l logrus.FieldLogger) *gorm.DB {
 	}
 
 	// Migrate the schema
-	character.Migration(db)
-	equipment.Migration(db)
-	item.Migration(db)
-	location.Migration(db)
-	skill.Migration(db)
-	inventory.Migration(db)
+	for _, m := range c.migrations {
+		err = m(db)
+		if err != nil {
+			l.WithError(err).Fatalf("Migrating schema.")
+		}
+	}
 	return db
 }

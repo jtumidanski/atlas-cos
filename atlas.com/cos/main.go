@@ -1,10 +1,16 @@
 package main
 
 import (
+	"atlas-cos/character"
 	"atlas-cos/database"
+	"atlas-cos/equipment"
+	"atlas-cos/inventory"
+	"atlas-cos/item"
 	"atlas-cos/kafka/consumers"
+	"atlas-cos/location"
 	"atlas-cos/logger"
 	"atlas-cos/rest"
+	"atlas-cos/skill"
 	"context"
 	"os"
 	"os/signal"
@@ -20,7 +26,7 @@ func main() {
 	wg := &sync.WaitGroup{}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	db := database.ConnectToDatabase(l)
+	db := database.Connect(l, database.SetMigrations(character.Migration, equipment.Migration, item.Migration, location.Migration, skill.Migration, inventory.Migration))
 
 	consumers.CreateEventConsumers(l, db, ctx, wg)
 
