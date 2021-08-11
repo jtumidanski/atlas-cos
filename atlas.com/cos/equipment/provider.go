@@ -52,7 +52,7 @@ func getNextFreeEquipmentSlot(db *gorm.DB, characterId uint32) (int16, error) {
 }
 
 func minFreeSlot(items []*Model) int16 {
-	slot := int16(1)
+	slot := int16(0)
 	i := 0
 
 	for {

@@ -5,6 +5,7 @@ import "testing"
 // TestMinFreeSlot1 tests minFreeSlot with existing slots 0, 1, 4, 7, 8.
 func TestMinFreeSlot1(t *testing.T) {
 	items := []*Model{
+		{slot: 0},
 		{slot: 1},
 		{slot: 4},
 		{slot: 7},
@@ -26,7 +27,7 @@ func TestMinFreeSlot2(t *testing.T) {
 		{slot: 8},
 	}
 	result := minFreeSlot(items)
-	if result != 3 {
+	if result != 0 {
 		t.Fatalf("MinFreeSlot expected=%d, got=%d", 0, result)
 	}
 }
@@ -34,6 +35,7 @@ func TestMinFreeSlot2(t *testing.T) {
 // TestMinFreeSlot3 tests minFreeSlot with existing slots 0, 1, 2, 3, 4.
 func TestMinFreeSlot3(t *testing.T) {
 	items := []*Model{
+		{slot: 0},
 		{slot: 1},
 		{slot: 2},
 		{slot: 3},
@@ -45,22 +47,7 @@ func TestMinFreeSlot3(t *testing.T) {
 	}
 }
 
-// TestMinFreeSlot4 tests minFreeSlot with existing slots -1, 1, 2, 3, 4.
-func TestMinFreeSlot4(t *testing.T) {
-	items := []*Model{
-		{slot: -1},
-		{slot: 1},
-		{slot: 2},
-		{slot: 3},
-		{slot: 4},
-	}
-	result := minFreeSlot(items)
-	if result != 5 {
-		t.Fatalf("MinFreeSlot expected=%d, got=%d", 5, result)
-	}
-}
-
-// TestMinFreeSlot5 tests minFreeSlot with existing slots 1, 2, 3
+// TestMinFreeSlot5 tests minFreeSlot with existing slots -7, 1, 2, 3
 func TestMinFreeSlot5(t *testing.T) {
 	items := []*Model{
 		{slot: -7},
@@ -69,7 +56,7 @@ func TestMinFreeSlot5(t *testing.T) {
 		{slot: 3},
 	}
 	result := minFreeSlot(items)
-	if result != 4 {
-		t.Fatalf("MinFreeSlot expected=%d, got=%d", 4, result)
+	if result != 0 {
+		t.Fatalf("MinFreeSlot expected=%d, got=%d", 0, result)
 	}
 }
