@@ -8,7 +8,6 @@ import (
 	"atlas-cos/kafka/producers"
 	"atlas-cos/party"
 	"atlas-cos/rest/attributes"
-	"atlas-cos/rest/requests"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math"
@@ -24,7 +23,7 @@ func AttemptPickup(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, d
 			return
 		}
 		l.Debugf("Character %d attempting to pickup drop %d.", characterId, dropId)
-		d, err := GetById(dropId)
+		d, err := GetById(l)(dropId)
 		if err != nil {
 			l.WithError(err).Errorf("Attempting to pick up %d for character %d.", dropId, characterId)
 			return
@@ -33,13 +32,15 @@ func AttemptPickup(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, d
 	}
 }
 
-func GetById(dropId uint32) (*Model, error) {
-	dc, err := requests.DropRegistry().GetDropById(dropId)
-	if err != nil {
-		return nil, err
+func GetById(l logrus.FieldLogger) func(dropId uint32) (*Model, error) {
+	return func(dropId uint32) (*Model, error) {
+		dc, err := requestById(l)(dropId)
+		if err != nil {
+			return nil, err
+		}
+		d := makeDrop(dc.Data)
+		return d, nil
 	}
-	d := makeDrop(dc.Data)
-	return d, nil
 }
 
 func makeDrop(dc attributes.DropData) *Model {

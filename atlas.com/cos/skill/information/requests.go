@@ -3,6 +3,7 @@ package information
 import (
 	"atlas-cos/rest/requests"
 	"fmt"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -12,11 +13,13 @@ const (
 	skillResource             = skillsResource + "/%d"
 )
 
-func requestSkill(skillId uint32) (*dataContainer, error) {
-	ar := &dataContainer{}
-	err := requests.Get(fmt.Sprintf(skillResource, skillId), ar)
-	if err != nil {
-		return nil, err
+func requestSkill(l logrus.FieldLogger) func(skillId uint32) (*dataContainer, error) {
+	return func(skillId uint32) (*dataContainer, error) {
+		ar := &dataContainer{}
+		err := requests.Get(l)(fmt.Sprintf(skillResource, skillId), ar)
+		if err != nil {
+			return nil, err
+		}
+		return ar, nil
 	}
-	return ar, nil
 }

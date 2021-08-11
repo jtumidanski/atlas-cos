@@ -2,14 +2,13 @@ package portal
 
 import (
 	"atlas-cos/rest/attributes"
-	"atlas-cos/rest/requests"
 	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
 func GetMapPortalById(l logrus.FieldLogger) func(mapId uint32, portalId uint32) (*Model, error) {
 	return func(mapId uint32, portalId uint32) (*Model, error) {
-		data, err := requests.MapInformation().GetPortalById(mapId, portalId)
+		data, err := requestPortalById(l)(mapId, portalId)
 		if err != nil {
 			l.Errorf("Unable to get map %d portal %d.", mapId, portalId)
 			return nil, err
@@ -20,7 +19,7 @@ func GetMapPortalById(l logrus.FieldLogger) func(mapId uint32, portalId uint32) 
 
 func GetMapPortals(l logrus.FieldLogger) func(mapId uint32) ([]*Model, error) {
 	return func(mapId uint32) ([]*Model, error) {
-		data, err := requests.MapInformation().GetPortals(mapId)
+		data, err := requestPortals(l)(mapId)
 		if err != nil {
 			l.Errorf("Unable to get map %d portals.", mapId)
 			return nil, err

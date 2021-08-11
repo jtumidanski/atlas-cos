@@ -4,7 +4,7 @@ import "github.com/sirupsen/logrus"
 
 func GetById(l logrus.FieldLogger) func(skillId uint32) (*Model, error) {
 	return func(skillId uint32) (*Model, error) {
-		s, err := requestSkill(skillId)
+		s, err := requestSkill(l)(skillId)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve skill %d information.", skillId)
 			return nil, err

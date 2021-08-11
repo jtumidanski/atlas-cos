@@ -10,7 +10,6 @@ import (
 	"atlas-cos/kafka/producers"
 	_map "atlas-cos/map"
 	"atlas-cos/portal"
-	"atlas-cos/rest/requests"
 	"atlas-cos/skill"
 	"atlas-cos/skill/information"
 	"errors"
@@ -1177,13 +1176,13 @@ func dropEquipItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channel
 			return err
 		}
 
-		ea, err := requests.EquipmentRegistry().GetById(eid)
+		itemId, err := equipment.GetItemIdForEquipment(l)(eid)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment %d.", eid)
 			return err
 		}
 
-		producers.SpawnCharacterEquipDrop(l)(worldId, channelId, c.MapId(), ea.Data.Attributes.ItemId, eid, 0, ctd.X(), ctd.Y(), c.Id(), 0)
+		producers.SpawnCharacterEquipDrop(l)(worldId, channelId, c.MapId(), itemId, eid, 0, ctd.X(), ctd.Y(), c.Id(), 0)
 		return nil
 	}
 }
@@ -1196,13 +1195,13 @@ func dropEquippedItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, chan
 			return err
 		}
 
-		ea, err := requests.EquipmentRegistry().GetById(eid)
+		itemId, err := equipment.GetItemIdForEquipment(l)(eid)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment %d.", eid)
 			return err
 		}
 
-		producers.SpawnCharacterEquipDrop(l)(worldId, channelId, c.MapId(), ea.Data.Attributes.ItemId, eid, 0, ctd.X(), ctd.Y(), c.Id(), 0)
+		producers.SpawnCharacterEquipDrop(l)(worldId, channelId, c.MapId(), itemId, eid, 0, ctd.X(), ctd.Y(), c.Id(), 0)
 		return nil
 	}
 }

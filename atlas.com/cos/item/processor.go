@@ -217,3 +217,18 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, invent
 		})
 	}
 }
+
+func GetEquipmentSlotDestination(l logrus.FieldLogger) func(itemId uint32) ([]int16, error) {
+	return func(itemId uint32) ([]int16, error) {
+		r, err := requestEquipmentSlotDestination(l)(itemId)
+		if err != nil {
+			return nil, err
+		}
+
+		var slots = make([]int16, 0)
+		for _, data := range r.Data {
+			slots = append(slots, data.Attributes.Slot)
+		}
+		return slots, nil
+	}
+}
