@@ -3,6 +3,7 @@ package consumers
 import (
 	"atlas-cos/character"
 	"atlas-cos/kafka/handler"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -20,10 +21,10 @@ func AdjustMesoCommandCreator() handler.EmptyEventCreator {
 }
 
 func HandleAdjustMesoCommand(db *gorm.DB) handler.EventHandler {
-	return func(l log.FieldLogger, e interface{}) {
+	return func(l log.FieldLogger, span opentracing.Span, e interface{}) {
 		if event, ok := e.(*adjustMesoCommand); ok {
 			l.Debugf("Begin event handling.")
-			character.AdjustMeso(l, db)(event.CharacterId, event.Amount, event.Show)
+			character.AdjustMeso(l, db, span)(event.CharacterId, event.Amount, event.Show)
 			l.Debugf("Complete event handling.")
 		} else {
 			l.Errorf("Unable to cast event provided to handler")

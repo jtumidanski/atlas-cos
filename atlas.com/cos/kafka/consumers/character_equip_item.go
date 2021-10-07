@@ -3,6 +3,7 @@ package consumers
 import (
 	"atlas-cos/equipment"
 	"atlas-cos/kafka/handler"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -20,7 +21,7 @@ func CharacterEquipItemCommandCreator() handler.EmptyEventCreator {
 }
 
 func HandleCharacterEquipItemCommand(db *gorm.DB) handler.EventHandler {
-	return func(l log.FieldLogger, e interface{}) {
+	return func(l log.FieldLogger, span opentracing.Span, e interface{}) {
 		if event, ok := e.(*characterEquipItemCommand); ok {
 			l.Debugf("Begin event handling.")
 			l.Debugf("CharacterId = %d, Source = %d, Destination = %d.", event.CharacterId, event.Source, event.CharacterId)
@@ -29,7 +30,7 @@ func HandleCharacterEquipItemCommand(db *gorm.DB) handler.EventHandler {
 				l.WithError(err).Errorf("Unable to retrieve item to equip for character %d in slot %d.", event.CharacterId, event.Source)
 				return
 			}
-			equipment.EquipItemForCharacter(l, db)(event.CharacterId, e.EquipmentId())
+			equipment.EquipItemForCharacter(l, db, span)(event.CharacterId, e.EquipmentId())
 			l.Debugf("Complete event handling.")
 		} else {
 			l.Errorf("Unable to cast event provided to handler")

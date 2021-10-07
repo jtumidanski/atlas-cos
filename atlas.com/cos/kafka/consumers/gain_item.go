@@ -4,6 +4,7 @@ import (
 	"atlas-cos/inventory"
 	"atlas-cos/item"
 	"atlas-cos/kafka/handler"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -21,16 +22,16 @@ func GainItemCommandCreator() handler.EmptyEventCreator {
 }
 
 func HandleGainItemCommand(db *gorm.DB) handler.EventHandler {
-	return func(l log.FieldLogger, e interface{}) {
+	return func(l log.FieldLogger, span opentracing.Span, e interface{}) {
 		if event, ok := e.(*gainItemCommand); ok {
 			if it, ok := inventory.GetInventoryType(event.ItemId); ok {
 				if event.Quantity > 0 {
-					err := item.GainItem(l, db)(event.CharacterId, it, event.ItemId, uint32(event.Quantity))
+					err := item.GainItem(l, db, span)(event.CharacterId, it, event.ItemId, uint32(event.Quantity))
 					if err != nil {
 						l.WithError(err).Errorf("Unable to give character %d item %d.", event.CharacterId, event.ItemId)
 					}
 				} else {
-					err := item.LoseItem(l, db)(event.CharacterId, it, event.ItemId, event.Quantity)
+					err := item.LoseItem(l, db, span)(event.CharacterId, it, event.ItemId, event.Quantity)
 					if err != nil {
 						l.WithError(err).Errorf("Unable to take item %d from character %d.", event.ItemId, event.CharacterId)
 					}

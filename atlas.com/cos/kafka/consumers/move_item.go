@@ -3,6 +3,7 @@ package consumers
 import (
 	"atlas-cos/character"
 	"atlas-cos/kafka/handler"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -21,9 +22,9 @@ func MoveItemCommandCreator() handler.EmptyEventCreator {
 }
 
 func HandleMoveItemCommand(db *gorm.DB) handler.EventHandler {
-	return func(l log.FieldLogger, e interface{}) {
+	return func(l log.FieldLogger, span opentracing.Span, e interface{}) {
 		if event, ok := e.(*moveItemCommand); ok {
-			_ = character.MoveItem(l, db)(event.CharacterId, event.InventoryType, event.Source, event.Destination)
+			_ = character.MoveItem(l, db, span)(event.CharacterId, event.InventoryType, event.Source, event.Destination)
 		} else {
 			l.Errorf("Unable to cast event provided to handler")
 		}

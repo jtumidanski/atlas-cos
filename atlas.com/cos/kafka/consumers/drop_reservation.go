@@ -3,6 +3,7 @@ package consumers
 import (
 	"atlas-cos/drop"
 	"atlas-cos/kafka/handler"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -20,11 +21,11 @@ func DropReservationEventCreator() handler.EmptyEventCreator {
 }
 
 func HandleDropReservationEvent(db *gorm.DB) handler.EventHandler {
-	return func(l log.FieldLogger, e interface{}) {
+	return func(l log.FieldLogger, span opentracing.Span, e interface{}) {
 		if event, ok := e.(*dropReservationEvent); ok {
 			l.Debugf("Begin event handling.")
 			if event.Type == "SUCCESS" {
-				drop.AttemptPickup(l, db)(event.CharacterId, event.DropId)
+				drop.AttemptPickup(l, db, span)(event.CharacterId, event.DropId)
 			}
 			l.Debugf("Complete event handling.")
 		} else {

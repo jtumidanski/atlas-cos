@@ -4,6 +4,7 @@ import (
 	"atlas-cos/equipment"
 	"atlas-cos/equipment/statistics"
 	"atlas-cos/kafka/handler"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -20,15 +21,15 @@ func GainEquipmentCommandCreator() handler.EmptyEventCreator {
 }
 
 func HandleGainEquipmentCommand(db *gorm.DB) handler.EventHandler {
-	return func(l log.FieldLogger, e interface{}) {
+	return func(l log.FieldLogger, span opentracing.Span, e interface{}) {
 		if event, ok := e.(*gainEquipmentCommand); ok {
-			eid, err := statistics.Create(l)(event.ItemId)
+			eid, err := statistics.Create(l, span)(event.ItemId)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to create equipment %d for character %d.", event.ItemId, event.CharacterId)
 				return
 			}
 
-			err = equipment.GainItem(l, db)(event.CharacterId, event.ItemId, eid)
+			err = equipment.GainItem(l, db, span)(event.CharacterId, event.ItemId, eid)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to give character %d item %d.", event.CharacterId, event.ItemId)
 			}

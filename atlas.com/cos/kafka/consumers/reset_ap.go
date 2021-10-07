@@ -3,6 +3,7 @@ package consumers
 import (
 	"atlas-cos/character"
 	"atlas-cos/kafka/handler"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -18,9 +19,9 @@ func ResetAPCommandCreator() handler.EmptyEventCreator {
 }
 
 func HandleResetAPCommand(db *gorm.DB) handler.EventHandler {
-	return func(l log.FieldLogger, e interface{}) {
+	return func(l log.FieldLogger, span opentracing.Span, e interface{}) {
 		if event, ok := e.(*resetAPCommand); ok {
-			err := character.ResetAP(l, db)(event.CharacterId)
+			err := character.ResetAP(l, db, span)(event.CharacterId)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to reset AP of character %d.", event.CharacterId)
 			}

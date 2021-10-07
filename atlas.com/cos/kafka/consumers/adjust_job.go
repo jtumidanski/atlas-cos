@@ -3,6 +3,7 @@ package consumers
 import (
 	"atlas-cos/character"
 	"atlas-cos/kafka/handler"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -19,9 +20,9 @@ func AdjustJobCommandCreator() handler.EmptyEventCreator {
 }
 
 func HandleAdjustJobCommand(db *gorm.DB) handler.EventHandler {
-	return func(l log.FieldLogger, e interface{}) {
+	return func(l log.FieldLogger, span opentracing.Span, e interface{}) {
 		if event, ok := e.(*adjustJobCommand); ok {
-			err := character.AdjustJob(l, db)(event.CharacterId, event.JobId)
+			err := character.AdjustJob(l, db, span)(event.CharacterId, event.JobId)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to adjust the job of character %d.", event.CharacterId)
 			}

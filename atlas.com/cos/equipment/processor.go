@@ -5,6 +5,7 @@ import (
 	"atlas-cos/item"
 	"atlas-cos/kafka/producers"
 	"errors"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math"
@@ -54,31 +55,31 @@ func GetEquippedItemForCharacterBySlot(_ logrus.FieldLogger, db *gorm.DB) func(c
 	}
 }
 
-func CreateAndEquip(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, items ...uint32) {
+func CreateAndEquip(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, items ...uint32) {
 	return func(characterId uint32, items ...uint32) {
 		for _, i := range items {
-			createAndEquip(l, db)(characterId, i)
+			createAndEquip(l, db, span)(characterId, i)
 		}
 	}
 }
 
-func createAndEquip(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, itemId uint32) {
+func createAndEquip(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, itemId uint32) {
 	return func(characterId uint32, itemId uint32) {
-		eid, err := statistics.Create(l)(itemId)
+		eid, err := statistics.Create(l, span)(itemId)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
 			return
 		}
 
 		if equipment, err := CreateForCharacter(l, db)(characterId, itemId, eid, true); err == nil {
-			EquipItemForCharacter(l, db)(characterId, equipment.EquipmentId())
+			EquipItemForCharacter(l, db, span)(characterId, equipment.EquipmentId())
 		} else {
 			l.Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
 		}
 	}
 }
 
-func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, equipmentId uint32) {
+func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, equipmentId uint32) {
 	return func(characterId uint32, equipmentId uint32) {
 		l.Debugf("Received request to equip %d for character %d.", equipmentId, characterId)
 		e, err := getByEquipmentId(db, equipmentId)
@@ -87,7 +88,7 @@ func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId u
 			return
 		}
 
-		ea, err := statistics.GetEquipmentStatistics(l)(e.EquipmentId())
+		ea, err := statistics.GetEquipmentStatistics(l, span)(e.EquipmentId())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
 			return
@@ -95,7 +96,7 @@ func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId u
 
 		l.Debugf("Equipment %d is item %d for character %d.", equipmentId, ea.ItemId(), characterId)
 
-		slots, err := item.GetEquipmentSlotDestination(l)(ea.ItemId())
+		slots, err := item.GetEquipmentSlotDestination(l, span)(ea.ItemId())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve destination slots for item %d.", ea.ItemId())
 			return
@@ -132,7 +133,7 @@ func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId u
 			l.Debugf("Moved item %d from slot %d to %d for character %d.", ea.ItemId(), currentSlot, slot, characterId)
 
 			events = append(events, func() {
-				producers.InventoryModificationReservation(l)(characterId, true, 2, ea.ItemId(), 1, 1, slot, currentSlot)
+				producers.InventoryModificationReservation(l, span)(characterId, true, 2, ea.ItemId(), 1, 1, slot, currentSlot)
 			})
 
 			if equip, err := getEquipmentForCharacterBySlot(tx, characterId, temporarySlot); err == nil && equip.EquipmentId() != 0 {
@@ -143,7 +144,7 @@ func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId u
 				l.Debugf("Moved item from temporary location %d to slot %d for character %d.", temporarySlot, currentSlot, characterId)
 			}
 			events = append(events, func() {
-				producers.CharacterEquippedItem(l)(characterId)
+				producers.CharacterEquippedItem(l, span)(characterId)
 			})
 			return nil
 		})
@@ -158,14 +159,14 @@ func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId u
 	}
 }
 
-func UnequipItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, equipmentId uint32, oldSlot int16) {
+func UnequipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, equipmentId uint32, oldSlot int16) {
 	return func(characterId uint32, equipmentId uint32, oldSlot int16) {
 		l.Debugf("Received request to unequip %d for character %d.", equipmentId, characterId)
 
 		events := make([]func(), 0)
 
 		err := db.Transaction(func(tx *gorm.DB) error {
-			ea, err := statistics.GetEquipmentStatistics(l)(equipmentId)
+			ea, err := statistics.GetEquipmentStatistics(l, span)(equipmentId)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
 				return err
@@ -184,10 +185,10 @@ func UnequipItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId
 
 			l.Debugf("Unequipped %d for character %d and place it in slot %d, from %d.", equipmentId, characterId, val, oldSlot)
 			events = append(events, func() {
-				producers.InventoryModificationReservation(l)(characterId, true, 2, ea.ItemId(), 1, 1, val, oldSlot)
+				producers.InventoryModificationReservation(l, span)(characterId, true, 2, ea.ItemId(), 1, 1, val, oldSlot)
 			})
 			events = append(events, func() {
-				producers.CharacterUnEquippedItem(l)(characterId)
+				producers.CharacterUnEquippedItem(l, span)(characterId)
 			})
 			return nil
 		})
@@ -217,7 +218,7 @@ func invalidCharacterCreationItem(itemId uint32) bool {
 	return true
 }
 
-func GainItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, itemId uint32, equipmentId uint32) error {
+func GainItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, itemId uint32, equipmentId uint32) error {
 	return func(characterId uint32, itemId uint32, equipmentId uint32) error {
 		//TODO verify inventory space
 		e, err := CreateForCharacter(l, db)(characterId, itemId, equipmentId, false)
@@ -225,12 +226,12 @@ func GainItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, itemId
 			l.WithError(err).Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
 			return err
 		}
-		producers.InventoryModificationReservation(l)(characterId, true, 0, itemId, 1, 1, e.Slot(), 0)
+		producers.InventoryModificationReservation(l, span)(characterId, true, 0, itemId, 1, 1, e.Slot(), 0)
 		return nil
 	}
 }
 
-func DropEquippedItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
+func DropEquippedItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
 	return func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
 		l.Debugf("Character %d dropping equipment in slot %d.", characterId, slot)
 		e, err := GetEquippedItemForCharacterBySlot(l, db)(characterId, slot)
@@ -239,7 +240,7 @@ func DropEquippedItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, chan
 			return 0, err
 		}
 
-		ea, err := statistics.GetEquipmentStatistics(l)(e.EquipmentId())
+		ea, err := statistics.GetEquipmentStatistics(l, span)(e.EquipmentId())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment %d.", e.EquipmentId())
 			return 0, err
@@ -251,12 +252,12 @@ func DropEquippedItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, chan
 			return 0, err
 		}
 
-		producers.InventoryModificationReservation(l)(characterId, true, 3, ea.ItemId(), 1, 1, slot, 0)
+		producers.InventoryModificationReservation(l, span)(characterId, true, 3, ea.ItemId(), 1, 1, slot, 0)
 		return e.EquipmentId(), nil
 	}
 }
 
-func DropEquipment(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
+func DropEquipment(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
 	return func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
 		l.Debugf("Character %d dropping equipment in slot %d.", characterId, slot)
 		e, err := GetEquippedItemForCharacterBySlot(l, db)(characterId, slot)
@@ -265,7 +266,7 @@ func DropEquipment(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channel
 			return 0, err
 		}
 
-		ea, err := statistics.GetEquipmentStatistics(l)(e.EquipmentId())
+		ea, err := statistics.GetEquipmentStatistics(l, span)(e.EquipmentId())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment %d.", e.EquipmentId())
 			return 0, err
@@ -277,9 +278,9 @@ func DropEquipment(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channel
 			return 0, err
 		}
 
-		producers.InventoryModificationReservation(l)(characterId, true, 3, ea.ItemId(), 1, 1, slot, 0)
+		producers.InventoryModificationReservation(l, span)(characterId, true, 3, ea.ItemId(), 1, 1, slot, 0)
 
-		producers.CharacterUnEquippedItem(l)(characterId)
+		producers.CharacterUnEquippedItem(l, span)(characterId)
 		return e.EquipmentId(), nil
 	}
 }
@@ -290,7 +291,7 @@ func RemoveItem(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, id u
 	}
 }
 
-func MoveItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, source int16, destination int16) error {
+func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, source int16, destination int16) error {
 	return func(characterId uint32, source int16, destination int16) error {
 		return db.Transaction(func(tx *gorm.DB) error {
 			equip, err := getEquipmentForCharacterBySlot(tx, characterId, source)
@@ -299,7 +300,7 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, source
 				return err
 			}
 
-			ea, err := statistics.GetEquipmentStatistics(l)(equip.EquipmentId())
+			ea, err := statistics.GetEquipmentStatistics(l, span)(equip.EquipmentId())
 			if err != nil {
 				l.WithError(err).Errorf("Unable to retrieve equipment %d.", equip.EquipmentId())
 				return err
@@ -326,15 +327,15 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, source
 				l.Debugf("Moved item %d from slot %d to %d for character %d.", otherEquip.Id(), temporarySlot, source, characterId)
 			}
 
-			producers.InventoryModificationReservation(l)(characterId, true, 2, ea.ItemId(), 1, 1, destination, source)
+			producers.InventoryModificationReservation(l, span)(characterId, true, 2, ea.ItemId(), 1, 1, destination, source)
 			return nil
 		})
 	}
 }
 
-func GetItemIdForEquipment(l logrus.FieldLogger) func(equipmentId uint32) (uint32, error) {
+func GetItemIdForEquipment(l logrus.FieldLogger, span opentracing.Span) func(equipmentId uint32) (uint32, error) {
 	return func(equipmentId uint32) (uint32, error) {
-		ea, err := statistics.GetEquipmentStatistics(l)(equipmentId)
+		ea, err := statistics.GetEquipmentStatistics(l, span)(equipmentId)
 		if err != nil {
 			return 0, err
 		}

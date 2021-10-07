@@ -2,13 +2,14 @@ package statistics
 
 import (
 	"atlas-cos/rest/attributes"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
-func Create(l logrus.FieldLogger) func(itemId uint32) (uint32, error) {
+func Create(l logrus.FieldLogger, span opentracing.Span) func(itemId uint32) (uint32, error) {
 	return func(itemId uint32) (uint32, error) {
-		ro, err := requestCreate(itemId)
+		ro, err := requestCreate(l, span)(itemId)
 		if err != nil {
 			l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.")
 			return 0, err
@@ -22,9 +23,9 @@ func Create(l logrus.FieldLogger) func(itemId uint32) (uint32, error) {
 	}
 }
 
-func GetEquipmentStatistics(l logrus.FieldLogger) func(equipmentId uint32) (*Model, error) {
+func GetEquipmentStatistics(l logrus.FieldLogger, span opentracing.Span) func(equipmentId uint32) (*Model, error) {
 	return func(equipmentId uint32) (*Model, error) {
-		resp, err := requestById(l)(equipmentId)
+		resp, err := requestById(l, span)(equipmentId)
 		if err != nil {
 			l.WithError(err).Errorf("Retrieving equipment %d information.", equipmentId)
 			return nil, err

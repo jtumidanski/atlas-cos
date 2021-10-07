@@ -3,6 +3,7 @@ package consumers
 import (
 	"atlas-cos/character"
 	"atlas-cos/kafka/handler"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -26,11 +27,11 @@ func CharacterMovementEventCreator() handler.EmptyEventCreator {
 }
 
 func HandleCharacterMovementEvent(db *gorm.DB) handler.EventHandler {
-	return func(l log.FieldLogger, e interface{}) {
+	return func(l log.FieldLogger, span opentracing.Span, e interface{}) {
 		if event, ok := e.(*characterMovementEvent); ok {
 			l.Debugf("Begin event handling.")
 			if event.X != 0 || event.Y != 0 {
-				character.MoveCharacter(l, db)(event.CharacterId, event.X, event.Y, event.Stance)
+				character.MoveCharacter(l, db, span)(event.CharacterId, event.X, event.Y, event.Stance)
 			} else if event.Stance != 0 {
 				character.UpdateStance(l, db)(event.CharacterId, event.Stance)
 			}

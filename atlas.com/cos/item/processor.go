@@ -2,6 +2,7 @@ package item
 
 import (
 	"atlas-cos/kafka/producers"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math"
@@ -62,7 +63,7 @@ func maxInSlot() uint32 {
 	return 200
 }
 
-func GainItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int8, itemId uint32, quantity uint32) error {
+func GainItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, it int8, itemId uint32, quantity uint32) error {
 	return func(characterId uint32, it int8, itemId uint32, quantity uint32) error {
 		//TODO verify inventory space
 
@@ -84,7 +85,7 @@ func GainItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int
 						if err != nil {
 							l.WithError(err).Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
 						} else {
-							producers.InventoryModificationReservation(l)(characterId, true, 1, itemId, i.InventoryType(), newQuantity, i.Slot(), 0)
+							producers.InventoryModificationReservation(l, span)(characterId, true, 1, itemId, i.InventoryType(), newQuantity, i.Slot(), 0)
 						}
 					}
 					index++
@@ -101,14 +102,14 @@ func GainItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int
 				l.WithError(err).Errorf("Unable to create item %d that character %d picked up.", itemId, characterId)
 				return err
 			}
-			producers.InventoryModificationReservation(l)(characterId, true, 0, itemId, it, newQuantity, i.Slot(), 0)
+			producers.InventoryModificationReservation(l, span)(characterId, true, 0, itemId, it, newQuantity, i.Slot(), 0)
 		}
 
 		return nil
 	}
 }
 
-func LoseItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int8, itemId uint32, quantity int32) error {
+func LoseItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, it int8, itemId uint32, quantity int32) error {
 	return func(characterId uint32, it int8, itemId uint32, quantity int32) error {
 		//TODO verify inventory space
 
@@ -128,7 +129,7 @@ func LoseItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int
 						if err != nil {
 							l.WithError(err).Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
 						} else {
-							producers.InventoryModificationReservation(l)(characterId, true, 1, itemId, i.InventoryType(), newQuantity, i.Slot(), 0)
+							producers.InventoryModificationReservation(l, span)(characterId, true, 1, itemId, i.InventoryType(), newQuantity, i.Slot(), 0)
 						}
 						runningQuantity = 0
 						break
@@ -138,7 +139,7 @@ func LoseItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int
 						if err != nil {
 							l.WithError(err).Errorf("Removing quantity %d of item %d.", oldQuantity, i.Id())
 						} else {
-							producers.InventoryModificationReservation(l)(characterId, true, 3, itemId, i.InventoryType(), oldQuantity, i.Slot(), 0)
+							producers.InventoryModificationReservation(l, span)(characterId, true, 3, itemId, i.InventoryType(), oldQuantity, i.Slot(), 0)
 						}
 					}
 					index++
@@ -151,7 +152,7 @@ func LoseItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, it int
 	}
 }
 
-func DropItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) (uint32, error) {
+func DropItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) (uint32, error) {
 	return func(worldId byte, channelId byte, characterId uint32, inventoryType int8, slot int16, quantity int16) (uint32, error) {
 		l.Debugf("Character %d dropping %d item in inventory %d slot %d.", characterId, quantity, inventoryType, slot)
 		i, err := GetItemForCharacter(l, db)(characterId, inventoryType, slot)
@@ -166,7 +167,7 @@ func DropItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId by
 				l.WithError(err).Errorf("Could not remove item %d from character %d inventory.", i.Id(), characterId)
 				return 0, err
 			}
-			producers.InventoryModificationReservation(l)(characterId, true, 3, i.ItemId(), i.InventoryType(), uint32(quantity), i.Slot(), 0)
+			producers.InventoryModificationReservation(l, span)(characterId, true, 3, i.ItemId(), i.InventoryType(), uint32(quantity), i.Slot(), 0)
 		} else {
 			newQuantity := i.Quantity() - uint32(quantity)
 			err := UpdateItemQuantity(l, db)(i.Id(), newQuantity)
@@ -174,7 +175,7 @@ func DropItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId by
 				l.WithError(err).Errorf("Updating the quantity of item %d to value %d.", i.Id(), newQuantity)
 				return 0, err
 			} else {
-				producers.InventoryModificationReservation(l)(characterId, true, 1, i.ItemId(), i.InventoryType(), newQuantity, i.Slot(), 0)
+				producers.InventoryModificationReservation(l, span)(characterId, true, 1, i.ItemId(), i.InventoryType(), newQuantity, i.Slot(), 0)
 			}
 		}
 
@@ -182,7 +183,7 @@ func DropItem(l logrus.FieldLogger, db *gorm.DB) func(worldId byte, channelId by
 	}
 }
 
-func MoveItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, source int16, destination int16) error {
+func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, inventoryType int8, source int16, destination int16) error {
 	return func(characterId uint32, inventoryType int8, source int16, destination int16) error {
 		return db.Transaction(func(tx *gorm.DB) error {
 			item, err := getItemForCharacter(tx, characterId, inventoryType, source)
@@ -212,15 +213,15 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, invent
 				l.Debugf("Moved item %d from slot %d to %d for character %d.", otherItem.Id(), temporarySlot, source, characterId)
 			}
 
-			producers.InventoryModificationReservation(l)(characterId, true, 2, item.ItemId(), inventoryType, item.Quantity(), destination, source)
+			producers.InventoryModificationReservation(l, span)(characterId, true, 2, item.ItemId(), inventoryType, item.Quantity(), destination, source)
 			return nil
 		})
 	}
 }
 
-func GetEquipmentSlotDestination(l logrus.FieldLogger) func(itemId uint32) ([]int16, error) {
+func GetEquipmentSlotDestination(l logrus.FieldLogger, span opentracing.Span) func(itemId uint32) ([]int16, error) {
 	return func(itemId uint32) ([]int16, error) {
-		r, err := requestEquipmentSlotDestination(l)(itemId)
+		r, err := requestEquipmentSlotDestination(l, span)(itemId)
 		if err != nil {
 			return nil, err
 		}

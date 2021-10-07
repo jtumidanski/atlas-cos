@@ -5,6 +5,7 @@ import (
 	"atlas-cos/equipment/statistics"
 	"atlas-cos/item"
 	"errors"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -61,7 +62,7 @@ func FilterSlot(slot int16) ItemFilter {
 	}
 }
 
-func FilterItemId(l logrus.FieldLogger, db *gorm.DB) func(itemId uint32) ItemFilter {
+func FilterItemId(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(itemId uint32) ItemFilter {
 	return func(itemId uint32) ItemFilter {
 		return func(i Item) bool {
 			if i.ItemType() == ItemTypeItem {
@@ -75,7 +76,7 @@ func FilterItemId(l logrus.FieldLogger, db *gorm.DB) func(itemId uint32) ItemFil
 				if err != nil {
 					return false
 				}
-				es, err := statistics.GetEquipmentStatistics(l)(ee.EquipmentId())
+				es, err := statistics.GetEquipmentStatistics(l, span)(ee.EquipmentId())
 				if err != nil {
 					return false
 				}

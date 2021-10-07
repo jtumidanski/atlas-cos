@@ -5,204 +5,231 @@ import (
 	"atlas-cos/equipment/statistics"
 	"atlas-cos/item"
 	"atlas-cos/json"
+	"atlas-cos/rest"
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/resource"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-func CreateItem(fl log.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		l := fl.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
+const (
+	GetItemsForCharacter           = "get_items_for_character"
+	GetItemForCharacterByType      = "get_item_for_character_by_type"
+	GetItemsForCharacterByType     = "get_items_for_character_by_type"
+	GetInventoryForCharacterByType = "get_inventory_for_character_by_type"
+	CreateItem                     = "create_item"
+)
 
-		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
-		if err != nil {
-			l.WithError(err).Errorf("Unable to properly parse characterId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+func InitResource(router *mux.Router, l logrus.FieldLogger, db *gorm.DB) {
+	r := router.PathPrefix("/characters").Subrouter()
+	r.HandleFunc("/{characterId}/items", rest.RetrieveSpan(GetItemsForCharacter, HandleGetItemsForCharacter(l, db))).Methods(http.MethodGet).Queries("itemId", "{itemId}")
+	r.HandleFunc("/{characterId}/inventories", rest.RetrieveSpan(GetItemForCharacterByType, HandleGetItemForCharacterByType(l, db))).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}", "slot", "{slot}")
+	r.HandleFunc("/{characterId}/inventories", rest.RetrieveSpan(GetItemsForCharacterByType, HandleGetItemsForCharacterByType(l, db))).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}", "itemId", "{itemId}")
+	r.HandleFunc("/{characterId}/inventories", rest.RetrieveSpan(GetInventoryForCharacterByType, HandleGetInventoryForCharacterByType(l, db))).Methods(http.MethodGet).Queries("include", "{include}", "type", "{type}")
+	r.HandleFunc("/{characterId}/inventories/{type}/items", rest.RetrieveSpan(CreateItem, HandleCreateItem(l, db))).Methods(http.MethodPost)
+}
 
-		inventoryType := mux.Vars(r)["type"]
-		if inventoryType == "" {
-			l.Errorf("Unable to retrieve requested inventory type.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+func HandleCreateItem(fl logrus.FieldLogger, db *gorm.DB) rest.SpanHandler {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			l := fl.WithFields(logrus.Fields{"originator": CreateItem, "type": "rest_handler"})
 
-		if strings.ToUpper(inventoryType) == TypeEquip {
-			li := &attributes.EquipmentDataContainer{}
-			err := json.FromJSON(li, r.Body)
+			characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 			if err != nil {
-				l.WithError(err).Errorf("Deserializing input.")
+				l.WithError(err).Errorf("Unable to properly parse characterId from path.")
 				w.WriteHeader(http.StatusBadRequest)
-				err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
+				return
+			}
+
+			inventoryType := mux.Vars(r)["type"]
+			if inventoryType == "" {
+				l.Errorf("Unable to retrieve requested inventory type.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			if strings.ToUpper(inventoryType) == TypeEquip {
+				li := &attributes.EquipmentDataContainer{}
+				err := json.FromJSON(li, r.Body)
 				if err != nil {
-					l.WithError(err).Fatalf("Writing error message.")
+					l.WithError(err).Errorf("Deserializing input.")
+					w.WriteHeader(http.StatusBadRequest)
+					err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
+					if err != nil {
+						l.WithError(err).Fatalf("Writing error message.")
+					}
+					return
 				}
-				return
-			}
 
-			itemId := li.Data.Attributes.ItemId
-			eid, err := statistics.Create(l)(itemId)
-			if err != nil {
-				l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.", itemId, characterId)
-				return
-			}
-
-			err = equipment.GainItem(l, db)(uint32(characterId), itemId, eid)
-			if err != nil {
-				l.WithError(err).Errorf("Unable to give character %d item %d.", characterId, itemId)
-			}
-		} else {
-			li := &attributes.ItemDataContainer{}
-			err := json.FromJSON(li, r.Body)
-			if err != nil {
-				l.WithError(err).Errorf("Deserializing input.")
-				w.WriteHeader(http.StatusBadRequest)
-				err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
+				itemId := li.Data.Attributes.ItemId
+				eid, err := statistics.Create(l, span)(itemId)
 				if err != nil {
-					l.WithError(err).Fatalf("Writing error message.")
+					l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.", itemId, characterId)
+					return
 				}
-				return
-			}
 
-			itemId := li.Data.Attributes.ItemId
-			quantity := li.Data.Attributes.Quantity
-			it, ok := GetByteFromName(inventoryType)
-			if !ok {
-				l.WithError(err).Errorf("Invalid inventory type supplied %s.", inventoryType)
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
-			if quantity > 0 {
-				err := item.GainItem(l, db)(uint32(characterId), it, itemId, uint32(quantity))
+				err = equipment.GainItem(l, db, span)(uint32(characterId), itemId, eid)
 				if err != nil {
 					l.WithError(err).Errorf("Unable to give character %d item %d.", characterId, itemId)
 				}
 			} else {
-				err := item.LoseItem(l, db)(uint32(characterId), it, itemId, quantity)
+				li := &attributes.ItemDataContainer{}
+				err := json.FromJSON(li, r.Body)
 				if err != nil {
-					l.WithError(err).Errorf("Unable to take item %d from character %d.", itemId, characterId)
+					l.WithError(err).Errorf("Deserializing input.")
+					w.WriteHeader(http.StatusBadRequest)
+					err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
+					if err != nil {
+						l.WithError(err).Fatalf("Writing error message.")
+					}
+					return
 				}
+
+				itemId := li.Data.Attributes.ItemId
+				quantity := li.Data.Attributes.Quantity
+				it, ok := GetByteFromName(inventoryType)
+				if !ok {
+					l.WithError(err).Errorf("Invalid inventory type supplied %s.", inventoryType)
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+
+				if quantity > 0 {
+					err := item.GainItem(l, db, span)(uint32(characterId), it, itemId, uint32(quantity))
+					if err != nil {
+						l.WithError(err).Errorf("Unable to give character %d item %d.", characterId, itemId)
+					}
+				} else {
+					err := item.LoseItem(l, db, span)(uint32(characterId), it, itemId, quantity)
+					if err != nil {
+						l.WithError(err).Errorf("Unable to take item %d from character %d.", itemId, characterId)
+					}
+				}
+
+			}
+		}
+	}
+}
+
+func HandleGetItemForCharacterByType(l logrus.FieldLogger, db *gorm.DB) rest.SpanHandler {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			fl := l.WithFields(logrus.Fields{"originator": GetItemForCharacterByType, "type": "rest_handler"})
+
+			characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
 			}
 
+			include := mux.Vars(r)["include"]
+
+			inventoryType := mux.Vars(r)["type"]
+			if inventoryType == "" {
+				fl.Errorf("Unable to retrieve requested inventory type.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			slot, err := strconv.Atoi(mux.Vars(r)["slot"])
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to properly parse slot from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			inv, err := GetInventory(fl, db)(uint32(characterId), inventoryType, FilterSlot(int16(slot)))
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, inventoryType)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			prepareResult(fl, db, span, w)(uint32(characterId), inv, include)
 		}
 	}
 }
 
-func GetItemForCharacterByType(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
+func HandleGetItemsForCharacterByType(l logrus.FieldLogger, db *gorm.DB) rest.SpanHandler {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			fl := l.WithFields(logrus.Fields{"originator": GetItemsForCharacterByType, "type": "rest_handler"})
 
-		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
+			characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			include := mux.Vars(r)["include"]
+
+			inventoryType := mux.Vars(r)["type"]
+			if inventoryType == "" {
+				fl.Errorf("Unable to retrieve requested inventory type.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			itemId, err := strconv.Atoi(mux.Vars(r)["itemId"])
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to properly parse slot from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			inv, err := GetInventory(fl, db)(uint32(characterId), inventoryType, FilterItemId(l, db, span)(uint32(itemId)))
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, inventoryType)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			prepareResult(fl, db, span, w)(uint32(characterId), inv, include)
 		}
-
-		include := mux.Vars(r)["include"]
-
-		inventoryType := mux.Vars(r)["type"]
-		if inventoryType == "" {
-			fl.Errorf("Unable to retrieve requested inventory type.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		slot, err := strconv.Atoi(mux.Vars(r)["slot"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse slot from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		inv, err := GetInventory(fl, db)(uint32(characterId), inventoryType, FilterSlot(int16(slot)))
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, inventoryType)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		prepareResult(fl, db, w)(uint32(characterId), inv, include)
 	}
 }
 
-func GetItemsForCharacterByType(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
+func HandleGetInventoryForCharacterByType(l logrus.FieldLogger, db *gorm.DB) rest.SpanHandler {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			fl := l.WithFields(logrus.Fields{"originator": GetInventoryForCharacterByType, "type": "rest_handler"})
 
-		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
+			characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			include := mux.Vars(r)["include"]
+
+			inventoryType := mux.Vars(r)["type"]
+			if inventoryType == "" {
+				fl.Errorf("Unable to retrieve requested inventory type.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			inv, err := GetInventory(fl, db)(uint32(characterId), inventoryType)
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, inventoryType)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			prepareResult(fl, db, span, w)(uint32(characterId), inv, include)
 		}
-
-		include := mux.Vars(r)["include"]
-
-		inventoryType := mux.Vars(r)["type"]
-		if inventoryType == "" {
-			fl.Errorf("Unable to retrieve requested inventory type.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		itemId, err := strconv.Atoi(mux.Vars(r)["itemId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse slot from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		inv, err := GetInventory(fl, db)(uint32(characterId), inventoryType, FilterItemId(l, db)(uint32(itemId)))
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, inventoryType)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		prepareResult(fl, db, w)(uint32(characterId), inv, include)
 	}
 }
 
-func GetInventoryForCharacterByType(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetInventoryForCharacterByType", "type": "rest_handler"})
-
-		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		include := mux.Vars(r)["include"]
-
-		inventoryType := mux.Vars(r)["type"]
-		if inventoryType == "" {
-			fl.Errorf("Unable to retrieve requested inventory type.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		inv, err := GetInventory(fl, db)(uint32(characterId), inventoryType)
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, inventoryType)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		prepareResult(fl, db, w)(uint32(characterId), inv, include)
-	}
-}
-
-func prepareResult(l log.FieldLogger, db *gorm.DB, w http.ResponseWriter) func(characterId uint32, inv *Model, include string) {
+func prepareResult(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span, w http.ResponseWriter) func(characterId uint32, inv *Model, include string) {
 	return func(characterId uint32, inv *Model, include string) {
 		result := createInventoryDataContainer(inv)
 		result.Data.Relationships.InventoryItems = createInventoryItemRelationships(inv)
@@ -211,7 +238,7 @@ func prepareResult(l log.FieldLogger, db *gorm.DB, w http.ResponseWriter) func(c
 			result.Included = append(result.Included, createIncludedInventoryItems(l, db, characterId, inv)...)
 		}
 		if strings.Contains(include, "equipmentStatistics") {
-			result.Included = append(result.Included, createIncludedEquipmentStatistics(l, db)(characterId, inv)...)
+			result.Included = append(result.Included, createIncludedEquipmentStatistics(l, db, span)(characterId, inv)...)
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -222,7 +249,7 @@ func prepareResult(l log.FieldLogger, db *gorm.DB, w http.ResponseWriter) func(c
 	}
 }
 
-func createIncludedEquipmentStatistics(l log.FieldLogger, db *gorm.DB) func(characterId uint32, inv *Model) []interface{} {
+func createIncludedEquipmentStatistics(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, inv *Model) []interface{} {
 	return func(characterId uint32, inv *Model) []interface{} {
 		var results = make([]interface{}, 0)
 		e, err := equipment.GetEquipmentForCharacter(l, db)(characterId)
@@ -232,7 +259,7 @@ func createIncludedEquipmentStatistics(l log.FieldLogger, db *gorm.DB) func(char
 		}
 
 		for _, equip := range e {
-			es, err := statistics.GetEquipmentStatistics(l)(equip.EquipmentId())
+			es, err := statistics.GetEquipmentStatistics(l, span)(equip.EquipmentId())
 			if err != nil {
 				l.WithError(err).Errorf("Retrieving equipment %d statistics for character %d.", equip.EquipmentId(), characterId)
 			} else {
@@ -252,7 +279,7 @@ func createIncludedEquipmentStatistics(l log.FieldLogger, db *gorm.DB) func(char
 	}
 }
 
-func createIncludedInventoryItems(fl log.FieldLogger, db *gorm.DB, characterId uint32, inv *Model) []interface{} {
+func createIncludedInventoryItems(fl logrus.FieldLogger, db *gorm.DB, characterId uint32, inv *Model) []interface{} {
 	var results = make([]interface{}, 0)
 	for _, inventoryItem := range inv.Items() {
 		if inventoryItem.Type() == ItemTypeEquip {
@@ -365,62 +392,64 @@ func getInventoryItemType(inventoryType string) string {
 	}
 }
 
-func GetItemsForCharacter(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetItemForCharacterByType", "type": "rest_handler"})
+func HandleGetItemsForCharacter(l logrus.FieldLogger, db *gorm.DB) rest.SpanHandler {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			fl := l.WithFields(logrus.Fields{"originator": GetItemsForCharacter, "type": "rest_handler"})
 
-		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		itemId, err := strconv.Atoi(mux.Vars(r)["itemId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse itemId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		result := &ItemListDataContainer{}
-
-		types := []string{TypeEquip, TypeUse, TypeSetup, TypeETC, TypeCash}
-		for _, t := range types {
-			inv, err := GetInventory(fl, db)(uint32(characterId), t, FilterItemId(l, db)(uint32(itemId)))
+			characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 			if err != nil {
-				fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, t)
-				w.WriteHeader(http.StatusInternalServerError)
+				fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
+				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 
-			for _, i := range inv.Items() {
-				quantity := uint32(1)
-				if i.ItemType() == ItemTypeItem {
-					ii, err := item.GetItemById(l, db)(i.Id())
-					if err != nil {
-						l.WithError(err).Errorf("Unable to lookup item by id %d.", i.Id())
-						continue
-					}
-					quantity = ii.Quantity()
+			itemId, err := strconv.Atoi(mux.Vars(r)["itemId"])
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to properly parse itemId from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			result := &ItemListDataContainer{}
+
+			types := []string{TypeEquip, TypeUse, TypeSetup, TypeETC, TypeCash}
+			for _, t := range types {
+				inv, err := GetInventory(fl, db)(uint32(characterId), t, FilterItemId(l, db, span)(uint32(itemId)))
+				if err != nil {
+					fl.WithError(err).Errorf("Unable to get inventory for character %d by type %s.", characterId, t)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
 				}
 
-				result.Data = append(result.Data, ItemDataBody{
-					Id:   strconv.Itoa(int(i.Id())),
-					Type: i.Type(),
-					Attributes: ItemAttributes{
-						InventoryType: inv.Type(),
-						Slot:          i.Slot(),
-						Quantity:      quantity,
-					},
-				})
-			}
-		}
+				for _, i := range inv.Items() {
+					quantity := uint32(1)
+					if i.ItemType() == ItemTypeItem {
+						ii, err := item.GetItemById(l, db)(i.Id())
+						if err != nil {
+							l.WithError(err).Errorf("Unable to lookup item by id %d.", i.Id())
+							continue
+						}
+						quantity = ii.Quantity()
+					}
 
-		w.WriteHeader(http.StatusOK)
-		err = json.ToJSON(result, w)
-		if err != nil {
-			l.WithError(err).Errorf("Writing response.")
+					result.Data = append(result.Data, ItemDataBody{
+						Id:   strconv.Itoa(int(i.Id())),
+						Type: i.Type(),
+						Attributes: ItemAttributes{
+							InventoryType: inv.Type(),
+							Slot:          i.Slot(),
+							Quantity:      quantity,
+						},
+					})
+				}
+			}
+
+			w.WriteHeader(http.StatusOK)
+			err = json.ToJSON(result, w)
+			if err != nil {
+				l.WithError(err).Errorf("Writing response.")
+			}
 		}
 	}
 }

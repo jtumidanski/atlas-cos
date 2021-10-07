@@ -1,6 +1,7 @@
 package producers
 
 import (
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,8 +13,8 @@ type characterSkillUpdateEvent struct {
 	Expiration  int64  `json:"expiration"`
 }
 
-func CharacterSkillUpdate(l logrus.FieldLogger) func(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) {
-	producer := ProduceEvent(l, "TOPIC_CHARACTER_SKILL_UPDATE_EVENT")
+func CharacterSkillUpdate(l logrus.FieldLogger, span opentracing.Span) func(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) {
+	producer := ProduceEvent(l, span, "TOPIC_CHARACTER_SKILL_UPDATE_EVENT")
 	return func(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) {
 		event := &characterSkillUpdateEvent{characterId, skillId, level, masterLevel, expiration}
 		producer(CreateKey(int(characterId)), event)

@@ -3,45 +3,59 @@ package seed
 import (
 	"atlas-cos/character"
 	"atlas-cos/json"
+	"atlas-cos/rest"
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/resource"
-	log "github.com/sirupsen/logrus"
+	"github.com/gorilla/mux"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
-func CreateCharacterFromSeed(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "CreateCharacterFromSeed", "type": "rest_handler"})
+const (
+	CreateCharacterFromSeed = "create_character_from_seed"
+)
 
-		li := &attributes.CharacterSeedInputDataContainer{}
-		err := json.FromJSON(li, r.Body)
-		if err != nil {
-			fl.WithError(err).Errorf("Deserializing input.")
-			w.WriteHeader(http.StatusBadRequest)
-			err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
+func InitResource(router *mux.Router, l logrus.FieldLogger, db *gorm.DB) {
+	r := router.PathPrefix("/characters").Subrouter()
+	r.HandleFunc("/seeds", rest.RetrieveSpan(CreateCharacterFromSeed, HandleCreateCharacterFromSeed(l, db))).Methods(http.MethodPost)
+}
+
+func HandleCreateCharacterFromSeed(l logrus.FieldLogger, db *gorm.DB) rest.SpanHandler {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			fl := l.WithFields(logrus.Fields{"originator": CreateCharacterFromSeed, "type": "rest_handler"})
+
+			li := &attributes.CharacterSeedInputDataContainer{}
+			err := json.FromJSON(li, r.Body)
 			if err != nil {
-				fl.WithError(err).Fatalf("Writing error message.")
+				fl.WithError(err).Errorf("Deserializing input.")
+				w.WriteHeader(http.StatusBadRequest)
+				err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
+				if err != nil {
+					fl.WithError(err).Fatalf("Writing error message.")
+				}
+				return
 			}
-			return
-		}
 
-		attr := li.Data.Attributes
-		c, err := CreateFromSeed(fl, db)(attr.AccountId, attr.WorldId, attr.Name, attr.JobIndex, attr.Face,
-			attr.Hair, attr.HairColor, attr.Skin, attr.Gender, attr.Top, attr.Bottom, attr.Shoes, attr.Weapon)
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to create character from seed.")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+			attr := li.Data.Attributes
+			c, err := CreateFromSeed(fl, db, span)(attr.AccountId, attr.WorldId, attr.Name, attr.JobIndex, attr.Face,
+				attr.Hair, attr.HairColor, attr.Skin, attr.Gender, attr.Top, attr.Bottom, attr.Shoes, attr.Weapon)
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to create character from seed.")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-		result := createDataContainer(c)
+			result := createDataContainer(c)
 
-		w.WriteHeader(http.StatusOK)
-		err = json.ToJSON(result, w)
-		if err != nil {
-			fl.WithError(err).Errorf("Writing response.")
+			w.WriteHeader(http.StatusOK)
+			err = json.ToJSON(result, w)
+			if err != nil {
+				fl.WithError(err).Errorf("Writing response.")
+			}
 		}
 	}
 }

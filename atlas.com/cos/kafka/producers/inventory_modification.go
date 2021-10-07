@@ -1,6 +1,7 @@
 package producers
 
 import (
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,8 +20,8 @@ type characterInventoryModificationEvent struct {
 	Modifications []inventoryModification `json:"modifications"`
 }
 
-func InventoryModificationReservation(l logrus.FieldLogger) func(characterId uint32, updateTick bool, mode byte, itemId uint32, inventoryType int8, quantity uint32, position int16, oldPosition int16) {
-	producer := ProduceEvent(l, "TOPIC_INVENTORY_MODIFICATION")
+func InventoryModificationReservation(l logrus.FieldLogger, span opentracing.Span) func(characterId uint32, updateTick bool, mode byte, itemId uint32, inventoryType int8, quantity uint32, position int16, oldPosition int16) {
+	producer := ProduceEvent(l, span, "TOPIC_INVENTORY_MODIFICATION")
 	return func(characterId uint32, updateTick bool, mode byte, itemId uint32, inventoryType int8, quantity uint32, position int16, oldPosition int16) {
 		event := &characterInventoryModificationEvent{
 			CharacterId: characterId,

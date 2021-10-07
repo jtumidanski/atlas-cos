@@ -3,6 +3,7 @@ package consumers
 import (
 	"atlas-cos/character"
 	"atlas-cos/kafka/handler"
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -19,27 +20,27 @@ func AssignAPCommandCreator() handler.EmptyEventCreator {
 }
 
 func HandleAssignAPCommand(db *gorm.DB) handler.EventHandler {
-	return func(l log.FieldLogger, e interface{}) {
+	return func(l log.FieldLogger, span opentracing.Span, e interface{}) {
 		if event, ok := e.(*assignAPCommand); ok {
 			l.Debugf("Begin event handling.")
 			switch event.Type {
 			case "STRENGTH":
-				character.AssignStrength(l, db)(event.CharacterId)
+				character.AssignStrength(l, db, span)(event.CharacterId)
 				break
 			case "DEXTERITY":
-				character.AssignDexterity(l, db)(event.CharacterId)
+				character.AssignDexterity(l, db, span)(event.CharacterId)
 				break
 			case "INTELLIGENCE":
-				character.AssignIntelligence(l, db)(event.CharacterId)
+				character.AssignIntelligence(l, db, span)(event.CharacterId)
 				break
 			case "LUCK":
-				character.AssignLuck(l, db)(event.CharacterId)
+				character.AssignLuck(l, db, span)(event.CharacterId)
 				break
 			case "HP":
-				character.AssignHp(l, db)(event.CharacterId)
+				character.AssignHp(l, db, span)(event.CharacterId)
 				break
 			case "MP":
-				character.AssignMp(l, db)(event.CharacterId)
+				character.AssignMp(l, db, span)(event.CharacterId)
 				break
 			}
 			l.Debugf("Complete event handling.")

@@ -2,13 +2,14 @@ package _map
 
 import (
 	"atlas-cos/portal"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"math"
 )
 
-func FindClosestSpawnPoint(l logrus.FieldLogger) func(mapId uint32, x int16, y int16) (*portal.Model, error) {
+func FindClosestSpawnPoint(l logrus.FieldLogger, span opentracing.Span) func(mapId uint32, x int16, y int16) (*portal.Model, error) {
 	return func(mapId uint32, x int16, y int16) (*portal.Model, error) {
-		portals, err := portal.GetMapPortals(l)(mapId)
+		portals, err := portal.GetMapPortals(l, span)(mapId)
 		if err != nil {
 			return nil, err
 		}

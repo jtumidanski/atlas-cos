@@ -1,6 +1,7 @@
 package producers
 
 import (
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -9,8 +10,8 @@ type mesoGainedEvent struct {
 	Gain        int32  `json:"gain"`
 }
 
-func MesoGained(l logrus.FieldLogger) func(characterId uint32, gain int32) {
-	producer := ProduceEvent(l, "TOPIC_MESO_GAINED")
+func MesoGained(l logrus.FieldLogger, span opentracing.Span) func(characterId uint32, gain int32) {
+	producer := ProduceEvent(l, span, "TOPIC_MESO_GAINED")
 	return func(characterId uint32, gain int32) {
 		event := &mesoGainedEvent{characterId, gain}
 		producer(CreateKey(int(characterId)), event)

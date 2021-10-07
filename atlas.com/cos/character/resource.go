@@ -2,17 +2,36 @@ package character
 
 import (
 	"atlas-cos/json"
+	"atlas-cos/rest"
 	"atlas-cos/rest/attributes"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
-func GetCharactersForAccountInWorld(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
+const (
+	GetCharactersForAccountInWorld = "get_characters_for_account_in_world"
+	GetCharactersByMap             = "get_characters_by_map"
+	GetCharactersByName            = "get_characters_by_name"
+	GetCharacter                   = "get_character"
+	GetCharacterDamage             = "get_character_damage"
+)
+
+func InitResource(router *mux.Router, l logrus.FieldLogger, db *gorm.DB) {
+	r := router.PathPrefix("/characters").Subrouter()
+	r.HandleFunc("", HandleGetCharactersForAccountInWorld(l, db)).Methods(http.MethodGet).Queries("accountId", "{accountId}", "worldId", "{worldId}")
+	r.HandleFunc("", HandleGetCharactersByMap(l, db)).Methods(http.MethodGet).Queries("worldId", "{worldId}", "mapId", "{mapId}")
+	r.HandleFunc("", HandleGetCharactersByName(l, db)).Methods(http.MethodGet).Queries("name", "{name}")
+	r.HandleFunc("/{characterId}", HandleGetCharacter(l, db)).Methods(http.MethodGet)
+	r.HandleFunc("/{characterId}/damage/weapon", rest.RetrieveSpan(GetCharacterDamage, HandleGetCharacterDamage(l, db))).Methods(http.MethodGet)
+}
+
+func HandleGetCharactersForAccountInWorld(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharactersForAccountInWorld", "type": "rest_handler"})
+		fl := l.WithFields(logrus.Fields{"originator": GetCharactersForAccountInWorld, "type": "rest_handler"})
 
 		accountId, err := strconv.Atoi(mux.Vars(r)["accountId"])
 		if err != nil {
@@ -44,9 +63,9 @@ func GetCharactersForAccountInWorld(l log.FieldLogger, db *gorm.DB) http.Handler
 	}
 }
 
-func GetCharactersByMap(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
+func HandleGetCharactersByMap(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharactersByMap", "type": "rest_handler"})
+		fl := l.WithFields(logrus.Fields{"originator": GetCharactersByMap, "type": "rest_handler"})
 
 		worldId, err := strconv.Atoi(mux.Vars(r)["worldId"])
 		if err != nil {
@@ -78,9 +97,9 @@ func GetCharactersByMap(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-func GetCharactersByName(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
+func HandleGetCharactersByName(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharactersByName", "type": "rest_handler"})
+		fl := l.WithFields(logrus.Fields{"originator": GetCharactersByName, "type": "rest_handler"})
 
 		name, ok := mux.Vars(r)["name"]
 		if !ok {
@@ -115,9 +134,9 @@ func createCharacterDataListContainer(cs []*Model) *attributes.CharacterDataList
 	return result
 }
 
-func GetCharacter(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
+func HandleGetCharacter(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharacter", "type": "rest_handler"})
+		fl := l.WithFields(logrus.Fields{"originator": GetCharacter, "type": "rest_handler"})
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
@@ -187,34 +206,36 @@ func createCharacterData(c *Model) attributes.CharacterData {
 	}
 }
 
-func GetCharacterDamage(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharacterDamage", "type": "rest_handler"})
+func HandleGetCharacterDamage(l logrus.FieldLogger, db *gorm.DB) rest.SpanHandler {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			fl := l.WithFields(logrus.Fields{"originator": GetCharacterDamage, "type": "rest_handler"})
 
-		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+			characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
+			if err != nil {
+				fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-		damage := GetMaximumBaseDamage(fl, db)(uint32(characterId))
+			damage := GetMaximumBaseDamage(fl, db, span)(uint32(characterId))
 
-		result := attributes.CharacterDamageDataContainer{
-			Data: attributes.CharacterDamageData{
-				Id:   strconv.Itoa(characterId),
-				Type: "com.atlas.cos.rest.attribute.DamageAttributes",
-				Attributes: attributes.CharacterDamageAttributes{
-					Type:    "WEAPON",
-					Maximum: damage,
+			result := attributes.CharacterDamageDataContainer{
+				Data: attributes.CharacterDamageData{
+					Id:   strconv.Itoa(characterId),
+					Type: "com.atlas.cos.rest.attribute.DamageAttributes",
+					Attributes: attributes.CharacterDamageAttributes{
+						Type:    "WEAPON",
+						Maximum: damage,
+					},
 				},
-			},
-		}
+			}
 
-		w.WriteHeader(http.StatusOK)
-		err = json.ToJSON(result, w)
-		if err != nil {
-			fl.WithError(err).Errorf("Writing response.")
+			w.WriteHeader(http.StatusOK)
+			err = json.ToJSON(result, w)
+			if err != nil {
+				fl.WithError(err).Errorf("Writing response.")
+			}
 		}
 	}
 }

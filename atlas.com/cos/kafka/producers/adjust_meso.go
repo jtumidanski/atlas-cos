@@ -1,6 +1,7 @@
 package producers
 
 import (
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -10,8 +11,8 @@ type adjustMesoEvent struct {
 	Show        bool   `json:"show"`
 }
 
-func AdjustMeso(l logrus.FieldLogger) func(characterId uint32, amount int32) {
-	producer := ProduceEvent(l, "TOPIC_ADJUST_MESO")
+func AdjustMeso(l logrus.FieldLogger, span opentracing.Span) func(characterId uint32, amount int32) {
+	producer := ProduceEvent(l, span, "TOPIC_ADJUST_MESO")
 	return func(characterId uint32, amount int32) {
 		event := &adjustMesoEvent{characterId, amount, true}
 		producer(CreateKey(int(characterId)), event)

@@ -1,6 +1,9 @@
 package producers
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+)
 
 type command struct {
 	WorldId      byte   `json:"worldId"`
@@ -22,8 +25,8 @@ type command struct {
 	Mod          byte   `json:"mod"`
 }
 
-func SpawnCharacterItemDrop(l logrus.FieldLogger) func(worldId byte, channelId byte, mapId uint32, itemId uint32, quantity uint32, mesos uint32, dropType byte, x int16, y int16, characterId uint32, characterPartyId uint32) {
-	producer := ProduceEvent(l, "TOPIC_SPAWN_CHARACTER_DROP_COMMAND")
+func SpawnCharacterItemDrop(l logrus.FieldLogger, span opentracing.Span) func(worldId byte, channelId byte, mapId uint32, itemId uint32, quantity uint32, mesos uint32, dropType byte, x int16, y int16, characterId uint32, characterPartyId uint32) {
+	producer := ProduceEvent(l, span, "TOPIC_SPAWN_CHARACTER_DROP_COMMAND")
 	return func(worldId byte, channelId byte, mapId uint32, itemId uint32, quantity uint32, mesos uint32, dropType byte, x int16, y int16, characterId uint32, characterPartyId uint32) {
 		e := command{
 			WorldId:      worldId,
@@ -48,8 +51,8 @@ func SpawnCharacterItemDrop(l logrus.FieldLogger) func(worldId byte, channelId b
 	}
 }
 
-func SpawnCharacterEquipDrop(l logrus.FieldLogger) func(worldId byte, channelId byte, mapId uint32, itemId uint32, equipmentId uint32, dropType byte, x int16, y int16, characterId uint32, characterPartyId uint32) {
-	producer := ProduceEvent(l, "TOPIC_SPAWN_CHARACTER_DROP_COMMAND")
+func SpawnCharacterEquipDrop(l logrus.FieldLogger, span opentracing.Span) func(worldId byte, channelId byte, mapId uint32, itemId uint32, equipmentId uint32, dropType byte, x int16, y int16, characterId uint32, characterPartyId uint32) {
+	producer := ProduceEvent(l, span, "TOPIC_SPAWN_CHARACTER_DROP_COMMAND")
 	return func(worldId byte, channelId byte, mapId uint32, itemId uint32, equipmentId uint32, dropType byte, x int16, y int16, characterId uint32, characterPartyId uint32) {
 		e := command{
 			WorldId:      worldId,

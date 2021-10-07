@@ -5,16 +5,23 @@ import (
 	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/resource"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
+func InitResource(router *mux.Router, l logrus.FieldLogger, db *gorm.DB) {
+	r := router.PathPrefix("/characters").Subrouter()
+	r.HandleFunc("/{characterId}/locations", HandleGetSavedLocationsByType(l, db)).Methods(http.MethodGet).Queries("type", "{type}")
+	r.HandleFunc("/{characterId}/locations", HandleGetSavedLocations(l, db)).Methods(http.MethodGet)
+	r.HandleFunc("/{characterId}/locations", HandleAddSavedLocation(l, db)).Methods(http.MethodPost)
+}
+
 // HandleGetSavedLocationsByType is a REST resource handler for retrieving the saved locations of a type for a character.
-func HandleGetSavedLocationsByType(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
+func HandleGetSavedLocationsByType(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetSavedLocationsByType", "type": "rest_handler"})
+		fl := l.WithFields(logrus.Fields{"originator": "GetSavedLocationsByType", "type": "rest_handler"})
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
@@ -43,9 +50,9 @@ func HandleGetSavedLocationsByType(l log.FieldLogger, db *gorm.DB) http.HandlerF
 }
 
 // HandleGetSavedLocations is a REST resource handler for retrieving the saved locations for a character.
-func HandleGetSavedLocations(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
+func HandleGetSavedLocations(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetSavedLocations", "type": "rest_handler"})
+		fl := l.WithFields(logrus.Fields{"originator": "GetSavedLocations", "type": "rest_handler"})
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
@@ -93,9 +100,9 @@ func createData(loc *Model) attributes.LocationData {
 }
 
 // HandleAddSavedLocation is a REST resource handler for adding a saved location for a character.
-func HandleAddSavedLocation(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
+func HandleAddSavedLocation(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "AddSavedLocation", "type": "rest_handler"})
+		fl := l.WithFields(logrus.Fields{"originator": "AddSavedLocation", "type": "rest_handler"})
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {

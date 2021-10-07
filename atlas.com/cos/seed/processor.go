@@ -9,13 +9,14 @@ import (
 	"atlas-cos/job"
 	"atlas-cos/skill"
 	"errors"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
 type BuilderModifier func(*character.Builder) *character.Builder
 
-func CreateFromSeed(l logrus.FieldLogger, db *gorm.DB) func(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (*character.Model, error) {
+func CreateFromSeed(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (*character.Model, error) {
 	return func(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (*character.Model, error) {
 		jobId, ok := job.GetJobFromIndex(jobIndex)
 		if !ok {
@@ -29,13 +30,13 @@ func CreateFromSeed(l logrus.FieldLogger, db *gorm.DB) func(accountId uint32, wo
 
 		config := character.NewBuilderConfiguration(configuration.Get().UseStarting4Ap, configuration.Get().UseAutoAssignStartersAp)
 		builder := character.NewBuilder(config, accountId, worldId, name, skinColor, gender, hair+hairColor, face)
-		c, err := character.Create(l, db)(bc(builder))
+		c, err := character.Create(l, db, span)(bc(builder))
 		if err != nil {
 			return nil, err
 		}
-		addEquippedItems(l, db)(c, top, bottom, shoes, weapon)
+		addEquippedItems(l, db, span)(c, top, bottom, shoes, weapon)
 		addOtherItems(l, db)(c)
-		addSkills(l, db)(c)
+		addSkills(l, db, span)(c)
 		return c, nil
 	}
 }
@@ -63,9 +64,9 @@ func modifyForLegend(b *character.Builder) *character.Builder {
 	return b.SetJobId(job.Legend).SetMapId(914000000)
 }
 
-func addEquippedItems(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
+func addEquippedItems(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
 	return func(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
-		equipment.CreateAndEquip(l, db)(c.Id(), top, bottom, shoes, weapon)
+		equipment.CreateAndEquip(l, db, span)(c.Id(), top, bottom, shoes, weapon)
 	}
 }
 
@@ -90,7 +91,7 @@ func addOtherItems(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model) {
 	}
 }
 
-func addSkills(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model) {
+func addSkills(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *character.Model) {
 	return func(c *character.Model) {
 		var skills []uint32
 		if job.IsA(c.JobId(), job.Beginner) {
@@ -99,7 +100,7 @@ func addSkills(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model) {
 			noblesseBeginnerSkills()
 		}
 
-		err := skill.AwardSkills(l, db)(c.Id(), skills...)
+		err := skill.AwardSkills(l, db, span)(c.Id(), skills...)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to award character %d skills.", c.Id())
 		}

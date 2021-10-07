@@ -2,13 +2,14 @@ package portal
 
 import (
 	"atlas-cos/rest/attributes"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
-func GetMapPortalById(l logrus.FieldLogger) func(mapId uint32, portalId uint32) (*Model, error) {
+func GetMapPortalById(l logrus.FieldLogger, span opentracing.Span) func(mapId uint32, portalId uint32) (*Model, error) {
 	return func(mapId uint32, portalId uint32) (*Model, error) {
-		data, err := requestPortalById(l)(mapId, portalId)
+		data, err := requestPortalById(l, span)(mapId, portalId)
 		if err != nil {
 			l.Errorf("Unable to get map %d portal %d.", mapId, portalId)
 			return nil, err
@@ -17,9 +18,9 @@ func GetMapPortalById(l logrus.FieldLogger) func(mapId uint32, portalId uint32) 
 	}
 }
 
-func GetMapPortals(l logrus.FieldLogger) func(mapId uint32) ([]*Model, error) {
+func GetMapPortals(l logrus.FieldLogger, span opentracing.Span) func(mapId uint32) ([]*Model, error) {
 	return func(mapId uint32) ([]*Model, error) {
-		data, err := requestPortals(l)(mapId)
+		data, err := requestPortals(l, span)(mapId)
 		if err != nil {
 			l.Errorf("Unable to get map %d portals.", mapId)
 			return nil, err

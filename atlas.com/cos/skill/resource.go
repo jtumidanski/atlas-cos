@@ -4,16 +4,22 @@ import (
 	"atlas-cos/json"
 	"atlas-cos/rest/attributes"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
+func InitResource(router *mux.Router, l logrus.FieldLogger, db *gorm.DB) {
+	r := router.PathPrefix("/characters").Subrouter()
+	r.HandleFunc("/{characterId}/skills", GetCharacterSkills(l, db)).Methods(http.MethodGet)
+	r.HandleFunc("/{characterId}/skills/{skillId}", GetCharacterSkill(l, db)).Methods(http.MethodGet)
+}
+
 // GetCharacterSkills is a REST resource handler for retrieving the specified characters skills.
-func GetCharacterSkills(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
+func GetCharacterSkills(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharacterSkills", "type": "rest_handler"})
+		fl := l.WithFields(logrus.Fields{"originator": "GetCharacterSkills", "type": "rest_handler"})
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
@@ -40,9 +46,9 @@ func GetCharacterSkills(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
 }
 
 // GetCharacterSkill is a REST resource handler for retrieving the specified characters skill.
-func GetCharacterSkill(l log.FieldLogger, db *gorm.DB) http.HandlerFunc {
+func GetCharacterSkill(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(log.Fields{"originator": "GetCharacterSkills", "type": "rest_handler"})
+		fl := l.WithFields(logrus.Fields{"originator": "GetCharacterSkills", "type": "rest_handler"})
 
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {

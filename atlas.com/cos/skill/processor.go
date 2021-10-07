@@ -3,6 +3,7 @@ package skill
 import (
 	"atlas-cos/skill/information"
 	"errors"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -19,10 +20,10 @@ func GetSkill(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillI
 	}
 }
 
-func IfHasSkillGetEffect(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillId uint32) (*information.Effect, bool) {
+func IfHasSkillGetEffect(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, skillId uint32) (*information.Effect, bool) {
 	return func(characterId uint32, skillId uint32) (*information.Effect, bool) {
 		if skill, ok := GetSkill(l, db)(characterId, skillId); ok && skill.Level() > 0 {
-			i, err := information.GetById(l)(skillId)
+			i, err := information.GetById(l, span)(skillId)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to retrieve information for skill %d.", skillId)
 				return nil, false
@@ -54,10 +55,10 @@ func GetSkills(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) ([]*M
 }
 
 // AwardSkills awards the given character the designated skills. Returns an error if one occurred.
-func AwardSkills(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skills ...uint32) error {
+func AwardSkills(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, skills ...uint32) error {
 	return func(characterId uint32, skills ...uint32) error {
 		for _, skillId := range skills {
-			err := AwardSkill(l, db)(characterId, skillId)
+			err := AwardSkill(l, db, span)(characterId, skillId)
 			if err != nil {
 				return err
 			}
@@ -67,9 +68,9 @@ func AwardSkills(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, ski
 }
 
 // AwardSkill awards the given character the designated skill. Returns an error if one occurred.
-func AwardSkill(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillId uint32) error {
+func AwardSkill(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, skillId uint32) error {
 	return func(characterId uint32, skillId uint32) error {
-		if i, err := information.GetById(l)(skillId); err == nil {
+		if i, err := information.GetById(l, span)(skillId); err == nil {
 			maxLevel := len(i.Effects())
 			_, err := create(db, characterId, skillId, setMasterLevel(uint32(maxLevel)), setExpiration(-1))
 			return err
