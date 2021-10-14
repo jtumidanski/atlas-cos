@@ -20,31 +20,36 @@ const (
 
 func InitResource(router *mux.Router, l logrus.FieldLogger, db *gorm.DB) {
 	r := router.PathPrefix("/characters").Subrouter()
-	r.HandleFunc("/seeds", rest.RetrieveSpan(CreateCharacterFromSeed, HandleCreateCharacterFromSeed(l, db))).Methods(http.MethodPost)
+	r.HandleFunc("/seeds", registerCreateCharacterFromSeed(l, db)).Methods(http.MethodPost)
 }
 
-func HandleCreateCharacterFromSeed(l logrus.FieldLogger, db *gorm.DB) rest.SpanHandler {
+func registerCreateCharacterFromSeed(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
+	return rest.RetrieveSpan(CreateCharacterFromSeed, func(span opentracing.Span) http.HandlerFunc {
+		fl := l.WithFields(logrus.Fields{"originator": CreateCharacterFromSeed, "type": "rest_handler"})
+		return handleCreateCharacterFromSeed(fl, db)(span)
+	})
+}
+
+func handleCreateCharacterFromSeed(l logrus.FieldLogger, db *gorm.DB) rest.SpanHandler {
 	return func(span opentracing.Span) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			fl := l.WithFields(logrus.Fields{"originator": CreateCharacterFromSeed, "type": "rest_handler"})
-
 			li := &attributes.CharacterSeedInputDataContainer{}
 			err := json.FromJSON(li, r.Body)
 			if err != nil {
-				fl.WithError(err).Errorf("Deserializing input.")
+				l.WithError(err).Errorf("Deserializing input.")
 				w.WriteHeader(http.StatusBadRequest)
 				err = json.ToJSON(&resource.GenericError{Message: err.Error()}, w)
 				if err != nil {
-					fl.WithError(err).Fatalf("Writing error message.")
+					l.WithError(err).Fatalf("Writing error message.")
 				}
 				return
 			}
 
 			attr := li.Data.Attributes
-			c, err := CreateFromSeed(fl, db, span)(attr.AccountId, attr.WorldId, attr.Name, attr.JobIndex, attr.Face,
+			c, err := CreateFromSeed(l, db, span)(attr.AccountId, attr.WorldId, attr.Name, attr.JobIndex, attr.Face,
 				attr.Hair, attr.HairColor, attr.Skin, attr.Gender, attr.Top, attr.Bottom, attr.Shoes, attr.Weapon)
 			if err != nil {
-				fl.WithError(err).Errorf("Unable to create character from seed.")
+				l.WithError(err).Errorf("Unable to create character from seed.")
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -54,7 +59,7 @@ func HandleCreateCharacterFromSeed(l logrus.FieldLogger, db *gorm.DB) rest.SpanH
 			w.WriteHeader(http.StatusOK)
 			err = json.ToJSON(result, w)
 			if err != nil {
-				fl.WithError(err).Errorf("Writing response.")
+				l.WithError(err).Errorf("Writing response.")
 			}
 		}
 	}

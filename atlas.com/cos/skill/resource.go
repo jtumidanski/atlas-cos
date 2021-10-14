@@ -2,81 +2,121 @@ package skill
 
 import (
 	"atlas-cos/json"
+	"atlas-cos/rest"
 	"atlas-cos/rest/attributes"
 	"github.com/gorilla/mux"
+	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
 
+const (
+	getCharacterSkills = "get_character_skills"
+	getCharacterSkill  = "get_character_skill"
+)
+
 func InitResource(router *mux.Router, l logrus.FieldLogger, db *gorm.DB) {
 	r := router.PathPrefix("/characters").Subrouter()
-	r.HandleFunc("/{characterId}/skills", GetCharacterSkills(l, db)).Methods(http.MethodGet)
-	r.HandleFunc("/{characterId}/skills/{skillId}", GetCharacterSkill(l, db)).Methods(http.MethodGet)
+	r.HandleFunc("/{characterId}/skills", registerGetCharacterSkills(l, db)).Methods(http.MethodGet)
+	r.HandleFunc("/{characterId}/skills/{skillId}", registerGetCharacterSkill(l, db)).Methods(http.MethodGet)
 }
 
-// GetCharacterSkills is a REST resource handler for retrieving the specified characters skills.
-func GetCharacterSkills(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(logrus.Fields{"originator": "GetCharacterSkills", "type": "rest_handler"})
+type characterIdHandler func(characterId uint32) http.HandlerFunc
 
+func parseCharacterId(l logrus.FieldLogger, next characterIdHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
+			l.WithError(err).Errorf("Unable to properly parse characterId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		next(uint32(characterId))(w, r)
+	}
+}
 
-		sl, err := GetSkills(fl, db)(uint32(characterId))
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to get skills for character %d.", characterId)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+func registerGetCharacterSkills(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
+	return rest.RetrieveSpan(getCharacterSkills, func(span opentracing.Span) http.HandlerFunc {
+		fl := l.WithFields(logrus.Fields{"originator": getCharacterSkills, "type": "rest_handler"})
+		return parseCharacterId(fl, func(characterId uint32) http.HandlerFunc {
+			return handleGetCharacterSkills(fl, db)(span)(characterId)
+		})
+	})
+}
 
-		result := createListDataContainer(sl)
+// handleGetCharacterSkills is a REST resource handler for retrieving the specified characters skills.
+func handleGetCharacterSkills(l logrus.FieldLogger, db *gorm.DB) func(span opentracing.Span) func(characterId uint32) http.HandlerFunc {
+	return func(span opentracing.Span) func(characterId uint32) http.HandlerFunc {
+		return func(characterId uint32) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				sl, err := GetSkills(l, db)(characterId)
+				if err != nil {
+					l.WithError(err).Errorf("Unable to get skills for character %d.", characterId)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
 
-		w.WriteHeader(http.StatusOK)
-		err = json.ToJSON(result, w)
-		if err != nil {
-			fl.WithError(err).Errorf("Writing response.")
+				result := createListDataContainer(sl)
+
+				w.WriteHeader(http.StatusOK)
+				err = json.ToJSON(result, w)
+				if err != nil {
+					l.WithError(err).Errorf("Writing response.")
+				}
+			}
 		}
 	}
 }
 
-// GetCharacterSkill is a REST resource handler for retrieving the specified characters skill.
-func GetCharacterSkill(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
+func registerGetCharacterSkill(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
+	return rest.RetrieveSpan(getCharacterSkill, func(span opentracing.Span) http.HandlerFunc {
+		fl := l.WithFields(logrus.Fields{"originator": getCharacterSkill, "type": "rest_handler"})
+		return parseCharacterId(fl, func(characterId uint32) http.HandlerFunc {
+			return parseSkillId(fl, func(skillId uint32) http.HandlerFunc {
+				return handleGetCharacterSkill(fl, db)(span)(characterId)(skillId)
+			})
+		})
+	})
+}
+
+type skillIdHandler func(skillId uint32) http.HandlerFunc
+
+func parseSkillId(l logrus.FieldLogger, next skillIdHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(logrus.Fields{"originator": "GetCharacterSkills", "type": "rest_handler"})
-
-		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
 		skillId, err := strconv.Atoi(mux.Vars(r)["skillId"])
 		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse skillId from path.")
+			l.WithError(err).Errorf("Unable to properly parse skillId from path.")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		next(uint32(skillId))(w, r)
+	}
+}
 
-		sl, ok := GetSkill(fl, db)(uint32(characterId), uint32(skillId))
-		if !ok {
-			fl.WithError(err).Errorf("Unable to get skills for character %d.", characterId)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+// handleGetCharacterSkill is a REST resource handler for retrieving the specified character's skill.
+func handleGetCharacterSkill(l logrus.FieldLogger, db *gorm.DB) func(span opentracing.Span) func(characterId uint32) func(skillId uint32) http.HandlerFunc {
+	return func(span opentracing.Span) func(characterId uint32) func(skillId uint32) http.HandlerFunc {
+		return func(characterId uint32) func(skillId uint32) http.HandlerFunc {
+			return func(skillId uint32) http.HandlerFunc {
+				return func(w http.ResponseWriter, r *http.Request) {
+					sl, ok := GetSkill(l, db)(characterId, skillId)
+					if !ok {
+						l.Errorf("Unable to get skills for character %d.", characterId)
+						w.WriteHeader(http.StatusInternalServerError)
+						return
+					}
 
-		result := createDataContainer(sl)
+					result := createDataContainer(sl)
 
-		w.WriteHeader(http.StatusOK)
-		err = json.ToJSON(result, w)
-		if err != nil {
-			fl.WithError(err).Errorf("Writing response.")
+					w.WriteHeader(http.StatusOK)
+					err := json.ToJSON(result, w)
+					if err != nil {
+						l.WithError(err).Errorf("Writing response.")
+					}
+				}
+			}
 		}
 	}
 }

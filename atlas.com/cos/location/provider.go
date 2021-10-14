@@ -20,14 +20,14 @@ func getArray(db *gorm.DB, query interface{}, transformer Transformer) ([]*Model
 	return skills, nil
 }
 
-// getSavedLocations retrieves all saved locations for the character, or an error if one occurred.
-func getSavedLocations(db *gorm.DB, characterId uint32) ([]*Model, error) {
+// retrieveSavedLocations retrieves all saved locations for the character, or an error if one occurred.
+func retrieveSavedLocations(db *gorm.DB, characterId uint32) ([]*Model, error) {
 	return getArray(db, &entity{CharacterId: characterId}, transform)
 }
 
-// getSavedLocationsByType retrieves all saved locations for the character for the given type, or an error if one
+// retrieveSavedLocationsByType retrieves all saved locations for the character for the given type, or an error if one
 // occurred.
-func getSavedLocationsByType(db *gorm.DB, characterId uint32, theType string) ([]*Model, error) {
+func retrieveSavedLocationsByType(db *gorm.DB, characterId uint32, theType string) ([]*Model, error) {
 	return getArray(db, &entity{CharacterId: characterId, LocationType: theType}, transform)
 }
 

@@ -22,105 +22,126 @@ const (
 
 func InitResource(router *mux.Router, l logrus.FieldLogger, db *gorm.DB) {
 	r := router.PathPrefix("/characters").Subrouter()
-	r.HandleFunc("", HandleGetCharactersForAccountInWorld(l, db)).Methods(http.MethodGet).Queries("accountId", "{accountId}", "worldId", "{worldId}")
-	r.HandleFunc("", HandleGetCharactersByMap(l, db)).Methods(http.MethodGet).Queries("worldId", "{worldId}", "mapId", "{mapId}")
-	r.HandleFunc("", HandleGetCharactersByName(l, db)).Methods(http.MethodGet).Queries("name", "{name}")
-	r.HandleFunc("/{characterId}", HandleGetCharacter(l, db)).Methods(http.MethodGet)
-	r.HandleFunc("/{characterId}/damage/weapon", rest.RetrieveSpan(GetCharacterDamage, HandleGetCharacterDamage(l, db))).Methods(http.MethodGet)
+	r.HandleFunc("", registerGetCharactersForAccountInWorld(l, db)).Methods(http.MethodGet).Queries("accountId", "{accountId}", "worldId", "{worldId}")
+	r.HandleFunc("", registerGetCharactersByMap(l, db)).Methods(http.MethodGet).Queries("worldId", "{worldId}", "mapId", "{mapId}")
+	r.HandleFunc("", registerGetCharactersByName(l, db)).Methods(http.MethodGet).Queries("name", "{name}")
+	r.HandleFunc("/{characterId}", registerGetCharacter(l, db)).Methods(http.MethodGet)
+	r.HandleFunc("/{characterId}/damage/weapon", registerGetCharacterDamage(l, db)).Methods(http.MethodGet)
 }
 
-func HandleGetCharactersForAccountInWorld(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func registerGetCharactersForAccountInWorld(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
+	return rest.RetrieveSpan(GetCharactersForAccountInWorld, func(span opentracing.Span) http.HandlerFunc {
 		fl := l.WithFields(logrus.Fields{"originator": GetCharactersForAccountInWorld, "type": "rest_handler"})
+		return handleGetCharactersForAccountInWorld(fl, db)(span)
+	})
+}
 
-		accountId, err := strconv.Atoi(mux.Vars(r)["accountId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse accountId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		worldId, err := strconv.Atoi(mux.Vars(r)["worldId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse worldId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+func handleGetCharactersForAccountInWorld(l logrus.FieldLogger, db *gorm.DB) func(span opentracing.Span) http.HandlerFunc {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			accountId, err := strconv.Atoi(mux.Vars(r)["accountId"])
+			if err != nil {
+				l.WithError(err).Errorf("Unable to properly parse accountId from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			worldId, err := strconv.Atoi(mux.Vars(r)["worldId"])
+			if err != nil {
+				l.WithError(err).Errorf("Unable to properly parse worldId from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-		cs, err := GetForAccountInWorld(fl, db)(uint32(accountId), byte(worldId))
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to get characters for account %d in world %d.", accountId, worldId)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+			cs, err := GetForAccountInWorld(l, db)(uint32(accountId), byte(worldId))
+			if err != nil {
+				l.WithError(err).Errorf("Unable to get characters for account %d in world %d.", accountId, worldId)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-		result := createCharacterDataListContainer(cs)
+			result := createCharacterDataListContainer(cs)
 
-		w.WriteHeader(http.StatusOK)
-		err = json.ToJSON(result, w)
-		if err != nil {
-			fl.WithError(err).Errorf("Writing response.")
+			w.WriteHeader(http.StatusOK)
+			err = json.ToJSON(result, w)
+			if err != nil {
+				l.WithError(err).Errorf("Writing response.")
+			}
 		}
 	}
 }
 
-func HandleGetCharactersByMap(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(logrus.Fields{"originator": GetCharactersByMap, "type": "rest_handler"})
+func registerGetCharactersByMap(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
+	fl := l.WithFields(logrus.Fields{"originator": GetCharactersByMap, "type": "rest_handler"})
+	return rest.RetrieveSpan(GetCharactersByMap, func(span opentracing.Span) http.HandlerFunc {
+		return handleGetCharactersByMap(fl, db)(span)
+	})
+}
 
-		worldId, err := strconv.Atoi(mux.Vars(r)["worldId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse worldId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		mapId, err := strconv.Atoi(mux.Vars(r)["mapId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse mapId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+func handleGetCharactersByMap(l logrus.FieldLogger, db *gorm.DB) func(span opentracing.Span) http.HandlerFunc {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			worldId, err := strconv.Atoi(mux.Vars(r)["worldId"])
+			if err != nil {
+				l.WithError(err).Errorf("Unable to properly parse worldId from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			mapId, err := strconv.Atoi(mux.Vars(r)["mapId"])
+			if err != nil {
+				l.WithError(err).Errorf("Unable to properly parse mapId from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-		cs, err := GetForMapInWorld(fl, db)(byte(worldId), uint32(mapId))
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to get characters for map %d in world %d.", mapId, worldId)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+			cs, err := GetForMapInWorld(l, db)(byte(worldId), uint32(mapId))
+			if err != nil {
+				l.WithError(err).Errorf("Unable to get characters for map %d in world %d.", mapId, worldId)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-		result := createCharacterDataListContainer(cs)
+			result := createCharacterDataListContainer(cs)
 
-		w.WriteHeader(http.StatusOK)
-		err = json.ToJSON(result, w)
-		if err != nil {
-			fl.WithError(err).Errorf("Writing response.")
+			w.WriteHeader(http.StatusOK)
+			err = json.ToJSON(result, w)
+			if err != nil {
+				l.WithError(err).Errorf("Writing response.")
+			}
 		}
 	}
 }
 
-func HandleGetCharactersByName(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(logrus.Fields{"originator": GetCharactersByName, "type": "rest_handler"})
+func registerGetCharactersByName(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
+	fl := l.WithFields(logrus.Fields{"originator": GetCharactersByName, "type": "rest_handler"})
+	return rest.RetrieveSpan(GetCharactersByName, func(span opentracing.Span) http.HandlerFunc {
+		return handleGetCharactersByName(fl, db)(span)
+	})
+}
 
-		name, ok := mux.Vars(r)["name"]
-		if !ok {
-			fl.Errorf("Unable to properly parse name from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+func handleGetCharactersByName(l logrus.FieldLogger, db *gorm.DB) func(span opentracing.Span) http.HandlerFunc {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			name, ok := mux.Vars(r)["name"]
+			if !ok {
+				l.Errorf("Unable to properly parse name from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-		cs, err := GetForName(fl, db)(name)
-		if err != nil {
-			fl.WithError(err).Errorf("Getting character %s.", name)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+			cs, err := GetForName(l, db)(name)
+			if err != nil {
+				l.WithError(err).Errorf("Getting character %s.", name)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-		result := createCharacterDataListContainer(cs)
+			result := createCharacterDataListContainer(cs)
 
-		w.WriteHeader(http.StatusOK)
-		err = json.ToJSON(result, w)
-		if err != nil {
-			fl.WithError(err).Errorf("Writing response.")
+			w.WriteHeader(http.StatusOK)
+			err = json.ToJSON(result, w)
+			if err != nil {
+				l.WithError(err).Errorf("Writing response.")
+			}
 		}
 	}
 }
@@ -134,34 +155,41 @@ func createCharacterDataListContainer(cs []*Model) *attributes.CharacterDataList
 	return result
 }
 
-func HandleGetCharacter(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fl := l.WithFields(logrus.Fields{"originator": GetCharacter, "type": "rest_handler"})
+func registerGetCharacter(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
+	fl := l.WithFields(logrus.Fields{"originator": GetCharacter, "type": "rest_handler"})
+	return rest.RetrieveSpan(GetCharacter, func(span opentracing.Span) http.HandlerFunc {
+		return handleGetCharacter(fl, db)(span)
+	})
+}
 
-		characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
-		if err != nil {
-			fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		c, err := GetById(fl, db)(uint32(characterId))
-		if err != nil {
-			fl.WithError(err).Errorf("Getting character %d.", characterId)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if c == nil {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+func handleGetCharacter(l logrus.FieldLogger, db *gorm.DB) func(span opentracing.Span) http.HandlerFunc {
+	return func(span opentracing.Span) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
+			if err != nil {
+				l.WithError(err).Errorf("Unable to properly parse characterId from path.")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			c, err := GetById(l, db)(uint32(characterId))
+			if err != nil {
+				l.WithError(err).Errorf("Getting character %d.", characterId)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			if c == nil {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
 
-		var result = &attributes.CharacterDataContainer{}
-		result.Data = createCharacterData(c)
+			var result = &attributes.CharacterDataContainer{}
+			result.Data = createCharacterData(c)
 
-		w.WriteHeader(http.StatusOK)
-		err = json.ToJSON(result, w)
-		if err != nil {
-			fl.WithError(err).Errorf("Writing response.")
+			w.WriteHeader(http.StatusOK)
+			err = json.ToJSON(result, w)
+			if err != nil {
+				l.WithError(err).Errorf("Writing response.")
+			}
 		}
 	}
 }
@@ -206,19 +234,24 @@ func createCharacterData(c *Model) attributes.CharacterData {
 	}
 }
 
-func HandleGetCharacterDamage(l logrus.FieldLogger, db *gorm.DB) rest.SpanHandler {
+func registerGetCharacterDamage(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
+	fl := l.WithFields(logrus.Fields{"originator": GetCharacterDamage, "type": "rest_handler"})
+	return rest.RetrieveSpan(GetCharacterDamage, func(span opentracing.Span) http.HandlerFunc {
+		return handleGetCharacterDamage(fl, db)(span)
+	})
+}
+
+func handleGetCharacterDamage(l logrus.FieldLogger, db *gorm.DB) func(span opentracing.Span) http.HandlerFunc {
 	return func(span opentracing.Span) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			fl := l.WithFields(logrus.Fields{"originator": GetCharacterDamage, "type": "rest_handler"})
-
 			characterId, err := strconv.Atoi(mux.Vars(r)["characterId"])
 			if err != nil {
-				fl.WithError(err).Errorf("Unable to properly parse characterId from path.")
+				l.WithError(err).Errorf("Unable to properly parse characterId from path.")
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 
-			damage := GetMaximumBaseDamage(fl, db, span)(uint32(characterId))
+			damage := GetMaximumBaseDamage(l, db, span)(uint32(characterId))
 
 			result := attributes.CharacterDamageDataContainer{
 				Data: attributes.CharacterDamageData{
@@ -234,7 +267,7 @@ func HandleGetCharacterDamage(l logrus.FieldLogger, db *gorm.DB) rest.SpanHandle
 			w.WriteHeader(http.StatusOK)
 			err = json.ToJSON(result, w)
 			if err != nil {
-				fl.WithError(err).Errorf("Writing response.")
+				l.WithError(err).Errorf("Writing response.")
 			}
 		}
 	}
