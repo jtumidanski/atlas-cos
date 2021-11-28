@@ -25,13 +25,9 @@ func requestCreate(l logrus.FieldLogger, span opentracing.Span) func(itemId uint
 					ItemId: itemId,
 				},
 			}}
-		resp, err := requests.Post(l, span)(fmt.Sprintf(equipmentResource), input)
-		if err != nil {
-			return nil, err
-		}
 
 		ro := &attributes.EquipmentDataContainer{}
-		err = requests.ProcessResponse(resp, ro)
+		err := requests.Post(l, span)(fmt.Sprintf(equipmentResource), input, ro, &requests.ErrorListDataContainer{})
 		if err != nil {
 			return nil, err
 		}
