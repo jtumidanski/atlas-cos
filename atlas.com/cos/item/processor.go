@@ -37,9 +37,9 @@ func UpdateItemQuantity(_ logrus.FieldLogger, db *gorm.DB) func(id uint32, quant
 	}
 }
 
-func CreateItemForCharacter(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, itemId uint32, quantity uint32) (*Model, error) {
+func CreateItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, itemId uint32, quantity uint32) (*Model, error) {
 	return func(characterId uint32, inventoryType int8, itemId uint32, quantity uint32) (*Model, error) {
-		slot, err := getNextFreeEquipmentSlot(db, characterId, inventoryType)
+		slot, err := getNextFreeEquipmentSlot(l, db)(characterId, inventoryType)
 		if err != nil {
 			return nil, err
 		}

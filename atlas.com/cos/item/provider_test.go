@@ -27,8 +27,8 @@ func TestMinFreeSlot2(t *testing.T) {
 		{slot: 8},
 	}
 	result := minFreeSlot(items)
-	if result != 0 {
-		t.Fatalf("MinFreeSlot expected=%d, got=%d", 0, result)
+	if result != 3 {
+		t.Fatalf("MinFreeSlot expected=%d, got=%d", 3, result)
 	}
 }
 
@@ -57,7 +57,7 @@ func TestMinFreeSlot4(t *testing.T) {
 		{slot: 4},
 	}
 	result := minFreeSlot(items)
-	if result != 0 {
-		t.Fatalf("MinFreeSlot expected=%d, got=%d", 0, result)
+	if result != 5 {
+		t.Fatalf("MinFreeSlot expected=%d, got=%d", 5, result)
 	}
 }
