@@ -104,7 +104,7 @@ func minFreeSlot(items []*Model) int16 {
 		} else if slot == items[i].Slot() {
 			slot += 1
 			i += 1
-		} else if items[i].Slot() < 0 {
+		} else if items[i].Slot() <= 0 {
 			i += 1
 		}
 	}
