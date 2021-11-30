@@ -56,7 +56,7 @@ func handleCreateCharacterFromSeed(l logrus.FieldLogger, db *gorm.DB) rest.SpanH
 
 			result := createDataContainer(c)
 
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusCreated)
 			err = json.ToJSON(result, w)
 			if err != nil {
 				l.WithError(err).Errorf("Writing response.")

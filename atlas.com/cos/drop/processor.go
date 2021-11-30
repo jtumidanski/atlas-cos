@@ -73,7 +73,7 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 			return
 		}
 
-		if !canBePickedBy(db)(c, d) {
+		if !canBePickedBy(l, span)(c, d) {
 			l.Debugf("Cancelling drop for character %d, drop %d, the drop cannot be picked up by character.", c.Id(), d.Id())
 			producers.CancelDropReservation(l, span)(d.Id(), c.Id())
 			return
@@ -130,19 +130,19 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 	}
 }
 
-func canBePickedBy(db *gorm.DB) func(c *character.Model, d *Model) bool {
+func canBePickedBy(l logrus.FieldLogger, span opentracing.Span) func(c *character.Model, d *Model) bool {
 	return func(c *character.Model, d *Model) bool {
 		if d.OwnerId() <= 0 || d.FFADrop() {
 			return true
 		}
 
-		ownerParty, err := party.ForCharacter()
+		ownerParty, err := party.ForCharacter(l, span)(d.OwnerId())
 		if err != nil {
 			if c.Id() == d.OwnerId() {
 				return true
 			}
 		} else {
-			characterParty, err := party.ForCharacter()
+			characterParty, err := party.ForCharacter(l, span)(c.Id())
 			if err == nil && ownerParty.Id() == characterParty.Id() {
 				return true
 			} else if c.Id() == d.OwnerId() {

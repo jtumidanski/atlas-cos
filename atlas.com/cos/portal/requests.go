@@ -1,7 +1,6 @@
 package portal
 
 import (
-	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/requests"
 	"fmt"
 	"github.com/opentracing/opentracing-go"
@@ -13,14 +12,15 @@ const (
 	mapInformationService              = requests.BaseRequest + mapInformationServicePrefix
 	mapsResource                       = mapInformationService + "maps/"
 	portalsResource                    = mapsResource + "%d/portals"
-	portalsByName                      = portalsResource + "?name=%s"
 	portalResource                     = portalsResource + "/%d"
 )
 
-func requestPortalById(l logrus.FieldLogger, span opentracing.Span) func(mapId uint32, portalId uint32) (*attributes.PortalDataContainer, error) {
-	return func(mapId uint32, portalId uint32) (*attributes.PortalDataContainer, error) {
-		ar := &attributes.PortalDataContainer{}
-		err := requests.Get(l, span)(fmt.Sprintf(portalResource, mapId, portalId), ar)
+type Request func(l logrus.FieldLogger, span opentracing.Span) (*dataContainer, error)
+
+func makeRequest(url string) Request {
+	return func(l logrus.FieldLogger, span opentracing.Span) (*dataContainer, error) {
+		ar := &dataContainer{}
+		err := requests.Get(l, span)(url, ar)
 		if err != nil {
 			return nil, err
 		}
@@ -28,13 +28,10 @@ func requestPortalById(l logrus.FieldLogger, span opentracing.Span) func(mapId u
 	}
 }
 
-func requestPortals(l logrus.FieldLogger, span opentracing.Span) func(mapId uint32) (*attributes.PortalDataContainer, error) {
-	return func(mapId uint32) (*attributes.PortalDataContainer, error) {
-		ar := &attributes.PortalDataContainer{}
-		err := requests.Get(l, span)(fmt.Sprintf(portalsResource, mapId), ar)
-		if err != nil {
-			return nil, err
-		}
-		return ar, nil
-	}
+func requestById(mapId uint32, portalId uint32) Request {
+	return makeRequest(fmt.Sprintf(portalResource, mapId, portalId))
+}
+
+func requestInMap(mapId uint32) Request {
+	return makeRequest(fmt.Sprintf(portalsResource, mapId))
 }

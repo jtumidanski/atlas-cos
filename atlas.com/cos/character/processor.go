@@ -175,7 +175,7 @@ func performChangeMap(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) 
 			if err != nil {
 				return err
 			}
-			por, err := portal.GetMapPortalById(l, span)(mapId, portalId)
+			por, err := portal.GetById(l, span)(mapId, portalId)
 			if err != nil {
 				return err
 			}
@@ -809,10 +809,10 @@ func UpdateLoginPosition(l logrus.FieldLogger, db *gorm.DB, span opentracing.Spa
 
 func updateTemporalPositionLogin(l logrus.FieldLogger, span opentracing.Span) characterFunc {
 	return func(c *Model) error {
-		port, err := portal.GetMapPortalById(l, span)(c.MapId(), c.SpawnPoint())
+		port, err := portal.GetById(l, span)(c.MapId(), c.SpawnPoint())
 		if err != nil {
 			l.Warnf("Unable to find spawn point %d in map %d for character %d.", c.SpawnPoint(), c.MapId(), c.Id())
-			port, err = portal.GetMapPortalById(l, span)(c.MapId(), 0)
+			port, err = portal.GetById(l, span)(c.MapId(), 0)
 			if err != nil {
 				l.Errorf("Unable to get a portal in map %d to update character %d position to.", c.MapId(), c.Id())
 				return err

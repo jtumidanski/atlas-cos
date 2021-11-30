@@ -9,7 +9,7 @@ import (
 
 func FindClosestSpawnPoint(l logrus.FieldLogger, span opentracing.Span) func(mapId uint32, x int16, y int16) (*portal.Model, error) {
 	return func(mapId uint32, x int16, y int16) (*portal.Model, error) {
-		portals, err := portal.GetMapPortals(l, span)(mapId)
+		portals, err := portal.GetInMap(l, span)(mapId)
 		if err != nil {
 			return nil, err
 		}
