@@ -3,13 +3,45 @@ package equipment
 import (
 	"atlas-cos/equipment/statistics"
 	"atlas-cos/item"
-	"atlas-cos/kafka/producers"
 	"errors"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math"
 )
+
+type InventoryAdjustment struct {
+	mode          byte
+	itemId        uint32
+	inventoryType int8
+	quantity      uint32
+	slot          int16
+	oldSlot       int16
+}
+
+func (i InventoryAdjustment) Mode() byte {
+	return i.mode
+}
+
+func (i InventoryAdjustment) ItemId() uint32 {
+	return i.itemId
+}
+
+func (i InventoryAdjustment) InventoryType() int8 {
+	return i.inventoryType
+}
+
+func (i InventoryAdjustment) Quantity() uint32 {
+	return i.quantity
+}
+
+func (i InventoryAdjustment) Slot() int16 {
+	return i.slot
+}
+
+func (i InventoryAdjustment) OldSlot() int16 {
+	return i.oldSlot
+}
 
 var characterCreationItems = []uint32{
 	1302000, 1312004, 1322005, 1442079, // weapons
@@ -55,43 +87,19 @@ func GetEquippedItemForCharacterBySlot(_ logrus.FieldLogger, db *gorm.DB) func(c
 	}
 }
 
-func CreateAndEquip(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, items ...uint32) {
-	return func(characterId uint32, items ...uint32) {
-		for _, i := range items {
-			createAndEquip(l, db, span)(characterId, i)
-		}
-	}
-}
-
-func createAndEquip(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, itemId uint32) {
-	return func(characterId uint32, itemId uint32) {
-		eid, err := statistics.Create(l, span)(itemId)
-		if err != nil {
-			l.WithError(err).Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
-			return
-		}
-
-		if equipment, err := CreateForCharacter(l, db)(characterId, itemId, eid, true); err == nil {
-			EquipItemForCharacter(l, db, span)(characterId, equipment.EquipmentId())
-		} else {
-			l.Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
-		}
-	}
-}
-
-func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, equipmentId uint32) {
-	return func(characterId uint32, equipmentId uint32) {
+func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, equipmentId uint32) (*InventoryAdjustment, error) {
+	return func(characterId uint32, equipmentId uint32) (*InventoryAdjustment, error) {
 		l.Debugf("Received request to equip %d for character %d.", equipmentId, characterId)
 		e, err := getByEquipmentId(db, equipmentId)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
-			return
+			return nil, err
 		}
 
 		ea, err := statistics.GetEquipmentStatistics(l, span)(e.EquipmentId())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
-			return
+			return nil, err
 		}
 
 		l.Debugf("Equipment %d is item %d for character %d.", equipmentId, ea.ItemId(), characterId)
@@ -99,107 +107,103 @@ func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.S
 		slots, err := item.GetEquipmentSlotDestination(l, span)(ea.ItemId())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve destination slots for item %d.", ea.ItemId())
-			return
+			return nil, err
 		} else if len(slots) <= 0 {
 			l.Errorf("Unable to retrieve destination slots for item %d. %s.", ea.ItemId())
-			return
+			return nil, err
 		}
 		slot := slots[0]
 		l.Debugf("Equipment %d to be equipped in slot %d for character %d.", equipmentId, slot, characterId)
 
 		temporarySlot := int16(math.MinInt16)
 
-		events := make([]func(), 0)
-
+		existingSlot := int16(1)
 		err = db.Transaction(func(tx *gorm.DB) error {
 			if equip, err := getEquipmentForCharacterBySlot(tx, characterId, slot); err == nil && equip.EquipmentId() != 0 {
 				l.Debugf("Equipment %d already exists in slot %d, that item will be moved temporarily to %d for character %d.", equip.EquipmentId(), slot, temporarySlot, characterId)
 				_ = updateSlot(tx, equip.EquipmentId(), temporarySlot)
 			}
 
-			currentSlot := int16(1)
 			if equip, err := getByEquipmentId(tx, equipmentId); err == nil {
-				currentSlot = equip.Slot()
+				existingSlot = equip.Slot()
 			} else {
 				val, err := getNextFreeEquipmentSlot(tx, characterId)
 				if err != nil {
 				}
-				currentSlot = val
+				existingSlot = val
 			}
 			err = updateSlot(tx, equipmentId, slot)
 			if err != nil {
 				return err
 			}
-			l.Debugf("Moved item %d from slot %d to %d for character %d.", ea.ItemId(), currentSlot, slot, characterId)
-
-			events = append(events, func() {
-				producers.InventoryModificationReservation(l, span)(characterId, true, 2, ea.ItemId(), 1, 1, slot, currentSlot)
-			})
+			l.Debugf("Moved item %d from slot %d to %d for character %d.", ea.ItemId(), existingSlot, slot, characterId)
 
 			if equip, err := getEquipmentForCharacterBySlot(tx, characterId, temporarySlot); err == nil && equip.EquipmentId() != 0 {
-				err := updateSlot(tx, equip.EquipmentId(), currentSlot)
+				err := updateSlot(tx, equip.EquipmentId(), existingSlot)
 				if err != nil {
 					return err
 				}
-				l.Debugf("Moved item from temporary location %d to slot %d for character %d.", temporarySlot, currentSlot, characterId)
+				l.Debugf("Moved item from temporary location %d to slot %d for character %d.", temporarySlot, existingSlot, characterId)
 			}
-			events = append(events, func() {
-				producers.CharacterEquippedItem(l, span)(characterId)
-			})
 			return nil
 		})
 		if err != nil {
 			l.WithError(err).Errorf("Unable to complete the equipment of item %d for character %d.", equipmentId, characterId)
-			return
+			return nil, err
 		}
-
-		for _, event := range events {
-			event()
-		}
+		emitItemEquipped(l, span)(characterId)
+		return &InventoryAdjustment{
+			mode:          2,
+			itemId:        ea.ItemId(),
+			inventoryType: 1,
+			quantity:      1,
+			slot:          slot,
+			oldSlot:       existingSlot,
+		}, nil
 	}
 }
 
-func UnequipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, equipmentId uint32, oldSlot int16) {
-	return func(characterId uint32, equipmentId uint32, oldSlot int16) {
+func UnequipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, equipmentId uint32, oldSlot int16) (*InventoryAdjustment, error) {
+	return func(characterId uint32, equipmentId uint32, oldSlot int16) (*InventoryAdjustment, error) {
 		l.Debugf("Received request to unequip %d for character %d.", equipmentId, characterId)
 
-		events := make([]func(), 0)
-
-		err := db.Transaction(func(tx *gorm.DB) error {
+		itemId := uint32(0)
+		newSlot := int16(0)
+		txErr := db.Transaction(func(tx *gorm.DB) error {
 			ea, err := statistics.GetEquipmentStatistics(l, span)(equipmentId)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
 				return err
 			}
+			itemId = ea.ItemId()
 
-			val, err := getNextFreeEquipmentSlot(tx, characterId)
+			newSlot, err = getNextFreeEquipmentSlot(tx, characterId)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to get next free equipment slot")
 				return err
 			}
 
-			err = updateSlot(tx, equipmentId, val)
+			err = updateSlot(tx, equipmentId, newSlot)
 			if err != nil {
 				return err
 			}
 
-			l.Debugf("Unequipped %d for character %d and place it in slot %d, from %d.", equipmentId, characterId, val, oldSlot)
-			events = append(events, func() {
-				producers.InventoryModificationReservation(l, span)(characterId, true, 2, ea.ItemId(), 1, 1, val, oldSlot)
-			})
-			events = append(events, func() {
-				producers.CharacterUnEquippedItem(l, span)(characterId)
-			})
+			l.Debugf("Unequipped %d for character %d and place it in slot %d, from %d.", equipmentId, characterId, newSlot, oldSlot)
 			return nil
 		})
-		if err != nil {
-			l.WithError(err).Errorf("Unable to complete the equipment of item %d for character %d.", equipmentId, characterId)
-			return
+		if txErr != nil {
+			l.WithError(txErr).Errorf("Unable to complete the equipment of item %d for character %d.", equipmentId, characterId)
+			return nil, txErr
 		}
-
-		for _, event := range events {
-			event()
-		}
+		emitItemUnequipped(l, span)(characterId)
+		return &InventoryAdjustment{
+			mode:          2,
+			itemId:        itemId,
+			inventoryType: 1,
+			quantity:      1,
+			slot:          newSlot,
+			oldSlot:       oldSlot,
+		}, nil
 	}
 }
 
@@ -218,20 +222,26 @@ func invalidCharacterCreationItem(itemId uint32) bool {
 	return true
 }
 
-func GainItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, itemId uint32, equipmentId uint32) error {
-	return func(characterId uint32, itemId uint32, equipmentId uint32) error {
+func GainItem(l logrus.FieldLogger, db *gorm.DB, _ opentracing.Span) func(characterId uint32, itemId uint32, equipmentId uint32) (*InventoryAdjustment, error) {
+	return func(characterId uint32, itemId uint32, equipmentId uint32) (*InventoryAdjustment, error) {
 		//TODO verify inventory space
 		e, err := CreateForCharacter(l, db)(characterId, itemId, equipmentId, false)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to create equipment %d for character %d.", itemId, characterId)
-			return err
+			return nil, err
 		}
-		producers.InventoryModificationReservation(l, span)(characterId, true, 0, itemId, 1, 1, e.Slot(), 0)
-		return nil
+		return &InventoryAdjustment{
+			mode:          0,
+			itemId:        itemId,
+			inventoryType: 1,
+			quantity:      1,
+			slot:          e.Slot(),
+			oldSlot:       0,
+		}, nil
 	}
 }
 
-func DropEquippedItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
+func DropEquippedItem(l logrus.FieldLogger, db *gorm.DB, _ opentracing.Span) func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
 	return func(worldId byte, channelId byte, characterId uint32, slot int16) (uint32, error) {
 		l.Debugf("Character %d dropping equipment in slot %d.", characterId, slot)
 		e, err := GetEquippedItemForCharacterBySlot(l, db)(characterId, slot)
@@ -240,19 +250,11 @@ func DropEquippedItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) 
 			return 0, err
 		}
 
-		ea, err := statistics.GetEquipmentStatistics(l, span)(e.EquipmentId())
-		if err != nil {
-			l.WithError(err).Errorf("Unable to retrieve equipment %d.", e.EquipmentId())
-			return 0, err
-		}
-
 		err = RemoveItem(l, db)(characterId, e.Id())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to remove item %d.", e.Id())
 			return 0, err
 		}
-
-		producers.InventoryModificationReservation(l, span)(characterId, true, 3, ea.ItemId(), 1, 1, slot, 0)
 		return e.EquipmentId(), nil
 	}
 }
@@ -266,21 +268,13 @@ func DropEquipment(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 			return 0, err
 		}
 
-		ea, err := statistics.GetEquipmentStatistics(l, span)(e.EquipmentId())
-		if err != nil {
-			l.WithError(err).Errorf("Unable to retrieve equipment %d.", e.EquipmentId())
-			return 0, err
-		}
-
 		err = RemoveItem(l, db)(characterId, e.Id())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to remove item %d.", e.Id())
 			return 0, err
 		}
 
-		producers.InventoryModificationReservation(l, span)(characterId, true, 3, ea.ItemId(), 1, 1, slot, 0)
-
-		producers.CharacterUnEquippedItem(l, span)(characterId)
+		emitItemUnequipped(l, span)(characterId)
 		return e.EquipmentId(), nil
 	}
 }
@@ -291,9 +285,10 @@ func RemoveItem(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, id u
 	}
 }
 
-func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, source int16, destination int16) error {
-	return func(characterId uint32, source int16, destination int16) error {
-		return db.Transaction(func(tx *gorm.DB) error {
+func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, source int16, destination int16) (*InventoryAdjustment, error) {
+	return func(characterId uint32, source int16, destination int16) (*InventoryAdjustment, error) {
+		itemId := uint32(0)
+		txError := db.Transaction(func(tx *gorm.DB) error {
 			equip, err := getEquipmentForCharacterBySlot(tx, characterId, source)
 			if err != nil || equip.Id() == 0 {
 				l.Warnf("Item movement requested, but no equipment for character %d in slot %d.", characterId, source)
@@ -305,6 +300,7 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 				l.WithError(err).Errorf("Unable to retrieve equipment %d.", equip.EquipmentId())
 				return err
 			}
+			itemId = ea.ItemId()
 
 			temporarySlot := int16(math.MinInt16)
 			otherEquip, err := getEquipmentForCharacterBySlot(tx, characterId, destination)
@@ -327,9 +323,16 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 				l.Debugf("Moved item %d from slot %d to %d for character %d.", otherEquip.Id(), temporarySlot, source, characterId)
 			}
 
-			producers.InventoryModificationReservation(l, span)(characterId, true, 2, ea.ItemId(), 1, 1, destination, source)
 			return nil
 		})
+		return &InventoryAdjustment{
+			mode:          2,
+			itemId:        itemId,
+			inventoryType: 1,
+			quantity:      1,
+			slot:          destination,
+			oldSlot:       source,
+		}, txError
 	}
 }
 

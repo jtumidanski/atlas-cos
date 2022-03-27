@@ -2,10 +2,8 @@ package drop
 
 import (
 	"atlas-cos/character"
-	"atlas-cos/equipment"
 	"atlas-cos/inventory"
 	"atlas-cos/item"
-	"atlas-cos/kafka/producers"
 	"atlas-cos/party"
 	"atlas-cos/rest/requests"
 	"github.com/opentracing/opentracing-go"
@@ -70,19 +68,19 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 		if elapsed < 400 {
 			l.Debugf("Cancelling drop for character %d, drop %d, the drop has not yet met minimum time. Time elapsed %d", c.Id(), d.Id(), elapsed)
 			l.Debugf("Now %d, DropTime %d, Elapsed %d.", now, d.DropTime(), elapsed)
-			producers.CancelDropReservation(l, span)(d.Id(), c.Id())
+			emitCancelReservation(l, span)(d.Id(), c.Id())
 			return
 		}
 
 		if !canBePickedBy(l, span)(c, d) {
 			l.Debugf("Cancelling drop for character %d, drop %d, the drop cannot be picked up by character.", c.Id(), d.Id())
-			producers.CancelDropReservation(l, span)(d.Id(), c.Id())
+			emitCancelReservation(l, span)(d.Id(), c.Id())
 			return
 		}
 
 		if isOwnerLockedMap(c.MapId()) && d.CharacterDrop() && d.OwnerId() != c.Id() {
 			l.Debugf("Cancelling drop for character %d, drop %d, the drop is not owned by this character, in a owner locked map.", c.Id(), d.Id())
-			producers.CancelDropReservation(l, span)(d.Id(), c.Id())
+			emitCancelReservation(l, span)(d.Id(), c.Id())
 			// emit item unavailable.
 			return
 		}
@@ -98,15 +96,15 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 
 			if !needsQuestItem() {
 				l.Debugf("Cancelling drop for character %d, drop %d, the character does not need this quest item.", c.Id(), d.Id())
-				producers.CancelDropReservation(l, span)(d.Id(), c.Id())
+				emitCancelReservation(l, span)(d.Id(), c.Id())
 				// emit item unavailable.
 				return
 			}
 
 			if !hasInventorySpace(l, db)(c, d) {
 				l.Debugf("Cancelling drop for character %d, drop %d, the character does not have inventory space.", c.Id(), d.Id())
-				producers.CancelDropReservation(l, span)(d.Id(), c.Id())
-				producers.InventoryFull(l, span)(c.Id())
+				emitCancelReservation(l, span)(d.Id(), c.Id())
+				emitInventoryFullEvent(l, span)(c.Id())
 				// emit inventory full.
 				return
 			}
@@ -124,10 +122,10 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 					pickupItem(l, db, span)(c, val, d)
 				}
 				// TODO update ariant score if 4031868
-				producers.PickedUpItem(l, span)(c.Id(), d.ItemId(), d.Quantity())
+				emitPickedUpItemEvent(l, span)(c.Id(), d.ItemId(), d.Quantity())
 			}
 		}
-		producers.PickedUpDrop(l, span)(c.Id(), d.Id())
+		emitPickedUpDropCommand(l, span)(c.Id(), d.Id())
 	}
 }
 
@@ -161,16 +159,16 @@ func isOwnerLockedMap(mapId uint32) bool {
 func pickupNX(l logrus.FieldLogger, span opentracing.Span) func(c *character.Model, d *Model) {
 	return func(c *character.Model, d *Model) {
 		if d.ItemId() == 4031865 {
-			producers.PickedUpNx(l, span)(c.Id(), 100)
+			emitPickedUpNxEvent(l, span)(c.Id(), 100)
 		} else {
-			producers.PickedUpNx(l, span)(c.Id(), 250)
+			emitPickedUpNxEvent(l, span)(c.Id(), 250)
 		}
 	}
 }
 
 func pickupMeso(l logrus.FieldLogger, span opentracing.Span) func(c *character.Model, d *Model) {
 	return func(c *character.Model, d *Model) {
-		producers.AdjustMeso(l, span)(c.Id(), int32(d.Meso()))
+		emitMesoAdjustment(l, span)(c.Id(), int32(d.Meso()))
 	}
 }
 
@@ -279,7 +277,7 @@ func scriptedItem(itemId uint32) bool {
 
 func pickupEquip(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *character.Model, d *Model) {
 	return func(c *character.Model, d *Model) {
-		err := equipment.GainItem(l, db, span)(c.Id(), d.ItemId(), d.EquipmentId())
+		err := inventory.GainEquipment(l, db, span)(c.Id(), d.ItemId(), d.EquipmentId())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to create equipment %d that character %d picked up.", d.ItemId(), c.Id())
 			return
@@ -289,7 +287,7 @@ func pickupEquip(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(
 
 func pickupItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *character.Model, it int8, d *Model) {
 	return func(c *character.Model, it int8, d *Model) {
-		err := item.GainItem(l, db, span)(c.Id(), it, d.ItemId(), d.Quantity())
+		err := inventory.GainItem(l, db, span)(c.Id(), it, d.ItemId(), d.Quantity())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to gain item %d that character %d picked up.", d.ItemId(), c.Id())
 			return

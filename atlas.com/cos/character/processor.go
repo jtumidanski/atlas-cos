@@ -7,7 +7,6 @@ import (
 	"atlas-cos/inventory"
 	"atlas-cos/item"
 	"atlas-cos/job"
-	"atlas-cos/kafka/producers"
 	_map "atlas-cos/map"
 	"atlas-cos/portal"
 	"atlas-cos/skill"
@@ -114,7 +113,7 @@ func manaUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) characterFun
 func statisticUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) func(statistic string) characterFunc {
 	return func(statistic string) characterFunc {
 		return func(c *Model) error {
-			producers.CharacterStatUpdate(l, span)(c.Id(), []string{statistic})
+			emitStatUpdateEvent(l, span)(c.Id(), []string{statistic})
 			return nil
 		}
 	}
@@ -124,7 +123,7 @@ func statisticUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) func(st
 func statisticsUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) func(statistics ...string) characterFunc {
 	return func(statistics ...string) characterFunc {
 		return func(c *Model) error {
-			producers.CharacterStatUpdate(l, span)(c.Id(), statistics)
+			emitStatUpdateEvent(l, span)(c.Id(), statistics)
 			return nil
 		}
 	}
@@ -153,7 +152,7 @@ func mesoUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) func(amount 
 	return func(amount int32, show bool) characterFunc {
 		return func(c *Model) error {
 			if show {
-				producers.MesoGained(l, span)(c.Id(), amount)
+				emitMesoGainedEvent(l, span)(c.Id(), amount)
 			}
 			return nil
 		}
@@ -189,7 +188,7 @@ func performChangeMap(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) 
 func changeMapSuccess(l logrus.FieldLogger, span opentracing.Span) func(worldId byte, channelId byte, mapId uint32, portalId uint32) characterFunc {
 	return func(worldId byte, channelId byte, mapId uint32, portalId uint32) characterFunc {
 		return func(c *Model) error {
-			producers.MapChanged(l, span)(worldId, channelId, mapId, portalId, c.Id())
+			emitMapChangedEvent(l, span)(worldId, channelId, mapId, portalId, c.Id())
 			return nil
 		}
 	}
@@ -221,7 +220,7 @@ func gainExperience(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fu
 			if toNext <= gain {
 				l.Debugf("Character %d leveled. Set experience to 0 during the level, and perform level.", characterId)
 				setExperience(l, db, span)(characterId, 0)
-				producers.CharacterLevel(l, span)(characterId)
+				emitLevelEvent(l, span)(characterId)
 				if gain-toNext > 0 {
 					l.Debugf("Character %d has %d experience left to process.", characterId, gain-toNext)
 					gainExperience(l, db, span)(characterId, level+1, masterLevel, 0, gain-toNext)
@@ -773,7 +772,7 @@ func assignSP(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(ski
 						return err
 					}
 				} else {
-					producers.EnableActions(l, span)(c.Id())
+					emitEnableActionsCommand(l, span)(c.Id())
 				}
 
 				//TODO special handling for aran full swing and over swing.
@@ -781,7 +780,7 @@ func assignSP(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(ski
 				if err != nil {
 					return err
 				}
-				producers.CharacterSkillUpdate(l, span)(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
+				emitSkillUpdateEvent(l, span)(c.Id(), skillId, s.Level()+1, s.MasterLevel(), s.Expiration())
 			} else {
 				l.Warnf("Received a skill %d assignment for character %d who does not have the skill.", skillId, c.Id())
 			}
@@ -949,7 +948,7 @@ func Create(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(b *Bu
 			return nil, err
 		}
 
-		producers.CharacterCreated(l, span)(c.Id(), c.WorldId(), c.Name())
+		emitCreatedEvent(l, span)(c.Id(), c.WorldId(), c.Name())
 		return c, nil
 	}
 }
@@ -1107,29 +1106,12 @@ func resetAP(l logrus.FieldLogger, db *gorm.DB) characterFunc {
 
 func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, inventoryType int8, source int16, destination int16) error {
 	return func(characterId uint32, inventoryType int8, source int16, destination int16) error {
-		c, err := GetById(l, db)(characterId)
+		_, err := GetById(l, db)(characterId)
 		if err != nil {
 			l.WithError(err).Errorf("Cannot retrieve character %d performing the drop.", characterId)
 			return err
 		}
-
-		if inventoryType == inventory.TypeValueEquip {
-			return moveEquipItem(l, db, span)(c, inventoryType, source, destination)
-		}
-
-		return moveItem(l, db, span)(c, inventoryType, source, destination)
-	}
-}
-
-func moveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model, inventoryType int8, source int16, destination int16) error {
-	return func(c *Model, inventoryType int8, source int16, destination int16) error {
-		return item.MoveItem(l, db, span)(c.Id(), inventoryType, source, destination)
-	}
-}
-
-func moveEquipItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model, inventoryType int8, source int16, destination int16) error {
-	return func(c *Model, inventoryType int8, source int16, destination int16) error {
-		return equipment.MoveItem(l, db, span)(c.Id(), source, destination)
+		return inventory.Move(l, db, span)(characterId, inventoryType, source, destination)
 	}
 }
 
@@ -1144,65 +1126,6 @@ func DropItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(wor
 		if ctd == nil {
 			return errors.New("unable to locate character temporal data")
 		}
-
-		if slot < 0 {
-			return dropEquippedItem(l, db, span)(worldId, channelId, c, ctd, slot)
-		}
-
-		if inventoryType == inventory.TypeValueEquip {
-			return dropEquipItem(l, db, span)(worldId, channelId, c, ctd, slot)
-		}
-
-		return dropItem(l, db, span)(worldId, channelId, c, ctd, inventoryType, slot, quantity)
-	}
-}
-
-func dropItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(worldId byte, channelId byte, c *Model, ctd *temporalData, inventoryType int8, slot int16, quantity int16) error {
-	return func(worldId byte, channelId byte, c *Model, ctd *temporalData, inventoryType int8, slot int16, quantity int16) error {
-		itemId, err := item.DropItem(l, db, span)(worldId, channelId, c.Id(), inventoryType, slot, quantity)
-		if err != nil {
-			l.WithError(err).Errorf("Unable to drop item from inventory %d slot %d for character %d.", inventoryType, slot, c.Id())
-			return err
-		}
-		producers.SpawnCharacterItemDrop(l, span)(worldId, channelId, c.MapId(), itemId, uint32(quantity), 0, 0, ctd.X(), ctd.Y(), c.Id(), 0)
-		return nil
-	}
-}
-
-func dropEquipItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
-	return func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
-		eid, err := equipment.DropEquipment(l, db, span)(worldId, channelId, c.Id(), slot)
-		if err != nil {
-			l.WithError(err).Errorf("Unable to drop equip item from slot %d for character %d.", slot, c.Id())
-			return err
-		}
-
-		itemId, err := equipment.GetItemIdForEquipment(l, span)(eid)
-		if err != nil {
-			l.WithError(err).Errorf("Unable to retrieve equipment %d.", eid)
-			return err
-		}
-
-		producers.SpawnCharacterEquipDrop(l, span)(worldId, channelId, c.MapId(), itemId, eid, 0, ctd.X(), ctd.Y(), c.Id(), 0)
-		return nil
-	}
-}
-
-func dropEquippedItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
-	return func(worldId byte, channelId byte, c *Model, ctd *temporalData, slot int16) error {
-		eid, err := equipment.DropEquippedItem(l, db, span)(worldId, channelId, c.Id(), slot)
-		if err != nil {
-			l.WithError(err).Errorf("Unable to drop equipped item from slot %d for character %d.", slot, c.Id())
-			return err
-		}
-
-		itemId, err := equipment.GetItemIdForEquipment(l, span)(eid)
-		if err != nil {
-			l.WithError(err).Errorf("Unable to retrieve equipment %d.", eid)
-			return err
-		}
-
-		producers.SpawnCharacterEquipDrop(l, span)(worldId, channelId, c.MapId(), itemId, eid, 0, ctd.X(), ctd.Y(), c.Id(), 0)
-		return nil
+		return inventory.DropFromInventorySlot(l, db, span)(worldId, channelId, c.MapId(), c.Id(), ctd.X(), ctd.Y(), inventoryType, slot, quantity)
 	}
 }

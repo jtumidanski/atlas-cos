@@ -3,10 +3,11 @@ package main
 import (
 	"atlas-cos/character"
 	"atlas-cos/database"
+	"atlas-cos/drop"
 	"atlas-cos/equipment"
 	"atlas-cos/inventory"
 	"atlas-cos/item"
-	"atlas-cos/kafka/consumers"
+	"atlas-cos/kafka"
 	"atlas-cos/location"
 	"atlas-cos/logger"
 	"atlas-cos/rest"
@@ -23,6 +24,7 @@ import (
 import _ "net/http/pprof"
 
 const serviceName = "atlas-cos"
+const consumerGroupId = "Character Orchestration Service"
 
 func main() {
 	l := logger.CreateLogger(serviceName)
@@ -44,7 +46,27 @@ func main() {
 
 	db := database.Connect(l, database.SetMigrations(character.Migration, equipment.Migration, item.Migration, location.Migration, skill.Migration, inventory.Migration))
 
-	consumers.CreateEventConsumers(l, db, ctx, wg)
+	kafka.CreateConsumers(l, ctx, wg,
+		character.AdjustHealthCommandConsumer(db)(consumerGroupId),
+		character.AdjustManaCommandConsumer(db)(consumerGroupId),
+		character.AdjustMesoCommandConsumer(db)(consumerGroupId),
+		character.AssignAPCommandConsumer(db)(consumerGroupId),
+		character.AssignSPCommandConsumer(db)(consumerGroupId),
+		character.ChangeMapCommandConsumer(db)(consumerGroupId),
+		character.AdjustJobCommandConsumer(db)(consumerGroupId),
+		character.DropItemCommandConsumer(db)(consumerGroupId),
+		character.ResetAPCommandConsumer(db)(consumerGroupId),
+		character.MoveItemCommandConsumer(db)(consumerGroupId),
+		character.AdjustExperienceCommandConsumer(db)(consumerGroupId),
+		character.GainLevelCommandConsumer(db)(consumerGroupId),
+		character.MovementCommandConsumer(db)(consumerGroupId),
+		character.StatusEventConsumer(db)(consumerGroupId),
+		inventory.GainItemCommandConsumer(db)(consumerGroupId),
+		drop.ReservationConsumer(db)(consumerGroupId),
+		character.EquipItemConsumer(db)(consumerGroupId),
+		character.UnEquipItemConsumer(db)(consumerGroupId),
+		inventory.GainEquipmentConsumer(db)(consumerGroupId),
+	)
 
 	rest.CreateService(l, db, ctx, wg, "/ms/cos", character.InitResource, inventory.InitResource, seed.InitResource, location.InitResource, skill.InitResource)
 

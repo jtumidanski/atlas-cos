@@ -124,7 +124,7 @@ func handleCreateItem(l logrus.FieldLogger, db *gorm.DB) func(span opentracing.S
 						return
 					}
 
-					err = equipment.GainItem(l, db, span)(characterId, itemId, eid)
+					err = GainEquipment(l, db, span)(characterId, itemId, eid)
 					if err != nil {
 						l.WithError(err).Errorf("Unable to give character %d item %d.", characterId, itemId)
 					}
@@ -151,12 +151,12 @@ func handleCreateItem(l logrus.FieldLogger, db *gorm.DB) func(span opentracing.S
 					}
 
 					if quantity > 0 {
-						err := item.GainItem(l, db, span)(characterId, it, itemId, uint32(quantity))
+						err = GainItem(l, db, span)(characterId, it, itemId, uint32(quantity))
 						if err != nil {
 							l.WithError(err).Errorf("Unable to give character %d item %d.", characterId, itemId)
 						}
 					} else {
-						err := item.LoseItem(l, db, span)(characterId, it, itemId, quantity)
+						err = LoseItem(l, db, span)(characterId, it, itemId, quantity)
 						if err != nil {
 							l.WithError(err).Errorf("Unable to take item %d from character %d.", itemId, characterId)
 						}

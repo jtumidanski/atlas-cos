@@ -3,7 +3,6 @@ package seed
 import (
 	"atlas-cos/character"
 	"atlas-cos/configuration"
-	"atlas-cos/equipment"
 	"atlas-cos/inventory"
 	"atlas-cos/item"
 	"atlas-cos/job"
@@ -66,7 +65,7 @@ func modifyForLegend(b *character.Builder) *character.Builder {
 
 func addEquippedItems(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
 	return func(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
-		equipment.CreateAndEquip(l, db, span)(c.Id(), top, bottom, shoes, weapon)
+		inventory.CreateAndEquip(l, db, span)(c.Id(), top, bottom, shoes, weapon)
 	}
 }
 
