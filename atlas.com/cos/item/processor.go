@@ -221,14 +221,15 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 
 func GetEquipmentSlotDestination(l logrus.FieldLogger, span opentracing.Span) func(itemId uint32) ([]int16, error) {
 	return func(itemId uint32) ([]int16, error) {
-		r, err := requestEquipmentSlotDestination(l, span)(itemId)
+		r, err := requestEquipmentSlotDestination(itemId)(l, span)
 		if err != nil {
 			return nil, err
 		}
 
 		var slots = make([]int16, 0)
-		for _, data := range r.Data {
-			slots = append(slots, data.Attributes.Slot)
+		for _, data := range r.DataList() {
+			attr := data.Attributes
+			slots = append(slots, attr.Slot)
 		}
 		return slots, nil
 	}

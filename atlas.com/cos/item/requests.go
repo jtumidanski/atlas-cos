@@ -1,11 +1,8 @@
 package item
 
 import (
-	"atlas-cos/rest/attributes"
 	"atlas-cos/rest/requests"
 	"fmt"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -16,13 +13,6 @@ const (
 	itemInformationEquipSlotResource        = itemInformationEquipResource + "/slots"
 )
 
-func requestEquipmentSlotDestination(l logrus.FieldLogger, span opentracing.Span) func(itemId uint32) (*attributes.EquipmentSlotDataListContainer, error) {
-	return func(itemId uint32) (*attributes.EquipmentSlotDataListContainer, error) {
-		ar := &attributes.EquipmentSlotDataListContainer{}
-		err := requests.Get(l, span)(fmt.Sprintf(itemInformationEquipSlotResource, itemId), ar)
-		if err != nil {
-			return nil, err
-		}
-		return ar, nil
-	}
+func requestEquipmentSlotDestination(itemId uint32) requests.Request[attributes] {
+	return requests.MakeGetRequest[attributes](fmt.Sprintf(itemInformationEquipSlotResource, itemId))
 }

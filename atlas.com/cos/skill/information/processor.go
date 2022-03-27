@@ -1,22 +1,23 @@
 package information
 
 import (
+	"atlas-cos/rest/requests"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
 func GetById(l logrus.FieldLogger, span opentracing.Span) func(skillId uint32) (*Model, error) {
 	return func(skillId uint32) (*Model, error) {
-		s, err := requestSkill(l, span)(skillId)
+		s, err := requestSkill(skillId)(l, span)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve skill %d information.", skillId)
 			return nil, err
 		}
-		return makeSkill(s.Data), nil
+		return makeSkill(s.Data()), nil
 	}
 }
 
-func makeSkill(data dataBody) *Model {
+func makeSkill(data requests.DataBody[attributes]) *Model {
 	attr := data.Attributes
 
 	return &Model{

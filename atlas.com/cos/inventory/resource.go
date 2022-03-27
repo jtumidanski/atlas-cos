@@ -105,7 +105,7 @@ func handleCreateItem(l logrus.FieldLogger, db *gorm.DB) func(span opentracing.S
 				}
 
 				if strings.ToUpper(inventoryType) == TypeEquip {
-					li := &attributes.EquipmentDataContainer{}
+					li := &statistics.EquipmentDataContainer{}
 					err := json.FromJSON(li, r.Body)
 					if err != nil {
 						l.WithError(err).Errorf("Deserializing input.")

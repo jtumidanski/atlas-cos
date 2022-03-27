@@ -1,7 +1,7 @@
 package statistics
 
 import (
-	"atlas-cos/rest/attributes"
+	"atlas-cos/rest/requests"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"strconv"
@@ -9,12 +9,12 @@ import (
 
 func Create(l logrus.FieldLogger, span opentracing.Span) func(itemId uint32) (uint32, error) {
 	return func(itemId uint32) (uint32, error) {
-		ro, err := requestCreate(l, span)(itemId)
+		ro, _, err := requestCreate(itemId)(l, span)
 		if err != nil {
 			l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.")
 			return 0, err
 		}
-		eid, err := strconv.Atoi(ro.Data.Id)
+		eid, err := strconv.Atoi(ro.Data().Id)
 		if err != nil {
 			l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.")
 			return 0, err
@@ -25,16 +25,16 @@ func Create(l logrus.FieldLogger, span opentracing.Span) func(itemId uint32) (ui
 
 func GetEquipmentStatistics(l logrus.FieldLogger, span opentracing.Span) func(equipmentId uint32) (*Model, error) {
 	return func(equipmentId uint32) (*Model, error) {
-		resp, err := requestById(l, span)(equipmentId)
+		resp, err := requestById(equipmentId)(l, span)
 		if err != nil {
 			l.WithError(err).Errorf("Retrieving equipment %d information.", equipmentId)
 			return nil, err
 		}
-		return makeEquipment(resp.Data), nil
+		return makeEquipment(resp.Data()), nil
 	}
 }
 
-func makeEquipment(resp attributes.EquipmentData) *Model {
+func makeEquipment(resp requests.DataBody[attributes]) *Model {
 	id, err := strconv.Atoi(resp.Id)
 	if err != nil {
 		return nil

@@ -7,7 +7,7 @@ import (
 	"atlas-cos/item"
 	"atlas-cos/kafka/producers"
 	"atlas-cos/party"
-	"atlas-cos/rest/attributes"
+	"atlas-cos/rest/requests"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -35,30 +35,31 @@ func AttemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 
 func GetById(l logrus.FieldLogger, span opentracing.Span) func(dropId uint32) (*Model, error) {
 	return func(dropId uint32) (*Model, error) {
-		dc, err := requestById(l, span)(dropId)
+		dc, err := requestById(dropId)(l, span)
 		if err != nil {
 			return nil, err
 		}
-		d := makeDrop(dc.Data)
+		d := makeDrop(dc.Data())
 		return d, nil
 	}
 }
 
-func makeDrop(dc attributes.DropData) *Model {
+func makeDrop(dc requests.DataBody[attributes]) *Model {
 	id, err := strconv.Atoi(dc.Id)
 	if err != nil {
 		return nil
 	}
+	attr := dc.Attributes
 	return &Model{
 		id:            uint32(id),
-		itemId:        dc.Attributes.ItemId,
-		equipmentId:   dc.Attributes.EquipmentId,
-		quantity:      dc.Attributes.Quantity,
-		meso:          dc.Attributes.Meso,
-		dropTime:      dc.Attributes.DropTime,
-		dropType:      dc.Attributes.DropType,
-		ownerId:       dc.Attributes.OwnerId,
-		characterDrop: dc.Attributes.CharacterDrop,
+		itemId:        attr.ItemId,
+		equipmentId:   attr.EquipmentId,
+		quantity:      attr.Quantity,
+		meso:          attr.Meso,
+		dropTime:      attr.DropTime,
+		dropType:      attr.DropType,
+		ownerId:       attr.OwnerId,
+		characterDrop: attr.CharacterDrop,
 	}
 }
 

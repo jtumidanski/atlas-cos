@@ -1,20 +1,6 @@
-package attributes
+package drop
 
-type DropDataContainer struct {
-	Data DropData `json:"data"`
-}
-
-type DropDataListContainer struct {
-	Data []DropData `json:"data"`
-}
-
-type DropData struct {
-	Id         string         `json:"id"`
-	Type       string         `json:"type"`
-	Attributes DropAttributes `json:"attributes"`
-}
-
-type DropAttributes struct {
+type attributes struct {
 	WorldId         byte   `json:"worldId"`
 	ChannelId       byte   `json:"channelId"`
 	MapId           uint32 `json:"mapId"`
