@@ -1,6 +1,7 @@
 package statistics
 
 import (
+	"atlas-cos/model"
 	"atlas-cos/rest/requests"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
@@ -23,25 +24,26 @@ func Create(l logrus.FieldLogger, span opentracing.Span) func(itemId uint32) (ui
 	}
 }
 
-func GetEquipmentStatistics(l logrus.FieldLogger, span opentracing.Span) func(equipmentId uint32) (*Model, error) {
-	return func(equipmentId uint32) (*Model, error) {
-		resp, err := requestById(equipmentId)(l, span)
-		if err != nil {
-			l.WithError(err).Errorf("Retrieving equipment %d information.", equipmentId)
-			return nil, err
-		}
-		return makeEquipment(resp.Data()), nil
+func ByEquipmentIdModelProvider(l logrus.FieldLogger, span opentracing.Span) func(equipmentId uint32) model.Provider[Model] {
+	return func(equipmentId uint32) model.Provider[Model] {
+		return requests.Provider[attributes, Model](l, span)(requestById(equipmentId), makeEquipment)
 	}
 }
 
-func makeEquipment(resp requests.DataBody[attributes]) *Model {
+func GetEquipmentStatistics(l logrus.FieldLogger, span opentracing.Span) func(equipmentId uint32) (Model, error) {
+	return func(equipmentId uint32) (Model, error) {
+		return ByEquipmentIdModelProvider(l, span)(equipmentId)()
+	}
+}
+
+func makeEquipment(resp requests.DataBody[attributes]) (Model, error) {
 	id, err := strconv.Atoi(resp.Id)
 	if err != nil {
-		return nil
+		return Model{}, err
 	}
 
 	attr := resp.Attributes
-	return &Model{
+	return Model{
 		id:            uint32(id),
 		itemId:        attr.ItemId,
 		strength:      attr.Strength,
@@ -60,5 +62,5 @@ func makeEquipment(resp requests.DataBody[attributes]) *Model {
 		speed:         attr.Speed,
 		jump:          attr.Jump,
 		slots:         attr.Slots,
-	}
+	}, nil
 }

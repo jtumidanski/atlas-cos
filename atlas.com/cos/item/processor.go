@@ -1,10 +1,12 @@
 package item
 
 import (
+	"atlas-cos/database"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math"
+	"sort"
 )
 
 type InventoryAdjustment struct {
@@ -40,26 +42,15 @@ func (i InventoryAdjustment) OldSlot() int16 {
 	return i.oldSlot
 }
 
-func GetItemsForCharacter(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, itemId uint32) []*Model {
-	return func(characterId uint32, inventoryType int8, itemId uint32) []*Model {
-
-		items, err := getItemsForCharacter(db, characterId, inventoryType, itemId)
-		if err != nil {
-			return make([]*Model, 0)
-		}
-		return items
+func GetItemsForCharacter(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, itemId uint32) ([]Model, error) {
+	return func(characterId uint32, inventoryType int8, itemId uint32) ([]Model, error) {
+		return database.ModelSliceProvider[Model, entity](db)(getItemsForCharacter(characterId, inventoryType, itemId), makeItem)()
 	}
 }
 
-func GetItemForCharacter(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, slot int16) (*Model, error) {
-	return func(characterId uint32, inventoryType int8, slot int16) (*Model, error) {
-		return getItemForCharacter(db, characterId, inventoryType, slot)
-	}
-}
-
-func GetForCharacterByInventory(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8) ([]*Model, error) {
-	return func(characterId uint32, inventoryType int8) ([]*Model, error) {
-		return getForCharacterByInventory(db, characterId, inventoryType)
+func GetItemForCharacter(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, slot int16) (Model, error) {
+	return func(characterId uint32, inventoryType int8, slot int16) (Model, error) {
+		return database.ModelProvider[Model, entity](db)(getItemForCharacter(characterId, inventoryType, slot), makeItem)()
 	}
 }
 
@@ -69,19 +60,68 @@ func UpdateItemQuantity(_ logrus.FieldLogger, db *gorm.DB) func(id uint32, quant
 	}
 }
 
-func CreateItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, itemId uint32, quantity uint32) (*Model, error) {
-	return func(characterId uint32, inventoryType int8, itemId uint32, quantity uint32) (*Model, error) {
+func CreateItemForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, itemId uint32, quantity uint32) (Model, error) {
+	return func(characterId uint32, inventoryType int8, itemId uint32, quantity uint32) (Model, error) {
 		slot, err := getNextFreeEquipmentSlot(l, db)(characterId, inventoryType)
 		if err != nil {
-			return nil, err
+			return Model{}, err
 		}
 		return createItemForCharacter(db, characterId, inventoryType, itemId, quantity, slot)
 	}
 }
 
-func GetItemById(_ logrus.FieldLogger, db *gorm.DB) func(id uint32) (*Model, error) {
-	return func(id uint32) (*Model, error) {
-		return getById(db, id)
+func GetItemsForCharacterByInventory(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8) ([]Model, error) {
+	return func(characterId uint32, inventoryType int8) ([]Model, error) {
+		return database.ModelSliceProvider[Model, entity](db)(getItemsForCharacterByInventory(characterId, inventoryType), makeItem)()
+	}
+}
+
+func getNextFreeEquipmentSlot(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8) (int16, error) {
+	return func(characterId uint32, inventoryType int8) (int16, error) {
+		items, err := GetItemsForCharacterByInventory(l, db)(characterId, inventoryType)
+		if err != nil {
+			return 1, err
+		}
+
+		l.Debugf("Character %d has %d items in %d inventory.", characterId, len(items), inventoryType)
+
+		if len(items) == 0 {
+			l.Debugf("Defaulting item slot choice to 1 for character %d.", characterId)
+			return 1, nil
+		}
+
+		sort.Slice(items, func(i, j int) bool {
+			return items[i].Slot() < items[j].Slot()
+		})
+		slot := minFreeSlot(items)
+
+		l.Debugf("Chose slot %d for new item in inventory %d for character %d.", slot, inventoryType, characterId)
+
+		return slot, nil
+	}
+}
+
+func minFreeSlot(items []Model) int16 {
+	slot := int16(1)
+	i := 0
+
+	for {
+		if i >= len(items) {
+			return slot
+		} else if slot < items[i].Slot() {
+			return slot
+		} else if slot == items[i].Slot() {
+			slot += 1
+			i += 1
+		} else if items[i].Slot() <= 0 {
+			i += 1
+		}
+	}
+}
+
+func GetItemById(_ logrus.FieldLogger, db *gorm.DB) func(id uint32) (Model, error) {
+	return func(id uint32) (Model, error) {
+		return database.ModelProvider[Model, entity](db)(getById(id), makeItem)()
 	}
 }
 
@@ -105,7 +145,10 @@ func GainItem(l logrus.FieldLogger, db *gorm.DB, _ opentracing.Span) func(charac
 		var events = make([]InventoryAdjustment, 0)
 
 		txError := db.Transaction(func(tx *gorm.DB) error {
-			existingItems := GetItemsForCharacter(l, tx)(characterId, it, itemId)
+			existingItems, err := GetItemsForCharacter(l, tx)(characterId, it, itemId)
+			if err != nil {
+				return err
+			}
 			// breaks for a rechargeable item.
 			if len(existingItems) > 0 {
 				index := 0
@@ -154,7 +197,10 @@ func LoseItem(l logrus.FieldLogger, db *gorm.DB, _ opentracing.Span) func(charac
 		var events = make([]InventoryAdjustment, 0)
 
 		txError := db.Transaction(func(tx *gorm.DB) error {
-			existingItems := GetItemsForCharacter(l, tx)(characterId, it, itemId)
+			existingItems, err := GetItemsForCharacter(l, tx)(characterId, it, itemId)
+			if err != nil {
+				return err
+			}
 			// breaks for a rechargeable item.
 			if len(existingItems) > 0 {
 				index := 0
@@ -242,7 +288,7 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB, _ opentracing.Span) func(charac
 		itemId := uint32(0)
 		quantity := uint32(0)
 		txError := db.Transaction(func(tx *gorm.DB) error {
-			item, err := getItemForCharacter(tx, characterId, inventoryType, source)
+			item, err := GetItemForCharacter(l, tx)(characterId, inventoryType, source)
 			if err != nil || item.Id() == 0 {
 				l.Warnf("Item movement requested, but no equipment for character %d in slot %d.", characterId, source)
 				return err
@@ -251,7 +297,7 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB, _ opentracing.Span) func(charac
 			quantity = item.Quantity()
 
 			temporarySlot := int16(math.MinInt16)
-			otherItem, err := getItemForCharacter(tx, characterId, inventoryType, destination)
+			otherItem, err := GetItemForCharacter(l, tx)(characterId, inventoryType, destination)
 			if err == nil && otherItem.Id() != 0 {
 				l.Debugf("Item %d already exists in slot %d, that item will be moved temporarily to %d for character %d.", otherItem.Id(), destination, temporarySlot, characterId)
 				err = update(tx, otherItem.Id(), SetSlot(temporarySlot))
@@ -267,7 +313,7 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB, _ opentracing.Span) func(charac
 			}
 			l.Debugf("Moved item %d from slot %d to %d for character %d.", item.Id(), source, destination, characterId)
 
-			if otherItem != nil {
+			if otherItem.Id() != 0 {
 				err = update(tx, otherItem.Id(), SetSlot(source))
 				if err != nil {
 					l.WithError(err).Errorf("Unable to move other item %d to resulting slot %d.", otherItem.Id(), source)

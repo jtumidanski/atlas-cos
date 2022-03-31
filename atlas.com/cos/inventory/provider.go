@@ -1,12 +1,13 @@
 package inventory
 
-import "gorm.io/gorm"
+import (
+	"atlas-cos/database"
+	"atlas-cos/model"
+	"gorm.io/gorm"
+)
 
-func get(db *gorm.DB, characterId uint32, inventoryType int8) (*Model, error) {
-	var result entity
-	err := db.Where(&entity{CharacterId: characterId, InventoryType: inventoryType}).First(&result).Error
-	if err != nil {
-		return nil, err
+func get(characterId uint32, inventoryType int8) database.EntityProvider[entity] {
+	return func(db *gorm.DB) model.Provider[entity] {
+		return database.Query[entity](db, &entity{CharacterId: characterId, InventoryType: inventoryType})
 	}
-	return makeInventory(&result), nil
 }

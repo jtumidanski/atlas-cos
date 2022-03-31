@@ -4,7 +4,7 @@ import "testing"
 
 // TestMinFreeSlot1 tests minFreeSlot with existing slots 0, 1, 4, 7, 8.
 func TestMinFreeSlot1(t *testing.T) {
-	items := []*Model{
+	items := []Model{
 		{slot: 0},
 		{slot: 1},
 		{slot: 4},
@@ -19,7 +19,7 @@ func TestMinFreeSlot1(t *testing.T) {
 
 // TestMinFreeSlot2 tests minFreeSlot with existing slots 1, 2, 4, 7, 8.
 func TestMinFreeSlot2(t *testing.T) {
-	items := []*Model{
+	items := []Model{
 		{slot: 1},
 		{slot: 2},
 		{slot: 4},
@@ -34,7 +34,7 @@ func TestMinFreeSlot2(t *testing.T) {
 
 // TestMinFreeSlot3 tests minFreeSlot with existing slots 0, 1, 2, 3, 4.
 func TestMinFreeSlot3(t *testing.T) {
-	items := []*Model{
+	items := []Model{
 		{slot: 0},
 		{slot: 1},
 		{slot: 2},
@@ -49,7 +49,7 @@ func TestMinFreeSlot3(t *testing.T) {
 
 // TestMinFreeSlot4 tests minFreeSlot with existing slots -1, 1, 2, 3, 4.
 func TestMinFreeSlot4(t *testing.T) {
-	items := []*Model{
+	items := []Model{
 		{slot: -1},
 		{slot: 1},
 		{slot: 2},

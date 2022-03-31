@@ -107,7 +107,7 @@ func handleGetSavedLocations(l logrus.FieldLogger, db *gorm.DB) func(span opentr
 	}
 }
 
-func createDataContainer(locations []*Model) attributes.LocationDataListContainer {
+func createDataContainer(locations []Model) attributes.LocationDataListContainer {
 	var result attributes.LocationDataListContainer
 	result.Data = make([]attributes.LocationData, 0)
 	for _, loc := range locations {
@@ -116,7 +116,7 @@ func createDataContainer(locations []*Model) attributes.LocationDataListContaine
 	return result
 }
 
-func createData(loc *Model) attributes.LocationData {
+func createData(loc Model) attributes.LocationData {
 	return attributes.LocationData{
 		Id:   strconv.Itoa(int(loc.Id())),
 		Type: "com.atlas.cos.rest.attribute.LocationAttributes",

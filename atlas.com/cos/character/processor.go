@@ -2,6 +2,7 @@ package character
 
 import (
 	"atlas-cos/configuration"
+	"atlas-cos/database"
 	"atlas-cos/equipment"
 	"atlas-cos/equipment/statistics"
 	"atlas-cos/inventory"
@@ -20,13 +21,13 @@ import (
 )
 
 // characterFunc - Function which does something about the character, and returns whether or not further processing should continue.
-type characterFunc func(*Model) error
+type characterFunc func(Model) error
 
 // Returns a function which accepts a character model,and updates the persisted state of the character given a set of
 // modifying functions.
 func characterDatabaseUpdate(_ logrus.FieldLogger, db *gorm.DB) func(modifiers ...EntityUpdateFunction) characterFunc {
 	return func(modifiers ...EntityUpdateFunction) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			if len(modifiers) > 0 {
 				err := update(db, c.Id(), modifiers...)
 				if err != nil {
@@ -68,7 +69,7 @@ func AdjustHealth(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func
 // Produces a function which persists a character health update, given the amount, respecting the MaxHP bound.
 func persistHealthUpdate(l logrus.FieldLogger, db *gorm.DB) func(amount int16) characterFunc {
 	return func(amount int16) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			adjustedAmount := enforceBounds(amount, c.HP(), c.MaxHP(), 0)
 			l.Debugf("Adjusting health of character %d by %d to %d.", c.Id(), amount, adjustedAmount)
 			return characterDatabaseUpdate(l, db)(SetHealth(adjustedAmount))(c)
@@ -91,7 +92,7 @@ func AdjustMana(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c
 // Produces a function which persists a character mana update, given the amount, respecting the MaxMP bound.
 func persistManaUpdate(l logrus.FieldLogger, db *gorm.DB) func(amount int16) characterFunc {
 	return func(amount int16) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			adjustedAmount := enforceBounds(amount, c.MP(), c.MaxMP(), 0)
 			l.Debugf("Adjusting mana of character %d by %d to %d.", c.Id(), amount, adjustedAmount)
 			return characterDatabaseUpdate(l, db)(SetMana(adjustedAmount))(c)
@@ -112,7 +113,7 @@ func manaUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) characterFun
 // Produces a function which emits a CharacterStatUpdateEvent for the given characterId and statistic
 func statisticUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) func(statistic string) characterFunc {
 	return func(statistic string) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			emitStatUpdateEvent(l, span)(c.Id(), []string{statistic})
 			return nil
 		}
@@ -122,7 +123,7 @@ func statisticUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) func(st
 // Produces a function which emits a CharacterStatUpdateEvent for the given characterId and statistic
 func statisticsUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) func(statistics ...string) characterFunc {
 	return func(statistics ...string) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			emitStatUpdateEvent(l, span)(c.Id(), statistics)
 			return nil
 		}
@@ -139,7 +140,7 @@ func AdjustMeso(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c
 // Produces a function which persists a character meso update, given the amount.
 func persistMesoUpdate(l logrus.FieldLogger, db *gorm.DB) func(amount int32) characterFunc {
 	return func(amount int32) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			final := uint32(math.Max(0, float64(amount)+float64(c.Meso())))
 			l.Debugf("Adjusting meso of character %d by %d to %d.", c.Id(), amount, final)
 			return characterDatabaseUpdate(l, db)(SetMeso(final))(c)
@@ -150,7 +151,7 @@ func persistMesoUpdate(l logrus.FieldLogger, db *gorm.DB) func(amount int32) cha
 // Produces a function which emits a MesoGainedEvent for the given characterId and amount.
 func mesoUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) func(amount int32, show bool) characterFunc {
 	return func(amount int32, show bool) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			if show {
 				emitMesoGainedEvent(l, span)(c.Id(), amount)
 			}
@@ -169,7 +170,7 @@ func ChangeMap(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(ch
 // Produces a function which persists a character map update, then updates the temporal position.
 func performChangeMap(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(mapId uint32, portalId uint32) characterFunc {
 	return func(mapId uint32, portalId uint32) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			err := characterDatabaseUpdate(l, db)(SetMapId(mapId))(c)
 			if err != nil {
 				return err
@@ -187,7 +188,7 @@ func performChangeMap(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) 
 // Produces a function which emits a MapChangedEvent for the given characterId.
 func changeMapSuccess(l logrus.FieldLogger, span opentracing.Span) func(worldId byte, channelId byte, mapId uint32, portalId uint32) characterFunc {
 	return func(worldId byte, channelId byte, mapId uint32, portalId uint32) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			emitMapChangedEvent(l, span)(worldId, channelId, mapId, portalId, c.Id())
 			return nil
 		}
@@ -203,7 +204,7 @@ func GainExperience(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fu
 
 func performGainExperience(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(amount uint32) characterFunc {
 	return func(amount uint32) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			gainExperience(l, db, span)(c.Id(), c.Level(), c.MaxClassLevel(), c.Experience(), amount)
 			return nil
 		}
@@ -238,7 +239,7 @@ func gainExperience(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fu
 
 func persistSetExperience(l logrus.FieldLogger, db *gorm.DB) func(experience uint32) characterFunc {
 	return func(experience uint32) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			l.Debugf("Setting character %d experience to %d from %d.", c.Id(), experience, c.Experience())
 			return characterDatabaseUpdate(l, db)(SetExperience(experience))(c)
 		}
@@ -257,7 +258,7 @@ func setExperience(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 
 func persistIncreaseExperience(l logrus.FieldLogger, db *gorm.DB) func(experience uint32) characterFunc {
 	return func(experience uint32) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			l.Debugf("Increasing character %d experience by %d to %d.", c.Id(), experience, experience+c.Experience())
 			return characterDatabaseUpdate(l, db)(SetExperience(experience + c.Experience()))(c)
 		}
@@ -277,7 +278,7 @@ func MoveCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 }
 
 func updateTemporalPosition(x int16, y int16, stance byte) characterFunc {
-	return func(c *Model) error {
+	return func(c Model) error {
 		GetTemporalRegistry().Update(c.Id(), x, y, stance)
 		return nil
 	}
@@ -285,7 +286,7 @@ func updateTemporalPosition(x int16, y int16, stance byte) characterFunc {
 
 func updateSpawnPoint(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(x int16, y int16) characterFunc {
 	return func(x int16, y int16) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			sp, err := _map.FindClosestSpawnPoint(l, span)(c.MapId(), x, y)
 			if err != nil {
 				return err
@@ -302,15 +303,15 @@ func UpdateStance(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, st
 }
 
 func updateStance(stance byte) characterFunc {
-	return func(c *Model) error {
+	return func(c Model) error {
 		GetTemporalRegistry().UpdateStance(c.Id(), stance)
 		return nil
 	}
 }
 
-func GetById(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) (*Model, error) {
-	return func(characterId uint32) (*Model, error) {
-		return getById(db, characterId)
+func GetById(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) (Model, error) {
+	return func(characterId uint32) (Model, error) {
+		return database.ModelProvider[Model, entity](db)(getById(characterId), makeCharacter)()
 	}
 }
 
@@ -318,9 +319,9 @@ func outOfRange(new uint16, change uint16) bool {
 	return new < 4 && change != 0 || new > configuration.Get().MaxAp
 }
 
-func persistAttributeUpdate(l logrus.FieldLogger, db *gorm.DB) func(getter func(*Model) uint16, modifierGetter func(uint16, uint16) []EntityUpdateFunction) characterFunc {
-	return func(getter func(*Model) uint16, modifierGetter func(uint16, uint16) []EntityUpdateFunction) characterFunc {
-		return func(c *Model) error {
+func persistAttributeUpdate(l logrus.FieldLogger, db *gorm.DB) func(getter func(Model) uint16, modifierGetter func(uint16, uint16) []EntityUpdateFunction) characterFunc {
+	return func(getter func(Model) uint16, modifierGetter func(uint16, uint16) []EntityUpdateFunction) characterFunc {
+		return func(c Model) error {
 			value := getter(c) + 1
 			if outOfRange(value, 1) {
 				return nil
@@ -337,7 +338,7 @@ func AssignStrength(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fu
 }
 
 func persistStrengthUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
-	return persistAttributeUpdate(l, db)((*Model).Strength, SpendOnStrength)
+	return persistAttributeUpdate(l, db)(Model.Strength, SpendOnStrength)
 }
 
 func strengthUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) characterFunc {
@@ -351,7 +352,7 @@ func AssignDexterity(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) f
 }
 
 func persistDexterityUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
-	return persistAttributeUpdate(l, db)((*Model).Dexterity, SpendOnDexterity)
+	return persistAttributeUpdate(l, db)(Model.Dexterity, SpendOnDexterity)
 }
 
 func dexterityUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) characterFunc {
@@ -365,7 +366,7 @@ func AssignIntelligence(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span
 }
 
 func persistIntelligenceUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
-	return persistAttributeUpdate(l, db)((*Model).Intelligence, SpendOnIntelligence)
+	return persistAttributeUpdate(l, db)(Model.Intelligence, SpendOnIntelligence)
 }
 
 func intelligenceUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) characterFunc {
@@ -379,7 +380,7 @@ func AssignLuck(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c
 }
 
 func persistLuckUpdate(l logrus.FieldLogger, db *gorm.DB) characterFunc {
-	return persistAttributeUpdate(l, db)((*Model).Luck, SpendOnLuck)
+	return persistAttributeUpdate(l, db)(Model.Luck, SpendOnLuck)
 }
 
 func luckUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) characterFunc {
@@ -393,14 +394,14 @@ func AssignHp(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 }
 
 func persistHpUpdate(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) characterFunc {
-	return func(c *Model) error {
+	return func(c Model) error {
 		adjustedHP := calculateHPChange(l, db, span)(c, false)
 		return characterDatabaseUpdate(l, db)(SetMaxHP(adjustedHP))(c)
 	}
 }
 
-func calculateHPChange(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model, usedAPReset bool) uint16 {
-	return func(c *Model, usedAPReset bool) uint16 {
+func calculateHPChange(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model, usedAPReset bool) uint16 {
+	return func(c Model, usedAPReset bool) uint16 {
 		var maxHP uint16 = 0
 		if job.IsA(c.JobId(), job.Warrior, job.DawnWarrior1) {
 			if !usedAPReset {
@@ -427,7 +428,7 @@ func calculateHPChange(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span)
 	}
 }
 
-func getHPIncreaseEnhancementSkill(c *Model) uint32 {
+func getHPIncreaseEnhancementSkill(c Model) uint32 {
 	var skillId uint32
 	if job.IsA(c.JobId(), job.DawnWarrior1) {
 		skillId = skill.DawnWarriorMaxHPEnhancement
@@ -441,24 +442,24 @@ func getHPIncreaseEnhancementSkill(c *Model) uint32 {
 	return skillId
 }
 
-func getHPIncreaseEnhancementForAPAssignment(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) uint16 {
-	return func(c *Model) uint16 {
+func getHPIncreaseEnhancementForAPAssignment(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) uint16 {
+	return func(c Model) uint16 {
 		return getHPIncreaseEnhancementAmount(l, db, span)(c, func(effect *information.Effect) uint16 {
 			return uint16(effect.Y())
 		})
 	}
 }
 
-func getHPIncreaseEnhancementForLevelUp(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) uint16 {
-	return func(c *Model) uint16 {
+func getHPIncreaseEnhancementForLevelUp(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) uint16 {
+	return func(c Model) uint16 {
 		return getHPIncreaseEnhancementAmount(l, db, span)(c, func(effect *information.Effect) uint16 {
 			return uint16(effect.X())
 		})
 	}
 }
 
-func getHPIncreaseEnhancementAmount(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model, getter func(*information.Effect) uint16) uint16 {
-	return func(c *Model, getter func(*information.Effect) uint16) uint16 {
+func getHPIncreaseEnhancementAmount(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model, getter func(*information.Effect) uint16) uint16 {
+	return func(c Model, getter func(*information.Effect) uint16) uint16 {
 		skillId := getHPIncreaseEnhancementSkill(c)
 		if effect, ok := skill.IfHasSkillGetEffect(l, db, span)(c.Id(), skillId); ok {
 			val := getter(effect)
@@ -493,13 +494,13 @@ func AssignMp(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 }
 
 func persistMpUpdate(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) characterFunc {
-	return func(c *Model) error {
+	return func(c Model) error {
 		adjustedMP := calculateMPChange(l, db, span)(c, false)
 		return characterDatabaseUpdate(l, db)(SetMaxMP(adjustedMP))(c)
 	}
 }
 
-func getMPIncreaseEnhancementSkill(c *Model) uint32 {
+func getMPIncreaseEnhancementSkill(c Model) uint32 {
 	var skillId uint32
 	if job.IsA(c.JobId(), job.BlazeWizard1) {
 		skillId = skill.BlazeWizardIncreasingMaxMP
@@ -509,24 +510,24 @@ func getMPIncreaseEnhancementSkill(c *Model) uint32 {
 	return skillId
 }
 
-func getMPIncreaseEnhancementForAPAssignment(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) uint16 {
-	return func(c *Model) uint16 {
+func getMPIncreaseEnhancementForAPAssignment(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) uint16 {
+	return func(c Model) uint16 {
 		return getMPIncreaseEnhancementAmount(l, db, span)(c, func(effect *information.Effect) uint16 {
 			return uint16(effect.Y())
 		})
 	}
 }
 
-func getMPIncreaseEnhancementForLevelUp(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) uint16 {
-	return func(c *Model) uint16 {
+func getMPIncreaseEnhancementForLevelUp(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) uint16 {
+	return func(c Model) uint16 {
 		return getMPIncreaseEnhancementAmount(l, db, span)(c, func(effect *information.Effect) uint16 {
 			return uint16(effect.X())
 		})
 	}
 }
 
-func getMPIncreaseEnhancementAmount(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model, getter func(*information.Effect) uint16) uint16 {
-	return func(c *Model, getter func(*information.Effect) uint16) uint16 {
+func getMPIncreaseEnhancementAmount(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model, getter func(*information.Effect) uint16) uint16 {
+	return func(c Model, getter func(*information.Effect) uint16) uint16 {
 		skillId := getMPIncreaseEnhancementSkill(c)
 		if effect, ok := skill.IfHasSkillGetEffect(l, db, span)(c.Id(), skillId); ok {
 			val := getter(effect)
@@ -537,8 +538,8 @@ func getMPIncreaseEnhancementAmount(l logrus.FieldLogger, db *gorm.DB, span open
 	}
 }
 
-func calculateMPChange(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model, usedAPReset bool) uint16 {
-	return func(c *Model, usedAPReset bool) uint16 {
+func calculateMPChange(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model, usedAPReset bool) uint16 {
+	return func(c Model, usedAPReset bool) uint16 {
 		jobId := c.JobId()
 		var maxMP uint16 = 0
 
@@ -567,32 +568,32 @@ func mpUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) characterFunc 
 	return statisticsUpdateSuccess(l, span)("MAX_MP")
 }
 
-func TotalIntelligence(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) uint16 {
-	return func(c *Model) uint16 {
-		return totalStat(l, db, span)(*c, (*Model).Intelligence, (*statistics.Model).Intelligence)
+func TotalIntelligence(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) uint16 {
+	return func(c Model) uint16 {
+		return totalStat(l, db, span)(c, (*Model).Intelligence, statistics.Model.Intelligence)
 	}
 }
 
-func TotalDexterity(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) uint16 {
-	return func(c *Model) uint16 {
-		return totalStat(l, db, span)(*c, (*Model).Dexterity, (*statistics.Model).Dexterity)
+func TotalDexterity(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) uint16 {
+	return func(c Model) uint16 {
+		return totalStat(l, db, span)(c, (*Model).Dexterity, statistics.Model.Dexterity)
 	}
 }
 
-func TotalStrength(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) uint16 {
-	return func(c *Model) uint16 {
-		return totalStat(l, db, span)(*c, (*Model).Strength, (*statistics.Model).Strength)
+func TotalStrength(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) uint16 {
+	return func(c Model) uint16 {
+		return totalStat(l, db, span)(c, (*Model).Strength, statistics.Model.Strength)
 	}
 }
 
-func TotalLuck(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) uint16 {
-	return func(c *Model) uint16 {
-		return totalStat(l, db, span)(*c, (*Model).Luck, (*statistics.Model).Luck)
+func TotalLuck(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) uint16 {
+	return func(c Model) uint16 {
+		return totalStat(l, db, span)(c, (*Model).Luck, statistics.Model.Luck)
 	}
 }
 
-func totalStat(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model, baseGetter func(*Model) uint16, equipGetter func(*statistics.Model) uint16) uint16 {
-	return func(c Model, baseGetter func(*Model) uint16, equipGetter func(*statistics.Model) uint16) uint16 {
+func totalStat(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model, baseGetter func(*Model) uint16, equipGetter func(statistics.Model) uint16) uint16 {
+	return func(c Model, baseGetter func(*Model) uint16, equipGetter func(statistics.Model) uint16) uint16 {
 		value := baseGetter(&c)
 
 		//TODO apply MapleWarrior
@@ -620,7 +621,7 @@ func GainLevel(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(ch
 }
 
 func persistLevelUpdate(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) characterFunc {
-	return func(c *Model) error {
+	return func(c Model) error {
 		var modifiers = make([]EntityUpdateFunction, 0)
 		modifiers = append(modifiers, SetLevel(c.Level()+1))
 		modifiers = append(modifiers, onLevelAdjustAP(c)...)
@@ -630,7 +631,7 @@ func persistLevelUpdate(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span
 	}
 }
 
-func onLevelAdjustAP(c *Model) []EntityUpdateFunction {
+func onLevelAdjustAP(c Model) []EntityUpdateFunction {
 	var modifiers = make([]EntityUpdateFunction, 0)
 	autoAssignStarterAp := configuration.Get().UseAutoAssignStartersAp
 	if autoAssignStarterAp && c.IsBeginner() && c.Level() <= 10 {
@@ -654,7 +655,7 @@ func onLevelAdjustAP(c *Model) []EntityUpdateFunction {
 	return modifiers
 }
 
-func onLevelAdjustSP(c *Model) []EntityUpdateFunction {
+func onLevelAdjustSP(c Model) []EntityUpdateFunction {
 	var modifiers = make([]EntityUpdateFunction, 0)
 	if c.IsBeginner() {
 		return modifiers
@@ -669,8 +670,8 @@ func randRange(lowerBound uint16, upperBound uint16) uint16 {
 	return uint16(rand.Int31n(int32(upperBound-lowerBound))) + lowerBound
 }
 
-func onLevelAdjustHealthAndMana(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) []EntityUpdateFunction {
-	return func(c *Model) []EntityUpdateFunction {
+func onLevelAdjustHealthAndMana(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) []EntityUpdateFunction {
+	return func(c Model) []EntityUpdateFunction {
 		var modifiers = make([]EntityUpdateFunction, 0)
 		hp := c.MaxHP()
 		mp := c.MaxMP()
@@ -727,8 +728,8 @@ func AssignSP(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 
 func assignSP(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(skillId uint32) characterFunc {
 	return func(skillId uint32) characterFunc {
-		return func(c *Model) error {
-			if s, ok := skill.GetSkill(l, db)(c.Id(), skillId); ok {
+		return func(c Model) error {
+			if s, err := skill.GetSkill(l, db)(c.Id(), skillId); err == nil {
 				skillBookId := skill.GetSkillBook(skillId / 10000)
 				remainingSP := c.SP(int(skillBookId))
 
@@ -736,7 +737,7 @@ func assignSP(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(ski
 				if skillId%10000000 > 999 && skillId%10000000 < 1003 {
 					total := uint32(0)
 					for i := uint32(0); i < 3; i++ {
-						if bs, ok := skill.GetSkill(l, db)(c.Id(), uint32(c.JobType())*10000000+1000+i); ok {
+						if bs, err := skill.GetSkill(l, db)(c.Id(), uint32(c.JobType())*10000000+1000+i); err == nil {
 							total += bs.Level()
 						}
 					}
@@ -789,8 +790,8 @@ func assignSP(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(ski
 	}
 }
 
-func adjustSP(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model, amount int32, bookId uint32) error {
-	return func(c *Model, amount int32, bookId uint32) error {
+func adjustSP(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model, amount int32, bookId uint32) error {
+	return func(c Model, amount int32, bookId uint32) error {
 		nv := uint32(math.Max(0, float64(int32(c.SP(int(bookId)))+amount)))
 		err := characterDatabaseUpdate(l, db)(SetSP(nv, bookId))(c)
 		if err != nil {
@@ -807,7 +808,7 @@ func UpdateLoginPosition(l logrus.FieldLogger, db *gorm.DB, span opentracing.Spa
 }
 
 func updateTemporalPositionLogin(l logrus.FieldLogger, span opentracing.Span) characterFunc {
-	return func(c *Model) error {
+	return func(c Model) error {
 		port, err := portal.GetById(l, span)(c.MapId(), c.SpawnPoint())
 		if err != nil {
 			l.Warnf("Unable to find spawn point %d in map %d for character %d.", c.SpawnPoint(), c.MapId(), c.Id())
@@ -822,21 +823,21 @@ func updateTemporalPositionLogin(l logrus.FieldLogger, span opentracing.Span) ch
 	}
 }
 
-func GetForAccountInWorld(_ logrus.FieldLogger, db *gorm.DB) func(accountId uint32, worldId byte) ([]*Model, error) {
-	return func(accountId uint32, worldId byte) ([]*Model, error) {
-		return getForAccountInWorld(db, accountId, worldId)
+func GetForAccountInWorld(_ logrus.FieldLogger, db *gorm.DB) func(accountId uint32, worldId byte) ([]Model, error) {
+	return func(accountId uint32, worldId byte) ([]Model, error) {
+		return database.ModelSliceProvider[Model, entity](db)(getForAccountInWorld(accountId, worldId), makeCharacter)()
 	}
 }
 
-func GetForMapInWorld(_ logrus.FieldLogger, db *gorm.DB) func(worldId byte, mapId uint32) ([]*Model, error) {
-	return func(worldId byte, mapId uint32) ([]*Model, error) {
-		return getForMapInWorld(db, worldId, mapId)
+func GetForMapInWorld(_ logrus.FieldLogger, db *gorm.DB) func(worldId byte, mapId uint32) ([]Model, error) {
+	return func(worldId byte, mapId uint32) ([]Model, error) {
+		return database.ModelSliceProvider[Model, entity](db)(getForMapInWorld(worldId, mapId), makeCharacter)()
 	}
 }
 
-func GetForName(_ logrus.FieldLogger, db *gorm.DB) func(name string) ([]*Model, error) {
-	return func(name string) ([]*Model, error) {
-		return getForName(db, name)
+func GetForName(_ logrus.FieldLogger, db *gorm.DB) func(name string) ([]Model, error) {
+	return func(name string) ([]Model, error) {
+		return database.ModelSliceProvider[Model, entity](db)(getForName(name), makeCharacter)()
 	}
 }
 
@@ -864,8 +865,8 @@ func GetMaximumBaseDamage(l logrus.FieldLogger, db *gorm.DB, span opentracing.Sp
 	}
 }
 
-func WeaponAttack(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) uint16 {
-	return func(c *Model) uint16 {
+func WeaponAttack(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) uint16 {
+	return func(c Model) uint16 {
 		wa := uint16(0)
 
 		equips, err := equipment.GetEquipmentForCharacter(l, db)(c.Id())
@@ -893,8 +894,8 @@ func WeaponAttack(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func
 	}
 }
 
-func getMaximumBaseDamage(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model, weaponAttack uint16, weaponType int) uint32 {
-	return func(c *Model, weaponAttack uint16, weaponType int) uint32 {
+func getMaximumBaseDamage(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model, weaponAttack uint16, weaponType int) uint32 {
+	return func(c Model, weaponAttack uint16, weaponType int) uint32 {
 		workingWeaponType := weaponType
 
 		if job.IsA(c.JobId(), job.Thief) && workingWeaponType == item.WeaponTypeDaggerOther {
@@ -919,8 +920,8 @@ func getMaximumBaseDamage(l logrus.FieldLogger, db *gorm.DB, span opentracing.Sp
 	}
 }
 
-func getMaximumBaseDamageNoWeapon(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *Model) uint32 {
-	return func(c *Model) uint32 {
+func getMaximumBaseDamageNoWeapon(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c Model) uint32 {
+	return func(c Model) uint32 {
 		if job.IsA(c.JobId(), job.Pirate, job.ThunderBreaker1) {
 			wm := 3.0
 			if c.JobId()%100 != 0 {
@@ -935,17 +936,17 @@ func getMaximumBaseDamageNoWeapon(l logrus.FieldLogger, db *gorm.DB, span opentr
 	}
 }
 
-func Create(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(b *Builder) (*Model, error) {
-	return func(b *Builder) (*Model, error) {
+func Create(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(b *Builder) (Model, error) {
+	return func(b *Builder) (Model, error) {
 		c := b.Build()
 		c, err := create(db, c.AccountId(), c.WorldId(), c.Name(), c.Level(), c.Strength(), c.Dexterity(), c.Intelligence(), c.Luck(), c.MaxHP(), c.MaxMP(), c.JobId(), c.Gender(), c.Hair(), c.Face(), c.SkinColor(), c.MapId())
 		if err != nil {
-			return nil, err
+			return Model{}, err
 		}
 
 		err = inventory.CreateInitialInventories(l, db)(c.Id())
 		if err != nil {
-			return nil, err
+			return Model{}, err
 		}
 
 		emitCreatedEvent(l, span)(c.Id(), c.WorldId(), c.Name())
@@ -962,7 +963,7 @@ func AdjustJob(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(ch
 
 func awardSkillsForJobUpdate(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(jobId uint16) characterFunc {
 	return func(jobId uint16) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			skills := make([]uint32, 0)
 			switch jobId {
 			case job.Warrior:
@@ -1016,7 +1017,7 @@ func jobUpdateSuccess(l logrus.FieldLogger, span opentracing.Span) characterFunc
 
 func adjustJob(l logrus.FieldLogger, db *gorm.DB) func(jobId uint16) characterFunc {
 	return func(jobId uint16) characterFunc {
-		return func(c *Model) error {
+		return func(c Model) error {
 			hp := uint16(0)
 			mp := uint16(0)
 
@@ -1064,7 +1065,7 @@ func apResetSuccess(l logrus.FieldLogger, span opentracing.Span) characterFunc {
 }
 
 func resetAP(l logrus.FieldLogger, db *gorm.DB) characterFunc {
-	return func(c *Model) error {
+	return func(c Model) error {
 		tap := c.AP() + c.Strength() + c.Dexterity() + c.Intelligence() + c.Luck()
 		tstr := uint16(4)
 		tdex := uint16(4)

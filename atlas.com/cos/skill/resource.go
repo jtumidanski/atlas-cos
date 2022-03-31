@@ -101,8 +101,8 @@ func handleGetCharacterSkill(l logrus.FieldLogger, db *gorm.DB) func(span opentr
 		return func(characterId uint32) func(skillId uint32) http.HandlerFunc {
 			return func(skillId uint32) http.HandlerFunc {
 				return func(w http.ResponseWriter, r *http.Request) {
-					sl, ok := GetSkill(l, db)(characterId, skillId)
-					if !ok {
+					sl, err := GetSkill(l, db)(characterId, skillId)
+					if err != nil {
 						l.Errorf("Unable to get skills for character %d.", characterId)
 						w.WriteHeader(http.StatusInternalServerError)
 						return
@@ -111,7 +111,7 @@ func handleGetCharacterSkill(l logrus.FieldLogger, db *gorm.DB) func(span opentr
 					result := createDataContainer(sl)
 
 					w.WriteHeader(http.StatusOK)
-					err := json.ToJSON(result, w)
+					err = json.ToJSON(result, w)
 					if err != nil {
 						l.WithError(err).Errorf("Writing response.")
 					}
@@ -121,7 +121,7 @@ func handleGetCharacterSkill(l logrus.FieldLogger, db *gorm.DB) func(span opentr
 	}
 }
 
-func createListDataContainer(sl []*Model) attributes.CharacterSkillDataListContainer {
+func createListDataContainer(sl []Model) attributes.CharacterSkillDataListContainer {
 	var result = attributes.CharacterSkillDataListContainer{}
 	result.Data = make([]attributes.CharacterSkillData, 0)
 	for _, s := range sl {
@@ -130,13 +130,13 @@ func createListDataContainer(sl []*Model) attributes.CharacterSkillDataListConta
 	return result
 }
 
-func createDataContainer(s *Model) attributes.CharacterSkillDataContainer {
+func createDataContainer(s Model) attributes.CharacterSkillDataContainer {
 	var result = attributes.CharacterSkillDataContainer{}
 	result.Data = createData(s)
 	return result
 }
 
-func createData(model *Model) attributes.CharacterSkillData {
+func createData(model Model) attributes.CharacterSkillData {
 	return attributes.CharacterSkillData{
 		Id:   strconv.Itoa(int(model.SkillId())),
 		Type: "com.atlas.cos.rest.attribute.SkillAttributes",

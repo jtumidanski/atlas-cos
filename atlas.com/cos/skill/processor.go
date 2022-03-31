@@ -1,6 +1,8 @@
 package skill
 
 import (
+	"atlas-cos/database"
+	"atlas-cos/model"
 	"atlas-cos/skill/information"
 	"errors"
 	"github.com/opentracing/opentracing-go"
@@ -8,27 +10,28 @@ import (
 	"gorm.io/gorm"
 )
 
+func ByCharacterAndIdModelProvider(db *gorm.DB) func(characterId uint32, skillId uint32) model.Provider[Model] {
+	return func(characterId uint32, skillId uint32) model.Provider[Model] {
+		return database.ModelProvider[Model, entity](db)(getById(characterId, skillId), transform)
+	}
+}
+
 // GetSkill retrieves the identified skill for the given character.
-func GetSkill(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillId uint32) (*Model, bool) {
-	return func(characterId uint32, skillId uint32) (*Model, bool) {
-		s, err := getById(db, characterId, skillId)
-		if err != nil {
-			l.WithError(err).Errorf("Unable to retrieve skill %d for character %d.", skillId, characterId)
-			return nil, false
-		}
-		return s, true
+func GetSkill(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillId uint32) (Model, error) {
+	return func(characterId uint32, skillId uint32) (Model, error) {
+		return ByCharacterAndIdModelProvider(db)(characterId, skillId)()
 	}
 }
 
 func IfHasSkillGetEffect(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, skillId uint32) (*information.Effect, bool) {
 	return func(characterId uint32, skillId uint32) (*information.Effect, bool) {
-		if skill, ok := GetSkill(l, db)(characterId, skillId); ok && skill.Level() > 0 {
+		if skill, err := GetSkill(l, db)(characterId, skillId); err == nil && skill.Level() > 0 {
 			i, err := information.GetById(l, span)(skillId)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to retrieve information for skill %d.", skillId)
 				return nil, false
 			} else {
-				return &i.Effects()[skill.Level() - 1], true
+				return &i.Effects()[skill.Level()-1], true
 			}
 		} else {
 			return nil, false
@@ -39,7 +42,7 @@ func IfHasSkillGetEffect(l logrus.FieldLogger, db *gorm.DB, span opentracing.Spa
 // UpdateSkill updates the skill for the given character. Returns an error if one occurred.
 func UpdateSkill(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) error {
 	return func(characterId uint32, skillId uint32, level uint32, masterLevel uint32, expiration int64) error {
-		if skill, ok := GetSkill(l, db)(characterId, skillId); ok {
+		if skill, err := GetSkill(l, db)(characterId, skillId); err == nil {
 			return update(db, skill.Id(), setLevel(level), setMasterLevel(masterLevel), setExpiration(expiration))
 		}
 		_, err := create(db, characterId, skillId, setLevel(level), setMasterLevel(masterLevel), setExpiration(expiration))
@@ -47,10 +50,16 @@ func UpdateSkill(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, ski
 	}
 }
 
+func ByCharacterModelProvider(db *gorm.DB) func(characterId uint32) model.SliceProvider[Model] {
+	return func(characterId uint32) model.SliceProvider[Model] {
+		return database.ModelSliceProvider[Model, entity](db)(getForCharacter(characterId), transform)
+	}
+}
+
 // GetSkills retrieves the skills for a given character. Returns an error if one occurred.
-func GetSkills(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) ([]*Model, error) {
-	return func(characterId uint32) ([]*Model, error) {
-		return getForCharacter(db, characterId)
+func GetSkills(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) ([]Model, error) {
+	return func(characterId uint32) ([]Model, error) {
+		return ByCharacterModelProvider(db)(characterId)()
 	}
 }
 

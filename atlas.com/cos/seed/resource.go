@@ -65,13 +65,13 @@ func handleCreateCharacterFromSeed(l logrus.FieldLogger, db *gorm.DB) rest.SpanH
 	}
 }
 
-func createDataContainer(c *character.Model) *attributes.CharacterDataContainer {
+func createDataContainer(c character.Model) *attributes.CharacterDataContainer {
 	var result = &attributes.CharacterDataContainer{}
 	result.Data = createData(c)
 	return result
 }
 
-func createData(c *character.Model) attributes.CharacterData {
+func createData(c character.Model) attributes.CharacterData {
 	td := character.GetTemporalRegistry().GetById(c.Id())
 	return attributes.CharacterData{
 		Id:   strconv.Itoa(int(c.Id())),

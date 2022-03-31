@@ -259,8 +259,8 @@ func handleGetInventoryForCharacterByType(l logrus.FieldLogger, db *gorm.DB) fun
 	}
 }
 
-func prepareResult(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span, w http.ResponseWriter) func(characterId uint32, inv *Model, include string) {
-	return func(characterId uint32, inv *Model, include string) {
+func prepareResult(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span, w http.ResponseWriter) func(characterId uint32, inv Model, include string) {
+	return func(characterId uint32, inv Model, include string) {
 		result := createInventoryDataContainer(inv)
 		result.Data.Relationships.InventoryItems = createInventoryItemRelationships(inv)
 
@@ -279,8 +279,8 @@ func prepareResult(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span, w h
 	}
 }
 
-func createIncludedEquipmentStatistics(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, inv *Model) []interface{} {
-	return func(characterId uint32, inv *Model) []interface{} {
+func createIncludedEquipmentStatistics(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, inv Model) []interface{} {
+	return func(characterId uint32, inv Model) []interface{} {
 		var results = make([]interface{}, 0)
 		e, err := equipment.GetEquipmentForCharacter(l, db)(characterId)
 		if err != nil {
@@ -309,11 +309,11 @@ func createIncludedEquipmentStatistics(l logrus.FieldLogger, db *gorm.DB, span o
 	}
 }
 
-func createIncludedInventoryItems(fl logrus.FieldLogger, db *gorm.DB, characterId uint32, inv *Model) []interface{} {
+func createIncludedInventoryItems(fl logrus.FieldLogger, db *gorm.DB, characterId uint32, inv Model) []interface{} {
 	var results = make([]interface{}, 0)
 	for _, inventoryItem := range inv.Items() {
 		if inventoryItem.Type() == ItemTypeEquip {
-			e, err := equipment.GetEquipmentById(fl, db)(inventoryItem.Id())
+			e, err := equipment.GetById(fl, db)(inventoryItem.Id())
 			if err != nil {
 				fl.WithError(err).Errorf("Unable to retrieve equipment %d for character %d.", inventoryItem.Id(), characterId)
 			} else {
@@ -332,7 +332,7 @@ func createIncludedInventoryItems(fl logrus.FieldLogger, db *gorm.DB, characterI
 	return results
 }
 
-func createInventoryItemRelationships(inv *Model) []attributes.Relationship {
+func createInventoryItemRelationships(inv Model) []attributes.Relationship {
 	var results = make([]attributes.Relationship, 0)
 	for _, i := range inv.Items() {
 		var inventoryItem = attributes.Relationship{
@@ -344,11 +344,11 @@ func createInventoryItemRelationships(inv *Model) []attributes.Relationship {
 	return results
 }
 
-func createInventoryDataContainer(inv *Model) *attributes.InventoryDataContainer {
+func createInventoryDataContainer(inv Model) *attributes.InventoryDataContainer {
 	return &attributes.InventoryDataContainer{Data: createInventoryData(inv)}
 }
 
-func createInventoryData(inv *Model) attributes.InventoryData {
+func createInventoryData(inv Model) attributes.InventoryData {
 	return attributes.InventoryData{
 		Id:   strconv.Itoa(int(inv.Id())),
 		Type: "com.atlas.cos.rest.attribute.InventoryAttributes",
@@ -359,7 +359,7 @@ func createInventoryData(inv *Model) attributes.InventoryData {
 	}
 }
 
-func createEquipmentData(e *equipment.Model) attributes.InventoryEquipmentData {
+func createEquipmentData(e equipment.Model) attributes.InventoryEquipmentData {
 	return attributes.InventoryEquipmentData{
 		Id:   strconv.Itoa(int(e.Id())),
 		Type: "com.atlas.cos.rest.attribute.EquipmentAttributes",
@@ -376,7 +376,7 @@ func createEquipmentData(e *equipment.Model) attributes.InventoryEquipmentData {
 	}
 }
 
-func createItemData(i *item.Model) attributes.InventoryItemData {
+func createItemData(i item.Model) attributes.InventoryItemData {
 	return attributes.InventoryItemData{
 		Id:   strconv.Itoa(int(i.Id())),
 		Type: "com.atlas.cos.rest.attribute.ItemAttributes",
@@ -388,7 +388,7 @@ func createItemData(i *item.Model) attributes.InventoryItemData {
 	}
 }
 
-func createEquipmentStatisticsData(es *statistics.Model) attributes.InventoryEquipmentStatisticsData {
+func createEquipmentStatisticsData(es statistics.Model) attributes.InventoryEquipmentStatisticsData {
 	return attributes.InventoryEquipmentStatisticsData{
 		Id:   strconv.Itoa(int(es.Id())),
 		Type: "com.atlas.cos.rest.attribute.EquipmentStatisticsAttributes",

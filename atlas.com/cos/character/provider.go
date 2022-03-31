@@ -1,43 +1,36 @@
 package character
 
-import "gorm.io/gorm"
+import (
+	"atlas-cos/database"
+	"atlas-cos/model"
+	"gorm.io/gorm"
+)
 
-func getById(db *gorm.DB, characterId uint32) (*Model, error) {
-	var result entity
-	err := db.First(&result, characterId).Error
-	if err != nil {
-		return nil, err
+func getById(characterId uint32) database.EntityProvider[entity] {
+	return func(db *gorm.DB) model.Provider[entity] {
+		return database.Query[entity](db, &entity{ID: characterId})
 	}
-	return makeCharacter(&result), nil
 }
 
-func listGet(db *gorm.DB, query interface{}) ([]*Model, error) {
-	var results []entity
-	err := db.Where(query).Find(&results).Error
-	if err != nil {
-		return nil, err
+func getForAccountInWorld(accountId uint32, worldId byte) database.EntitySliceProvider[entity] {
+	return func(db *gorm.DB) model.SliceProvider[entity] {
+		return database.SliceQuery[entity](db, &entity{AccountId: accountId, World: worldId})
 	}
+}
 
-	var character = make([]*Model, 0)
-	for _, e := range results {
-		character = append(character, makeCharacter(&e))
+func getForMapInWorld(worldId byte, mapId uint32) database.EntitySliceProvider[entity] {
+	return func(db *gorm.DB) model.SliceProvider[entity] {
+		return database.SliceQuery[entity](db, &entity{World: worldId, MapId: mapId})
 	}
-	return character, nil
 }
 
-func getForAccountInWorld(db *gorm.DB, accountId uint32, worldId byte) ([]*Model, error) {
-	return listGet(db, &entity{AccountId: accountId, World: worldId})
+func getForName(name string) database.EntitySliceProvider[entity] {
+	return func(db *gorm.DB) model.SliceProvider[entity] {
+		return database.SliceQuery[entity](db, &entity{Name: name})
+	}
 }
 
-func getForMapInWorld(db *gorm.DB, worldId byte, mapId uint32) ([]*Model, error) {
-	return listGet(db, &entity{World: worldId, MapId: mapId})
-}
-
-func getForName(db *gorm.DB, name string) ([]*Model, error) {
-	return listGet(db, &entity{Name: name})
-}
-
-func makeCharacter(e *entity) *Model {
+func makeCharacter(e entity) (Model, error) {
 	r := NewModelBuilder().
 		SetId(e.ID).
 		SetAccountId(e.AccountId).
@@ -68,5 +61,5 @@ func makeCharacter(e *entity) *Model {
 		SetSpawnPoint(e.SpawnPoint).
 		SetGm(e.GM).
 		Build()
-	return &r
+	return r, nil
 }

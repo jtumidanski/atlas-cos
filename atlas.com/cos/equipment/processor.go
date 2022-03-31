@@ -1,6 +1,7 @@
 package equipment
 
 import (
+	"atlas-cos/database"
 	"atlas-cos/equipment/statistics"
 	"atlas-cos/item"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"math"
+	"sort"
 )
 
 type InventoryAdjustment struct {
@@ -52,16 +54,16 @@ var characterCreationItems = []uint32{
 	20000, 20001, 20002, 21000, 21001, 21002, 21201, 20401, 20402, 21700, 20100, //face
 }
 
-func CreateForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, itemId uint32, equipmentId uint32, characterCreation bool) (*Model, error) {
-	return func(characterId uint32, itemId uint32, equipmentId uint32, characterCreation bool) (*Model, error) {
+func CreateForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, itemId uint32, equipmentId uint32, characterCreation bool) (Model, error) {
+	return func(characterId uint32, itemId uint32, equipmentId uint32, characterCreation bool) (Model, error) {
 		if characterCreation {
 			if invalidCharacterCreationItem(itemId) {
 				l.Errorf("Received a request to create an item %d for character %d which is not valid for character creation. This is usually a hack.")
-				return nil, errors.New("not valid item for character creation")
+				return Model{}, errors.New("not valid item for character creation")
 			}
 		}
 
-		nextOpen, err := getNextFreeEquipmentSlot(db, characterId)
+		nextOpen, err := getNextFreeEquipmentSlot(l, db)(characterId)
 		if err != nil {
 			nextOpen = 1
 		}
@@ -69,28 +71,57 @@ func CreateForCharacter(l logrus.FieldLogger, db *gorm.DB) func(characterId uint
 		eq, err := create(db, characterId, equipmentId, nextOpen)
 		if err != nil {
 			l.Errorf("Persisting equipment %d association for character %d in Slot %d.", equipmentId, characterId, nextOpen)
-			return nil, err
+			return Model{}, err
 		}
 		return eq, nil
 	}
 }
 
-func GetEquipmentForCharacter(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) ([]*Model, error) {
-	return func(characterId uint32) ([]*Model, error) {
-		return getEquipmentForCharacter(db, characterId)
+func getNextFreeEquipmentSlot(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32) (int16, error) {
+	return func(characterId uint32) (int16, error) {
+		es, err := GetEquipmentForCharacter(l, db)(characterId)
+		if err != nil {
+			return 1, err
+		}
+		if len(es) == 0 {
+			return 1, nil
+		}
+
+		sort.Slice(es, func(i, j int) bool {
+			return es[i].Slot() < es[j].Slot()
+		})
+		return minFreeSlot(es), nil
 	}
 }
 
-func GetEquippedItemForCharacterBySlot(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, slot int16) (*Model, error) {
-	return func(characterId uint32, slot int16) (*Model, error) {
-		return getEquipmentForCharacterBySlot(db, characterId, slot)
+func GetEquipmentForCharacter(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) ([]Model, error) {
+	return func(characterId uint32) ([]Model, error) {
+		return database.ModelSliceProvider[Model, entity](db)(getEquipmentForCharacter(characterId), makeEquipment)()
+	}
+}
+
+func GetEquippedItemForCharacterBySlot(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, slot int16) (Model, error) {
+	return func(characterId uint32, slot int16) (Model, error) {
+		return database.ModelProvider[Model, entity](db)(getEquipmentForCharacterBySlot(characterId, slot), makeEquipment)()
+	}
+}
+
+func GetById(_ logrus.FieldLogger, db *gorm.DB) func(id uint32) (Model, error) {
+	return func(id uint32) (Model, error) {
+		return database.ModelProvider[Model, entity](db)(getById(id), makeEquipment)()
+	}
+}
+
+func GetByEquipmentId(_ logrus.FieldLogger, db *gorm.DB) func(id uint32) (Model, error) {
+	return func(id uint32) (Model, error) {
+		return database.ModelProvider[Model, entity](db)(getByEquipmentId(id), makeEquipment)()
 	}
 }
 
 func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, equipmentId uint32) (*InventoryAdjustment, error) {
 	return func(characterId uint32, equipmentId uint32) (*InventoryAdjustment, error) {
 		l.Debugf("Received request to equip %d for character %d.", equipmentId, characterId)
-		e, err := getByEquipmentId(db, equipmentId)
+		e, err := GetByEquipmentId(l, db)(equipmentId)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment %d.", equipmentId)
 			return nil, err
@@ -119,15 +150,15 @@ func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.S
 
 		existingSlot := int16(1)
 		err = db.Transaction(func(tx *gorm.DB) error {
-			if equip, err := getEquipmentForCharacterBySlot(tx, characterId, slot); err == nil && equip.EquipmentId() != 0 {
+			if equip, err := GetEquippedItemForCharacterBySlot(l, tx)(characterId, slot); err == nil && equip.EquipmentId() != 0 {
 				l.Debugf("Equipment %d already exists in slot %d, that item will be moved temporarily to %d for character %d.", equip.EquipmentId(), slot, temporarySlot, characterId)
 				_ = updateSlot(tx, equip.EquipmentId(), temporarySlot)
 			}
 
-			if equip, err := getByEquipmentId(tx, equipmentId); err == nil {
+			if equip, err := GetByEquipmentId(l, tx)(equipmentId); err == nil {
 				existingSlot = equip.Slot()
 			} else {
-				val, err := getNextFreeEquipmentSlot(tx, characterId)
+				val, err := getNextFreeEquipmentSlot(l, tx)(characterId)
 				if err != nil {
 				}
 				existingSlot = val
@@ -138,7 +169,7 @@ func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.S
 			}
 			l.Debugf("Moved item %d from slot %d to %d for character %d.", ea.ItemId(), existingSlot, slot, characterId)
 
-			if equip, err := getEquipmentForCharacterBySlot(tx, characterId, temporarySlot); err == nil && equip.EquipmentId() != 0 {
+			if equip, err := GetEquippedItemForCharacterBySlot(l, tx)(characterId, temporarySlot); err == nil && equip.EquipmentId() != 0 {
 				err := updateSlot(tx, equip.EquipmentId(), existingSlot)
 				if err != nil {
 					return err
@@ -177,7 +208,7 @@ func UnequipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing
 			}
 			itemId = ea.ItemId()
 
-			newSlot, err = getNextFreeEquipmentSlot(tx, characterId)
+			newSlot, err = getNextFreeEquipmentSlot(l, tx)(characterId)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to get next free equipment slot")
 				return err
@@ -204,12 +235,6 @@ func UnequipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing
 			slot:          newSlot,
 			oldSlot:       oldSlot,
 		}, nil
-	}
-}
-
-func GetEquipmentById(_ logrus.FieldLogger, db *gorm.DB) func(id uint32) (*Model, error) {
-	return func(id uint32) (*Model, error) {
-		return getById(db, id)
 	}
 }
 
@@ -289,7 +314,7 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 	return func(characterId uint32, source int16, destination int16) (*InventoryAdjustment, error) {
 		itemId := uint32(0)
 		txError := db.Transaction(func(tx *gorm.DB) error {
-			equip, err := getEquipmentForCharacterBySlot(tx, characterId, source)
+			equip, err := GetEquippedItemForCharacterBySlot(l, tx)(characterId, source)
 			if err != nil || equip.Id() == 0 {
 				l.Warnf("Item movement requested, but no equipment for character %d in slot %d.", characterId, source)
 				return err
@@ -303,7 +328,7 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 			itemId = ea.ItemId()
 
 			temporarySlot := int16(math.MinInt16)
-			otherEquip, err := getEquipmentForCharacterBySlot(tx, characterId, destination)
+			otherEquip, err := GetEquippedItemForCharacterBySlot(l, tx)(characterId, destination)
 			if err == nil && otherEquip.Id() != 0 {
 				l.Debugf("Equipment %d already exists in slot %d, that item will be moved temporarily to %d for character %d.", otherEquip.Id(), destination, temporarySlot, characterId)
 				_ = updateSlot(tx, otherEquip.EquipmentId(), temporarySlot)
@@ -315,7 +340,7 @@ func MoveItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 			}
 			l.Debugf("Moved item %d from slot %d to %d for character %d.", equip.Id(), source, destination, characterId)
 
-			if otherEquip != nil {
+			if otherEquip.Id() != 0 {
 				err = updateSlot(tx, otherEquip.EquipmentId(), source)
 				if err != nil {
 					return err

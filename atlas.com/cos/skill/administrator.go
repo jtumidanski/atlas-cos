@@ -6,7 +6,7 @@ type EntityFunction func() ([]string, func(e *entity))
 
 // create a new skill for the given character and skill. Applying EntityFunction's to modify additional skill
 // attributes. Returns a structure representing the skill created, or an error if one occurred.
-func create(db *gorm.DB, characterId uint32, skillId uint32, modifiers ...EntityFunction) (*Model, error) {
+func create(db *gorm.DB, characterId uint32, skillId uint32, modifiers ...EntityFunction) (Model, error) {
 	e := &entity{
 		SkillId:     skillId,
 		CharacterId: characterId,
@@ -19,9 +19,9 @@ func create(db *gorm.DB, characterId uint32, skillId uint32, modifiers ...Entity
 
 	err := db.Create(e).Error
 	if err != nil {
-		return nil, err
+		return Model{}, err
 	}
-	return transform(e), nil
+	return transform(*e)
 }
 
 // update a skill, applying EntityFunction's to modify the attributes of the skill. Returns an error if one occurred.

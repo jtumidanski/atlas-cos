@@ -1,21 +1,22 @@
 package location
 
 import (
+	"atlas-cos/database"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
 // GetSavedLocationsByType gets the saved locations by type for the character, or returns an error if one occurred.
-func GetSavedLocationsByType(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, theType string) ([]*Model, error) {
-	return func(characterId uint32, theType string) ([]*Model, error) {
-		return retrieveSavedLocationsByType(db, characterId, theType)
+func GetSavedLocationsByType(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, theType string) ([]Model, error) {
+	return func(characterId uint32, theType string) ([]Model, error) {
+		return database.ModelSliceProvider[Model, entity](db)(retrieveSavedLocationsByType(characterId, theType), transform)()
 	}
 }
 
 // GetSavedLocations gets all the saved locations for the given character, or returns an error if one occurred.
-func GetSavedLocations(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) ([]*Model, error) {
-	return func(characterId uint32) ([]*Model, error) {
-		return retrieveSavedLocations(db, characterId)
+func GetSavedLocations(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) ([]Model, error) {
+	return func(characterId uint32) ([]Model, error) {
+		return database.ModelSliceProvider[Model, entity](db)(retrieveSavedLocations(characterId), transform)()
 	}
 }
 

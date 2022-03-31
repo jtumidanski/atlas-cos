@@ -50,8 +50,8 @@ func (b *Builder) SetMapId(mapId uint32) *Builder {
 	return b
 }
 
-func (b *Builder) Build() *Model {
-	return &Model{
+func (b *Builder) Build() Model {
+	return Model{
 		accountId:          b.accountId,
 		worldId:            b.worldId,
 		name:               b.name,
@@ -121,4 +121,3 @@ func NewBuilder(c BuilderConfiguration, accountId uint32, worldId byte, name str
 	b.maxMp = 5
 	return b
 }
-

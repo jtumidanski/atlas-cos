@@ -1,14 +1,16 @@
 package inventory
 
-func makeInventory(e *entity) *Model {
+import "errors"
+
+func makeInventory(e entity) (Model, error) {
 	t, ok := GetTypeFromByte(e.InventoryType)
 	if !ok {
-		return nil
+		return Model{}, errors.New("invalid type")
 	}
 
-	return &Model{
+	return Model{
 		id:            e.InventoryType,
 		inventoryType: t,
 		capacity:      e.Capacity,
-	}
+	}, nil
 }

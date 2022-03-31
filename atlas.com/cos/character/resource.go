@@ -146,7 +146,7 @@ func handleGetCharactersByName(l logrus.FieldLogger, db *gorm.DB) func(span open
 	}
 }
 
-func createCharacterDataListContainer(cs []*Model) *attributes.CharacterDataListContainer {
+func createCharacterDataListContainer(cs []Model) *attributes.CharacterDataListContainer {
 	var result = &attributes.CharacterDataListContainer{}
 	result.Data = make([]attributes.CharacterData, 0)
 	for _, c := range cs {
@@ -177,10 +177,6 @@ func handleGetCharacter(l logrus.FieldLogger, db *gorm.DB) func(span opentracing
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			if c == nil {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
 
 			var result = &attributes.CharacterDataContainer{}
 			result.Data = createCharacterData(c)
@@ -194,7 +190,7 @@ func handleGetCharacter(l logrus.FieldLogger, db *gorm.DB) func(span opentracing
 	}
 }
 
-func createCharacterData(c *Model) attributes.CharacterData {
+func createCharacterData(c Model) attributes.CharacterData {
 	td := GetTemporalRegistry().GetById(c.Id())
 	return attributes.CharacterData{
 		Id:   strconv.Itoa(int(c.Id())),

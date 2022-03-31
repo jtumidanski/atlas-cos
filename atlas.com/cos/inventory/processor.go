@@ -1,6 +1,7 @@
 package inventory
 
 import (
+	"atlas-cos/database"
 	"atlas-cos/equipment"
 	"atlas-cos/equipment/statistics"
 	"atlas-cos/item"
@@ -14,20 +15,20 @@ const (
 	DefaultInventoryCapacity uint32 = 24
 )
 
-func GetInventory(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType string, filters ...ItemFilter) (*Model, error) {
-	return func(characterId uint32, inventoryType string, filters ...ItemFilter) (*Model, error) {
+func GetInventory(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType string, filters ...ItemFilter) (Model, error) {
+	return func(characterId uint32, inventoryType string, filters ...ItemFilter) (Model, error) {
 		if it, ok := GetByteFromName(inventoryType); ok {
 			return GetInventoryByTypeVal(l, db)(characterId, it, filters...)
 		}
-		return nil, errors.New("invalid inventory type")
+		return Model{}, errors.New("invalid inventory type")
 	}
 }
 
-func GetInventoryByTypeVal(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, filters ...ItemFilter) (*Model, error) {
-	return func(characterId uint32, inventoryType int8, filters ...ItemFilter) (*Model, error) {
-		i, err := get(db, characterId, inventoryType)
+func GetInventoryByTypeVal(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8, filters ...ItemFilter) (Model, error) {
+	return func(characterId uint32, inventoryType int8, filters ...ItemFilter) (Model, error) {
+		i, err := database.ModelProvider[Model, entity](db)(get(characterId, inventoryType), makeInventory)()
 		if err != nil {
-			return nil, err
+			return Model{}, err
 		}
 
 		var items []Item
@@ -72,7 +73,7 @@ func FilterItemId(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func
 				}
 				return ii.ItemId() == itemId
 			} else {
-				ee, err := equipment.GetEquipmentById(l, db)(i.Id())
+				ee, err := equipment.GetById(l, db)(i.Id())
 				if err != nil {
 					return false
 				}
@@ -88,7 +89,7 @@ func FilterItemId(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func
 
 func getInventoryItems(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, inventoryType int8) []Item {
 	return func(characterId uint32, inventoryType int8) []Item {
-		results, err := item.GetForCharacterByInventory(l, db)(characterId, inventoryType)
+		results, err := item.GetItemsForCharacterByInventory(l, db)(characterId, inventoryType)
 		if err != nil {
 			return make([]Item, 0)
 		} else {
@@ -124,8 +125,8 @@ func getEquipInventoryItems(l logrus.FieldLogger, db *gorm.DB) func(characterId 
 	}
 }
 
-func CreateInventory(db *gorm.DB) func(characterId uint32, inventoryType int8, capacity uint32) (*Model, error) {
-	return func(characterId uint32, inventoryType int8, capacity uint32) (*Model, error) {
+func CreateInventory(db *gorm.DB) func(characterId uint32, inventoryType int8, capacity uint32) (Model, error) {
+	return func(characterId uint32, inventoryType int8, capacity uint32) (Model, error) {
 		return create(db, characterId, inventoryType, capacity)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"atlas-cos/character"
 	"atlas-cos/inventory"
 	"atlas-cos/item"
+	"atlas-cos/model"
 	"atlas-cos/party"
 	"atlas-cos/rest/requests"
 	"github.com/opentracing/opentracing-go"
@@ -31,24 +32,25 @@ func AttemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 	}
 }
 
-func GetById(l logrus.FieldLogger, span opentracing.Span) func(dropId uint32) (*Model, error) {
-	return func(dropId uint32) (*Model, error) {
-		dc, err := requestById(dropId)(l, span)
-		if err != nil {
-			return nil, err
-		}
-		d := makeDrop(dc.Data())
-		return d, nil
+func byIdModelProvider(l logrus.FieldLogger, span opentracing.Span) func(dropId uint32) model.Provider[Model] {
+	return func(dropId uint32) model.Provider[Model] {
+		return requests.Provider[attributes, Model](l, span)(requestById(dropId), makeDrop)
 	}
 }
 
-func makeDrop(dc requests.DataBody[attributes]) *Model {
+func GetById(l logrus.FieldLogger, span opentracing.Span) func(dropId uint32) (Model, error) {
+	return func(dropId uint32) (Model, error) {
+		return byIdModelProvider(l, span)(dropId)()
+	}
+}
+
+func makeDrop(dc requests.DataBody[attributes]) (Model, error) {
 	id, err := strconv.Atoi(dc.Id)
 	if err != nil {
-		return nil
+		return Model{}, nil
 	}
 	attr := dc.Attributes
-	return &Model{
+	return Model{
 		id:            uint32(id),
 		itemId:        attr.ItemId,
 		equipmentId:   attr.EquipmentId,
@@ -58,11 +60,11 @@ func makeDrop(dc requests.DataBody[attributes]) *Model {
 		dropType:      attr.DropType,
 		ownerId:       attr.OwnerId,
 		characterDrop: attr.CharacterDrop,
-	}
+	}, nil
 }
 
-func attemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *character.Model, d *Model) {
-	return func(c *character.Model, d *Model) {
+func attemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c character.Model, d Model) {
+	return func(c character.Model, d Model) {
 		now := time.Now().UnixNano() / int64(time.Millisecond)
 		elapsed := now - int64(d.DropTime())
 		if elapsed < 400 {
@@ -129,8 +131,8 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 	}
 }
 
-func canBePickedBy(l logrus.FieldLogger, span opentracing.Span) func(c *character.Model, d *Model) bool {
-	return func(c *character.Model, d *Model) bool {
+func canBePickedBy(l logrus.FieldLogger, span opentracing.Span) func(c character.Model, d Model) bool {
+	return func(c character.Model, d Model) bool {
 		if d.OwnerId() <= 0 || d.FFADrop() {
 			return true
 		}
@@ -156,8 +158,8 @@ func isOwnerLockedMap(mapId uint32) bool {
 	return mapId > 209000000 && mapId < 209000016 || mapId >= 990000500 && mapId <= 990000502
 }
 
-func pickupNX(l logrus.FieldLogger, span opentracing.Span) func(c *character.Model, d *Model) {
-	return func(c *character.Model, d *Model) {
+func pickupNX(l logrus.FieldLogger, span opentracing.Span) func(c character.Model, d Model) {
+	return func(c character.Model, d Model) {
 		if d.ItemId() == 4031865 {
 			emitPickedUpNxEvent(l, span)(c.Id(), 100)
 		} else {
@@ -166,8 +168,8 @@ func pickupNX(l logrus.FieldLogger, span opentracing.Span) func(c *character.Mod
 	}
 }
 
-func pickupMeso(l logrus.FieldLogger, span opentracing.Span) func(c *character.Model, d *Model) {
-	return func(c *character.Model, d *Model) {
+func pickupMeso(l logrus.FieldLogger, span opentracing.Span) func(c character.Model, d Model) {
+	return func(c character.Model, d Model) {
 		emitMesoAdjustment(l, span)(c.Id(), int32(d.Meso()))
 	}
 }
@@ -180,8 +182,8 @@ func needsQuestItem() bool {
 	return true
 }
 
-func hasInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, d *Model) bool {
-	return func(c *character.Model, d *Model) bool {
+func hasInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c character.Model, d Model) bool {
+	return func(c character.Model, d Model) bool {
 
 		//TODO checking inventory space, and adding items should become an atomic action
 		if val, ok := inventory.GetInventoryType(d.ItemId()); ok {
@@ -201,14 +203,14 @@ func hasInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c *character.Mode
 	}
 }
 
-func hasItemInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model, d *Model, i *inventory.Model) bool {
-	return func(c *character.Model, d *Model, i *inventory.Model) bool {
+func hasItemInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c character.Model, d Model, i inventory.Model) bool {
+	return func(c character.Model, d Model, i inventory.Model) bool {
 
 		l.Debugf("Checking inventory capacity for item %d, quantity %d for character %d.", d.ItemId(), d.Quantity(), c.Id())
 		slotMax := maxInSlot()
 		runningQuantity := d.Quantity()
 
-		existingItems, err := item.GetForCharacterByInventory(l, db)(c.Id(), i.Id())
+		existingItems, err := item.GetItemsForCharacterByInventory(l, db)(c.Id(), i.Id())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve existing inventory %s items for character %d.", i.Type(), c.Id())
 			return false
@@ -254,8 +256,8 @@ func hasItemInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c *character.
 	}
 }
 
-func hasEquipInventorySpace(l logrus.FieldLogger) func(c *character.Model, d *Model, i *inventory.Model) bool {
-	return func(c *character.Model, d *Model, i *inventory.Model) bool {
+func hasEquipInventorySpace(l logrus.FieldLogger) func(c character.Model, d Model, i inventory.Model) bool {
+	return func(c character.Model, d Model, i inventory.Model) bool {
 		l.Debugf("Checking inventory capacity for equip %d for character %d.", d.ItemId(), c.Id())
 		count := uint32(0)
 		for _, equip := range i.Items() {
@@ -275,8 +277,8 @@ func scriptedItem(itemId uint32) bool {
 	return itemId/10000 == 243
 }
 
-func pickupEquip(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *character.Model, d *Model) {
-	return func(c *character.Model, d *Model) {
+func pickupEquip(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c character.Model, d Model) {
+	return func(c character.Model, d Model) {
 		err := inventory.GainEquipment(l, db, span)(c.Id(), d.ItemId(), d.EquipmentId())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to create equipment %d that character %d picked up.", d.ItemId(), c.Id())
@@ -285,8 +287,8 @@ func pickupEquip(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(
 	}
 }
 
-func pickupItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *character.Model, it int8, d *Model) {
-	return func(c *character.Model, it int8, d *Model) {
+func pickupItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c character.Model, it int8, d Model) {
+	return func(c character.Model, it int8, d Model) {
 		err := inventory.GainItem(l, db, span)(c.Id(), it, d.ItemId(), d.Quantity())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to gain item %d that character %d picked up.", d.ItemId(), c.Id())

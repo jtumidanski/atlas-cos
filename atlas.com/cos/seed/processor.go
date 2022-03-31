@@ -15,23 +15,23 @@ import (
 
 type BuilderModifier func(*character.Builder) *character.Builder
 
-func CreateFromSeed(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (*character.Model, error) {
-	return func(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (*character.Model, error) {
+func CreateFromSeed(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (character.Model, error) {
+	return func(accountId uint32, worldId byte, name string, jobIndex uint32, face uint32, hair uint32, hairColor uint32, skinColor byte, gender byte, top uint32, bottom uint32, shoes uint32, weapon uint32) (character.Model, error) {
 		jobId, ok := job.GetJobFromIndex(jobIndex)
 		if !ok {
-			return nil, errors.New("invalid job creator index")
+			return character.Model{}, errors.New("invalid job creator index")
 		}
 
 		bc, ok := getBuilderModifier(jobId)
 		if !ok {
-			return nil, errors.New("creator not available for job")
+			return character.Model{}, errors.New("creator not available for job")
 		}
 
 		config := character.NewBuilderConfiguration(configuration.Get().UseStarting4Ap, configuration.Get().UseAutoAssignStartersAp)
 		builder := character.NewBuilder(config, accountId, worldId, name, skinColor, gender, hair+hairColor, face)
 		c, err := character.Create(l, db, span)(bc(builder))
 		if err != nil {
-			return nil, err
+			return character.Model{}, err
 		}
 		addEquippedItems(l, db, span)(c, top, bottom, shoes, weapon)
 		addOtherItems(l, db)(c)
@@ -63,14 +63,14 @@ func modifyForLegend(b *character.Builder) *character.Builder {
 	return b.SetJobId(job.Legend).SetMapId(914000000)
 }
 
-func addEquippedItems(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
-	return func(c *character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
+func addEquippedItems(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
+	return func(c character.Model, top uint32, bottom uint32, shoes uint32, weapon uint32) {
 		inventory.CreateAndEquip(l, db, span)(c.Id(), top, bottom, shoes, weapon)
 	}
 }
 
-func addOtherItems(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model) {
-	return func(c *character.Model) {
+func addOtherItems(l logrus.FieldLogger, db *gorm.DB) func(c character.Model) {
+	return func(c character.Model) {
 		if job.IsA(c.JobId(), job.Beginner) {
 			_, err := item.CreateItemForCharacter(l, db)(c.Id(), inventory.TypeValueETC, 4161001, 1)
 			if err != nil {
@@ -90,8 +90,8 @@ func addOtherItems(l logrus.FieldLogger, db *gorm.DB) func(c *character.Model) {
 	}
 }
 
-func addSkills(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c *character.Model) {
-	return func(c *character.Model) {
+func addSkills(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c character.Model) {
+	return func(c character.Model) {
 		var skills []uint32
 		if job.IsA(c.JobId(), job.Beginner) {
 			skills = beginnerSkills()

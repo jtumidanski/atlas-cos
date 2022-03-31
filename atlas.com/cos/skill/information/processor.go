@@ -1,31 +1,32 @@
 package information
 
 import (
+	"atlas-cos/model"
 	"atlas-cos/rest/requests"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 )
 
-func GetById(l logrus.FieldLogger, span opentracing.Span) func(skillId uint32) (*Model, error) {
-	return func(skillId uint32) (*Model, error) {
-		s, err := requestSkill(skillId)(l, span)
-		if err != nil {
-			l.WithError(err).Errorf("Unable to retrieve skill %d information.", skillId)
-			return nil, err
-		}
-		return makeSkill(s.Data()), nil
+func ByIdModelProvider(l logrus.FieldLogger, span opentracing.Span) func(skillId uint32) model.Provider[Model] {
+	return func(skillId uint32) model.Provider[Model] {
+		return requests.Provider[attributes, Model](l, span)(requestSkill(skillId), makeSkill)
 	}
 }
 
-func makeSkill(data requests.DataBody[attributes]) *Model {
-	attr := data.Attributes
+func GetById(l logrus.FieldLogger, span opentracing.Span) func(skillId uint32) (Model, error) {
+	return func(skillId uint32) (Model, error) {
+		return ByIdModelProvider(l, span)(skillId)()
+	}
+}
 
-	return &Model{
+func makeSkill(data requests.DataBody[attributes]) (Model, error) {
+	attr := data.Attributes
+	return Model{
 		action:        attr.Action,
 		element:       attr.Element,
 		animationTime: attr.AnimationTime,
 		effects:       makeEffects(attr.Effects),
-	}
+	}, nil
 }
 
 func makeEffects(es []effects) []Effect {
