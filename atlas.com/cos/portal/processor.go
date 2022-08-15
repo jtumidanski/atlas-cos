@@ -26,12 +26,6 @@ func InMapModelProvider(l logrus.FieldLogger, span opentracing.Span) func(mapId 
 	}
 }
 
-func GetInMap(l logrus.FieldLogger, span opentracing.Span) func(mapId uint32) ([]Model, error) {
-	return func(mapId uint32) ([]Model, error) {
-		return InMapModelProvider(l, span)(mapId)()
-	}
-}
-
 func makeModel(data requests.DataBody[attributes]) (Model, error) {
 	id, err := strconv.Atoi(data.Id)
 	if err != nil {

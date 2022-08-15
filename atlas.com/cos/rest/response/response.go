@@ -22,6 +22,8 @@ type DataSegment []interface{}
 
 // UnmarshalRoot will take a raw byte array, and using mapper functions, produce a data DataSegment and includes
 // DataSegment representing a jsonapi.org request response
+//
+//goland:noinspection GoUnusedExportedFunction
 func UnmarshalRoot(data []byte, root ObjectMapper, options ...ConditionalMapperProvider) (DataSegment, DataSegment, error) {
 	var dataResult DataSegment
 	var includeResult DataSegment
@@ -87,12 +89,14 @@ func transformMap(dpf concreteObjectProvider, x objectMap) interface{} {
 	return nil
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func MapperFunc(dpf concreteObjectProvider) ObjectMapper {
 	return func(x objectMap) interface{} {
 		return transformMap(dpf, x)
 	}
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func UnmarshalData(tf string, dpf concreteObjectProvider) (string, ObjectMapper) {
 	return tf, MapperFunc(dpf)
 }

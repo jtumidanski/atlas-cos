@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+//goland:noinspection GoUnusedExportedFunction
 func Delete(l logrus.FieldLogger, span opentracing.Span) func(url string, input interface{}) error {
 	return func(url string, input interface{}) error {
 		jsonReq, err := json.Marshal(input)

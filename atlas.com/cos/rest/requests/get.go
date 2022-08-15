@@ -53,6 +53,7 @@ func get(l logrus.FieldLogger, span opentracing.Span) func(url string, resp inte
 	}
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func MakeGetRequest[A any](url string, configurators ...Configurator) Request[A] {
 	return func(l logrus.FieldLogger, span opentracing.Span) (DataContainer[A], error) {
 		c := &configuration{}

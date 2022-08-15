@@ -2,7 +2,7 @@ package location
 
 import "gorm.io/gorm"
 
-// create creates a saved location for a character with the provided attributes, and returns an error if one occurred.
+// create a saved location for a character with the provided attributes, and returns an error if one occurred.
 func create(db *gorm.DB, characterId uint32, locationType string, mapId uint32, portalId uint32) error {
 	e := &entity{
 		CharacterId:  characterId,

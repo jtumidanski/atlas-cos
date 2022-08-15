@@ -59,6 +59,7 @@ func post(l logrus.FieldLogger, span opentracing.Span) func(url string, input in
 	}
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func MakePostRequest[A any](url string, i interface{}, configurators ...Configurator) PostRequest[A] {
 	return func(l logrus.FieldLogger, span opentracing.Span) (DataContainer[A], ErrorListDataContainer, error) {
 		c := &configuration{}

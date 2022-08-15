@@ -20,7 +20,7 @@ import (
 	"math/rand"
 )
 
-// characterFunc - Function which does something about the character, and returns whether or not further processing should continue.
+// characterFunc - Function which does something about the character, and returns whether further processing should continue.
 type characterFunc func(Model) error
 
 // Returns a function which accepts a character model,and updates the persisted state of the character given a set of

@@ -1,5 +1,6 @@
 package job
 
+//goland:noinspection GoUnusedConst
 const (
 	Beginner uint16 = 0
 

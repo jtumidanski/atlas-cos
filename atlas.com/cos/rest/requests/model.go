@@ -37,7 +37,7 @@ type DataBody[A any] struct {
 	Attributes A      `json:"attributes"`
 }
 
-func (c *dataContainer[A]) MarshalJSON() ([]byte, error) {
+func (c dataContainer[A]) MarshalJSON() ([]byte, error) {
 	t := struct {
 		Data     interface{} `json:"data"`
 		Included interface{} `json:"included"`
@@ -50,7 +50,7 @@ func (c *dataContainer[A]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t)
 }
 
-func (c *dataContainer[A]) UnmarshalJSON(data []byte) error {
+func (c dataContainer[A]) UnmarshalJSON(data []byte) error {
 	d, i, err := response.UnmarshalRoot(data, response.MapperFunc(EmptyDataBody[A]), c.includedMappers...)
 	if err != nil {
 		return err
@@ -86,6 +86,7 @@ func (c dataContainer[A]) Length() int {
 
 type IncludeFilter[E any] func(i DataBody[E]) bool
 
+//goland:noinspection GoUnusedExportedFunction
 func GetInclude[A any, E any](c DataContainer[A], id int) (E, bool) {
 	var e E
 	for _, x := range c.Included() {
@@ -100,6 +101,7 @@ func GetInclude[A any, E any](c DataContainer[A], id int) (E, bool) {
 	return e, false
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func GetIncluded[A any, E any](c DataContainer[A], filters ...IncludeFilter[E]) []E {
 	var e = make([]E, 0)
 	for _, x := range c.Included() {

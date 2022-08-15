@@ -2,11 +2,11 @@ package configuration
 
 import (
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"os"
 )
 
 func loadConfiguration() (*Configuration, error) {
-	yamlFile, err := ioutil.ReadFile("config.yaml")
+	yamlFile, err := os.ReadFile("config.yaml")
 	if err != nil {
 		return nil, err
 	}
