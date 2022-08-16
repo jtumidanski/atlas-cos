@@ -3,7 +3,7 @@ package drop
 import (
 	"atlas-cos/character"
 	"atlas-cos/inventory"
-	"atlas-cos/item"
+	"atlas-cos/inventory/item"
 	"atlas-cos/model"
 	"atlas-cos/party"
 	"atlas-cos/rest/requests"
@@ -103,7 +103,7 @@ func attemptPickup(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) fun
 				return
 			}
 
-			if !hasInventorySpace(l, db)(c, d) {
+			if !hasInventorySpace(l, db)(c.Id(), d) {
 				l.Debugf("Cancelling drop for character %d, drop %d, the character does not have inventory space.", c.Id(), d.Id())
 				emitCancelReservation(l, span)(d.Id(), c.Id())
 				emitInventoryFullEvent(l, span)(c.Id())
@@ -182,61 +182,57 @@ func needsQuestItem() bool {
 	return true
 }
 
-func hasInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c character.Model, d Model) bool {
-	return func(c character.Model, d Model) bool {
-
+func hasInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, d Model) bool {
+	return func(characterId uint32, d Model) bool {
 		//TODO checking inventory space, and adding items should become an atomic action
 		if val, ok := inventory.GetInventoryType(d.ItemId()); ok {
-			i, err := inventory.GetInventoryByTypeVal(l, db)(c.Id(), val)
+			i, err := inventory.GetInventoryByTypeVal(l, db)(characterId, val)
 			if err != nil {
-				l.WithError(err).Errorf("Unable to retrieve equipment for character %d.", c.Id())
+				l.WithError(err).Errorf("Unable to retrieve equipment for character %d.", characterId)
 				return false
 			}
 
 			if val == inventory.TypeValueEquip {
-				return hasEquipInventorySpace(l)(c, d, i)
+				return hasEquipInventorySpace(l)(characterId, i, d.ItemId())
 			} else {
-				return hasItemInventorySpace(l, db)(c, d, i)
+				return hasItemInventorySpace(l)(characterId, i, d.ItemId(), d.Quantity())
 			}
 		}
 		return false
 	}
 }
 
-func hasItemInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c character.Model, d Model, i inventory.Model) bool {
-	return func(c character.Model, d Model, i inventory.Model) bool {
-
-		l.Debugf("Checking inventory capacity for item %d, quantity %d for character %d.", d.ItemId(), d.Quantity(), c.Id())
+func hasItemInventorySpace(l logrus.FieldLogger) func(characterId uint32, inventory inventory.Model, itemId uint32, quantity uint32) bool {
+	return func(characterId uint32, inventory inventory.Model, itemId uint32, quantity uint32) bool {
+		l.Debugf("Checking inventory capacity for item %d, quantity %d for character %d.", itemId, quantity, characterId)
 		slotMax := maxInSlot()
-		runningQuantity := d.Quantity()
-
-		existingItems, err := item.GetItemsForCharacterByInventory(l, db)(c.Id(), i.Id())
-		if err != nil {
-			l.WithError(err).Errorf("Unable to retrieve existing inventory %s items for character %d.", i.Type(), c.Id())
-			return false
-		}
+		runningQuantity := quantity
+		existingItems := inventory.Items()
 
 		// breaks for a rechargeable item.
 		usedSlots := uint32(len(existingItems))
 
-		l.Debugf("Character %d has %d slots already occupied.", c.Id(), usedSlots)
+		l.Debugf("Character %d has %d slots already occupied.", characterId, usedSlots)
 
 		if len(existingItems) > 0 {
 			index := 0
 			for runningQuantity > 0 {
-				if index < len(existingItems) {
-					i := existingItems[index]
-					if i.ItemId() == d.ItemId() {
-						oldQuantity := i.Quantity()
-						if oldQuantity < slotMax {
-							newQuantity := uint32(math.Min(float64(oldQuantity+runningQuantity), float64(slotMax)))
-							runningQuantity = runningQuantity - (newQuantity - oldQuantity)
-						}
-					}
-					index++
-				} else {
+				if index >= len(existingItems) {
 					break
 				}
+
+				i := existingItems[index]
+				if i.ItemId() == itemId {
+					oldQuantity := uint32(0)
+					if val, ok := i.(*item.ItemModel); ok {
+						oldQuantity = val.Quantity()
+					}
+					if oldQuantity < slotMax {
+						newQuantity := uint32(math.Min(float64(oldQuantity+runningQuantity), float64(slotMax)))
+						runningQuantity = runningQuantity - (newQuantity - oldQuantity)
+					}
+				}
+				index++
 			}
 		}
 
@@ -246,27 +242,27 @@ func hasItemInventorySpace(l logrus.FieldLogger, db *gorm.DB) func(c character.M
 			runningQuantity = runningQuantity - newQuantity
 			newSlots += 1
 		}
-		l.Debugf("Character %d would need to consume %d additional slot to pick up %d %d.", c.Id(), newSlots, d.Quantity(), d.ItemId())
+		l.Debugf("Character %d would need to consume %d additional slot(s) to pick up %d %d.", characterId, newSlots, quantity, itemId)
 
-		if usedSlots+newSlots > i.Capacity() {
-			l.Debugf("Unable to pick up item %d because character %d inventory full.", d.ItemId(), c.Id())
+		if usedSlots+newSlots > inventory.Capacity() {
+			l.Debugf("Unable to pick up item %d because character %d inventory full.", itemId, characterId)
 			return false
 		}
 		return true
 	}
 }
 
-func hasEquipInventorySpace(l logrus.FieldLogger) func(c character.Model, d Model, i inventory.Model) bool {
-	return func(c character.Model, d Model, i inventory.Model) bool {
-		l.Debugf("Checking inventory capacity for equip %d for character %d.", d.ItemId(), c.Id())
+func hasEquipInventorySpace(l logrus.FieldLogger) func(characterId uint32, inventory inventory.Model, itemId uint32) bool {
+	return func(characterId uint32, inventory inventory.Model, itemId uint32) bool {
+		l.Debugf("Checking inventory capacity for equip %d for character %d.", itemId, characterId)
 		count := uint32(0)
-		for _, equip := range i.Items() {
+		for _, equip := range inventory.Items() {
 			if equip.Slot() >= 0 {
 				count += 1
 			}
 		}
-		if count+1 > i.Capacity() {
-			l.Debugf("Unable to pick up equip %d because character %d inventory full.", d.ItemId(), c.Id())
+		if count+1 > inventory.Capacity() {
+			l.Debugf("Unable to pick up equip %d because character %d inventory full.", itemId, characterId)
 			return false
 		}
 		return true

@@ -13,9 +13,6 @@ const (
 	TypeSetup           = "SETUP"
 	TypeETC             = "ETC"
 	TypeCash            = "CASH"
-
-	ItemTypeEquip = "EQUIPMENT"
-	ItemTypeItem  = "ITEM"
 )
 
 func GetInventoryType(itemId uint32) (int8, bool) {

@@ -7,8 +7,9 @@ func Migration(db *gorm.DB) error {
 }
 
 type entity struct {
-	CharacterId   uint32 `gorm:"not null"`
-	InventoryType int8   `gorm:"not null"`
+	ID            uint32 `gorm:"primaryKey;autoIncrement;not null"`
+	CharacterId   uint32 `gorm:"not null;UNIQUE_INDEX:composite_index;index"`
+	InventoryType int8   `gorm:"not null;UNIQUE_INDEX:composite_index;"`
 	Capacity      uint32 `gorm:"capacity"`
 }
 

@@ -9,7 +9,7 @@ func makeInventory(e entity) (Model, error) {
 	}
 
 	return Model{
-		id:            e.InventoryType,
+		id:            e.ID,
 		inventoryType: t,
 		capacity:      e.Capacity,
 	}, nil

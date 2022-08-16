@@ -1,7 +1,6 @@
 package character
 
 import (
-	"atlas-cos/equipment"
 	"atlas-cos/inventory"
 	"atlas-cos/kafka"
 	"github.com/opentracing/opentracing-go"
@@ -359,7 +358,7 @@ type characterEquipItemCommand struct {
 func handleEquipItemCommand(db *gorm.DB) kafka.HandlerFunc[characterEquipItemCommand] {
 	return func(l logrus.FieldLogger, span opentracing.Span, command characterEquipItemCommand) {
 		l.Debugf("CharacterId = %d, Source = %d, Destination = %d.", command.CharacterId, command.Source, command.CharacterId)
-		e, err := equipment.GetEquippedItemForCharacterBySlot(l, db)(command.CharacterId, command.Source)
+		e, err := inventory.GetEquippedItemBySlot(l, db)(command.CharacterId, command.Source)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve item to equip for character %d in slot %d.", command.CharacterId, command.Source)
 			return
@@ -383,7 +382,7 @@ type characterUnequipItem struct {
 func handleUnEquipItemCommand(db *gorm.DB) kafka.HandlerFunc[characterUnequipItem] {
 	return func(l logrus.FieldLogger, span opentracing.Span, command characterUnequipItem) {
 		l.Debugf("CharacterId = %d, Source = %d, Destination = %d.", command.CharacterId, command.Source, command.CharacterId)
-		e, err := equipment.GetEquippedItemForCharacterBySlot(l, db)(command.CharacterId, command.Source)
+		e, err := inventory.GetEquippedItemBySlot(l, db)(command.CharacterId, command.Source)
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve item to equip for character %d in slot %d.", command.CharacterId, command.Source)
 			return

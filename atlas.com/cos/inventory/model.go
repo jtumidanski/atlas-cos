@@ -1,13 +1,15 @@
 package inventory
 
+import "atlas-cos/inventory/item"
+
 type Model struct {
-	id            int8
+	id            uint32
 	inventoryType string
 	capacity      uint32
-	items         []Item
+	items         []item.Model
 }
 
-func (m Model) Id() int8 {
+func (m Model) Id() uint32 {
 	return m.id
 }
 
@@ -19,28 +21,6 @@ func (m Model) Capacity() uint32 {
 	return m.capacity
 }
 
-func (m Model) Items() []Item {
+func (m Model) Items() []item.Model {
 	return m.items
-}
-
-type Item struct {
-	id       uint32
-	itemType string
-	slot     int16
-}
-
-func (i Item) Type() string {
-	return i.itemType
-}
-
-func (i Item) Id() uint32 {
-	return i.id
-}
-
-func (i Item) Slot() int16 {
-	return i.slot
-}
-
-func (i Item) ItemType() string {
-	return i.itemType
 }

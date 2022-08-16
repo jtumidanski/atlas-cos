@@ -12,19 +12,19 @@ func Create(l logrus.FieldLogger, span opentracing.Span) func(itemId uint32) (ui
 	return func(itemId uint32) (uint32, error) {
 		ro, _, err := requestCreate(itemId)(l, span)
 		if err != nil {
-			l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Check request in ESO service.")
+			l.WithError(err).Errorf("Generating equipment item %d, they were not awarded this item. Check request in ESO service.", itemId)
 			return 0, err
 		}
 		eid, err := strconv.Atoi(ro.Data().Id)
 		if err != nil {
-			l.Errorf("Generating equipment item %d for character %d, they were not awarded this item. Invalid ID from ESO service.")
+			l.WithError(err).Errorf("Generating equipment item %d, they were not awarded this item. Invalid ID from ESO service.", itemId)
 			return 0, err
 		}
 		return uint32(eid), nil
 	}
 }
 
-func ByEquipmentIdModelProvider(l logrus.FieldLogger, span opentracing.Span) func(equipmentId uint32) model.Provider[Model] {
+func byEquipmentIdModelProvider(l logrus.FieldLogger, span opentracing.Span) func(equipmentId uint32) model.Provider[Model] {
 	return func(equipmentId uint32) model.Provider[Model] {
 		return requests.Provider[attributes, Model](l, span)(requestById(equipmentId), makeEquipment)
 	}
@@ -32,7 +32,7 @@ func ByEquipmentIdModelProvider(l logrus.FieldLogger, span opentracing.Span) fun
 
 func GetEquipmentStatistics(l logrus.FieldLogger, span opentracing.Span) func(equipmentId uint32) (Model, error) {
 	return func(equipmentId uint32) (Model, error) {
-		return ByEquipmentIdModelProvider(l, span)(equipmentId)()
+		return byEquipmentIdModelProvider(l, span)(equipmentId)()
 	}
 }
 

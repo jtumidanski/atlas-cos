@@ -4,7 +4,6 @@ import (
 	"atlas-cos/character"
 	"atlas-cos/configuration"
 	"atlas-cos/inventory"
-	"atlas-cos/item"
 	"atlas-cos/job"
 	"atlas-cos/skill"
 	"errors"
@@ -72,17 +71,17 @@ func addEquippedItems(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) 
 func addOtherItems(l logrus.FieldLogger, db *gorm.DB) func(c character.Model) {
 	return func(c character.Model) {
 		if job.IsA(c.JobId(), job.Beginner) {
-			_, err := item.CreateItemForCharacter(l, db)(c.Id(), inventory.TypeValueETC, 4161001, 1)
+			_, err := inventory.CreateItem(l, db)(c.Id(), inventory.TypeValueETC, 4161001, 1)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161001)
 			}
 		} else if job.IsA(c.JobId(), job.Noblesse) {
-			_, err := item.CreateItemForCharacter(l, db)(c.Id(), inventory.TypeValueETC, 4161047, 1)
+			_, err := inventory.CreateItem(l, db)(c.Id(), inventory.TypeValueETC, 4161047, 1)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161047)
 			}
 		} else if job.IsA(c.JobId(), job.Legend) {
-			_, err := item.CreateItemForCharacter(l, db)(c.Id(), inventory.TypeValueETC, 4161048, 1)
+			_, err := inventory.CreateItem(l, db)(c.Id(), inventory.TypeValueETC, 4161048, 1)
 			if err != nil {
 				l.WithError(err).Errorf("Unable to give character %d item %d.", c.Id(), 4161048)
 			}
@@ -96,7 +95,7 @@ func addSkills(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c 
 		if job.IsA(c.JobId(), job.Beginner) {
 			skills = beginnerSkills()
 		} else if job.IsA(c.JobId(), job.Noblesse) {
-			noblesseBeginnerSkills()
+			skills = noblesseBeginnerSkills()
 		}
 
 		err := skill.AwardSkills(l, db, span)(c.Id(), skills...)

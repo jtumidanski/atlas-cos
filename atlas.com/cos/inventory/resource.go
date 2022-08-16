@@ -1,9 +1,8 @@
 package inventory
 
 import (
-	"atlas-cos/equipment"
 	"atlas-cos/equipment/statistics"
-	"atlas-cos/item"
+	"atlas-cos/inventory/item"
 	"atlas-cos/json"
 	"atlas-cos/rest"
 	"atlas-cos/rest/attributes"
@@ -18,11 +17,11 @@ import (
 )
 
 const (
-	GetItemsForCharacter           = "get_items_for_character"
-	GetItemForCharacterByType      = "get_item_for_character_by_type"
-	GetItemsForCharacterByType     = "get_items_for_character_by_type"
-	GetInventoryForCharacterByType = "get_inventory_for_character_by_type"
-	CreateItem                     = "create_item"
+	handlerGetItemsForCharacter             = "get_items_for_character"
+	handlerRequestGetItemForCharacterByType = "get_item_for_character_by_type"
+	handlerGetItemsForCharacterByType       = "get_items_for_character_by_type"
+	handlerGetInventoryForCharacterByType   = "get_inventory_for_character_by_type"
+	handlerCreateItem                       = "create_item"
 )
 
 func InitResource(router *mux.Router, l logrus.FieldLogger, db *gorm.DB) {
@@ -35,8 +34,8 @@ func InitResource(router *mux.Router, l logrus.FieldLogger, db *gorm.DB) {
 }
 
 func registerCreateItem(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return rest.RetrieveSpan(CreateItem, func(span opentracing.Span) http.HandlerFunc {
-		fl := l.WithFields(logrus.Fields{"originator": CreateItem, "type": "rest_handler"})
+	return rest.RetrieveSpan(handlerCreateItem, func(span opentracing.Span) http.HandlerFunc {
+		fl := l.WithFields(logrus.Fields{"originator": handlerCreateItem, "type": "rest_handler"})
 		return parseCharacterId(fl, func(characterId uint32) http.HandlerFunc {
 			return handleCreateItem(fl, db)(span)(characterId)
 		})
@@ -44,8 +43,8 @@ func registerCreateItem(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
 }
 
 func registerGetInventoryForCharacterByType(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return rest.RetrieveSpan(GetInventoryForCharacterByType, func(span opentracing.Span) http.HandlerFunc {
-		fl := l.WithFields(logrus.Fields{"originator": GetInventoryForCharacterByType, "type": "rest_handler"})
+	return rest.RetrieveSpan(handlerGetInventoryForCharacterByType, func(span opentracing.Span) http.HandlerFunc {
+		fl := l.WithFields(logrus.Fields{"originator": handlerGetInventoryForCharacterByType, "type": "rest_handler"})
 		return parseCharacterId(fl, func(characterId uint32) http.HandlerFunc {
 			return handleGetInventoryForCharacterByType(fl, db)(span)(characterId)
 		})
@@ -53,8 +52,8 @@ func registerGetInventoryForCharacterByType(l logrus.FieldLogger, db *gorm.DB) h
 }
 
 func registerGetItemsForCharacterByType(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return rest.RetrieveSpan(GetItemsForCharacterByType, func(span opentracing.Span) http.HandlerFunc {
-		fl := l.WithFields(logrus.Fields{"originator": GetItemsForCharacterByType, "type": "rest_handler"})
+	return rest.RetrieveSpan(handlerGetItemsForCharacterByType, func(span opentracing.Span) http.HandlerFunc {
+		fl := l.WithFields(logrus.Fields{"originator": handlerGetItemsForCharacterByType, "type": "rest_handler"})
 		return parseCharacterId(fl, func(characterId uint32) http.HandlerFunc {
 			return handleGetItemsForCharacterByType(fl, db)(span)(characterId)
 		})
@@ -62,8 +61,8 @@ func registerGetItemsForCharacterByType(l logrus.FieldLogger, db *gorm.DB) http.
 }
 
 func registerGetItemForCharacterByType(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return rest.RetrieveSpan(GetItemForCharacterByType, func(span opentracing.Span) http.HandlerFunc {
-		fl := l.WithFields(logrus.Fields{"originator": GetItemForCharacterByType, "type": "rest_handler"})
+	return rest.RetrieveSpan(handlerRequestGetItemForCharacterByType, func(span opentracing.Span) http.HandlerFunc {
+		fl := l.WithFields(logrus.Fields{"originator": handlerRequestGetItemForCharacterByType, "type": "rest_handler"})
 		return parseCharacterId(fl, func(characterId uint32) http.HandlerFunc {
 			return handleGetItemForCharacterByType(fl, db)(span)(characterId)
 		})
@@ -71,8 +70,8 @@ func registerGetItemForCharacterByType(l logrus.FieldLogger, db *gorm.DB) http.H
 }
 
 func registerGetItemsForCharacter(l logrus.FieldLogger, db *gorm.DB) http.HandlerFunc {
-	return rest.RetrieveSpan(GetItemsForCharacter, func(span opentracing.Span) http.HandlerFunc {
-		fl := l.WithFields(logrus.Fields{"originator": GetItemsForCharacter, "type": "rest_handler"})
+	return rest.RetrieveSpan(handlerGetItemsForCharacter, func(span opentracing.Span) http.HandlerFunc {
+		fl := l.WithFields(logrus.Fields{"originator": handlerGetItemsForCharacter, "type": "rest_handler"})
 		return parseCharacterId(fl, func(characterId uint32) http.HandlerFunc {
 			return handleGetItemsForCharacter(l, db)(span)(characterId)
 		})
@@ -265,7 +264,7 @@ func prepareResult(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span, w h
 		result.Data.Relationships.InventoryItems = createInventoryItemRelationships(inv)
 
 		if strings.Contains(include, "inventoryItems") {
-			result.Included = append(result.Included, createIncludedInventoryItems(l, db, characterId, inv)...)
+			result.Included = append(result.Included, createIncludedInventoryItems(inv)...)
 		}
 		if strings.Contains(include, "equipmentStatistics") {
 			result.Included = append(result.Included, createIncludedEquipmentStatistics(l, db, span)(characterId, inv)...)
@@ -282,7 +281,7 @@ func prepareResult(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span, w h
 func createIncludedEquipmentStatistics(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, inv Model) []interface{} {
 	return func(characterId uint32, inv Model) []interface{} {
 		var results = make([]interface{}, 0)
-		e, err := equipment.GetEquipmentForCharacter(l, db)(characterId)
+		e, err := item.GetEquipment(l, db)(inv.Id())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment for character %d.", characterId)
 			return results
@@ -309,24 +308,14 @@ func createIncludedEquipmentStatistics(l logrus.FieldLogger, db *gorm.DB, span o
 	}
 }
 
-func createIncludedInventoryItems(fl logrus.FieldLogger, db *gorm.DB, characterId uint32, inv Model) []interface{} {
+func createIncludedInventoryItems(inv Model) []interface{} {
 	var results = make([]interface{}, 0)
 	for _, inventoryItem := range inv.Items() {
-		if inventoryItem.Type() == ItemTypeEquip {
-			e, err := equipment.GetById(fl, db)(inventoryItem.Id())
-			if err != nil {
-				fl.WithError(err).Errorf("Unable to retrieve equipment %d for character %d.", inventoryItem.Id(), characterId)
-			} else {
-				results = append(results, createEquipmentData(e))
-			}
-		} else {
-			i, err := item.GetItemById(fl, db)(inventoryItem.Id())
-			if err != nil {
-				fl.WithError(err).Errorf("Unable to retrieve item %d for character %d.", inventoryItem.Id(), characterId)
-			} else {
-				results = append(results, createItemData(i))
-			}
-
+		if val, ok := inventoryItem.(item.EquipmentModel); ok {
+			results = append(results, createEquipmentData(val))
+		}
+		if val, ok := inventoryItem.(item.ItemModel); ok {
+			results = append(results, createItemData(val))
 		}
 	}
 	return results
@@ -337,7 +326,7 @@ func createInventoryItemRelationships(inv Model) []attributes.Relationship {
 	for _, i := range inv.Items() {
 		var inventoryItem = attributes.Relationship{
 			Id:   strconv.Itoa(int(i.Id())),
-			Type: getInventoryItemType(i.Type()),
+			Type: getInventoryItemType(inv.Type()),
 		}
 		results = append(results, inventoryItem)
 	}
@@ -359,7 +348,7 @@ func createInventoryData(inv Model) attributes.InventoryData {
 	}
 }
 
-func createEquipmentData(e equipment.Model) attributes.InventoryEquipmentData {
+func createEquipmentData(e item.EquipmentModel) attributes.InventoryEquipmentData {
 	return attributes.InventoryEquipmentData{
 		Id:   strconv.Itoa(int(e.Id())),
 		Type: "com.atlas.cos.rest.attribute.EquipmentAttributes",
@@ -376,7 +365,7 @@ func createEquipmentData(e equipment.Model) attributes.InventoryEquipmentData {
 	}
 }
 
-func createItemData(i item.Model) attributes.InventoryItemData {
+func createItemData(i item.ItemModel) attributes.InventoryItemData {
 	return attributes.InventoryItemData{
 		Id:   strconv.Itoa(int(i.Id())),
 		Type: "com.atlas.cos.rest.attribute.ItemAttributes",
@@ -446,18 +435,13 @@ func handleGetItemsForCharacter(l logrus.FieldLogger, db *gorm.DB) func(span ope
 
 					for _, i := range inv.Items() {
 						quantity := uint32(1)
-						if i.ItemType() == ItemTypeItem {
-							ii, err := item.GetItemById(l, db)(i.Id())
-							if err != nil {
-								l.WithError(err).Errorf("Unable to lookup item by id %d.", i.Id())
-								continue
-							}
-							quantity = ii.Quantity()
+						if val, ok := i.(item.ItemModel); ok {
+							quantity = val.Quantity()
 						}
 
 						result.Data = append(result.Data, ItemDataBody{
 							Id:   strconv.Itoa(int(i.Id())),
-							Type: i.Type(),
+							Type: getInventoryItemType(inv.Type()),
 							Attributes: ItemAttributes{
 								InventoryType: inv.Type(),
 								Slot:          i.Slot(),

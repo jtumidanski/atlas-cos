@@ -1,15 +1,17 @@
-package equipment
+package item
 
-import "testing"
+import (
+	"testing"
+)
 
 // TestMinFreeSlot1 tests minFreeSlot with existing slots 0, 1, 4, 7, 8.
 func TestMinFreeSlot1(t *testing.T) {
 	items := []Model{
-		{slot: 0},
-		{slot: 1},
-		{slot: 4},
-		{slot: 7},
-		{slot: 8},
+		ItemModel{slot: 0},
+		ItemModel{slot: 1},
+		ItemModel{slot: 4},
+		ItemModel{slot: 7},
+		ItemModel{slot: 8},
 	}
 	result := minFreeSlot(items)
 	if result != 2 {
@@ -20,11 +22,11 @@ func TestMinFreeSlot1(t *testing.T) {
 // TestMinFreeSlot2 tests minFreeSlot with existing slots 1, 2, 4, 7, 8.
 func TestMinFreeSlot2(t *testing.T) {
 	items := []Model{
-		{slot: 1},
-		{slot: 2},
-		{slot: 4},
-		{slot: 7},
-		{slot: 8},
+		ItemModel{slot: 1},
+		ItemModel{slot: 2},
+		ItemModel{slot: 4},
+		ItemModel{slot: 7},
+		ItemModel{slot: 8},
 	}
 	result := minFreeSlot(items)
 	if result != 3 {
@@ -35,11 +37,11 @@ func TestMinFreeSlot2(t *testing.T) {
 // TestMinFreeSlot3 tests minFreeSlot with existing slots 0, 1, 2, 3, 4.
 func TestMinFreeSlot3(t *testing.T) {
 	items := []Model{
-		{slot: 0},
-		{slot: 1},
-		{slot: 2},
-		{slot: 3},
-		{slot: 4},
+		ItemModel{slot: 0},
+		ItemModel{slot: 1},
+		ItemModel{slot: 2},
+		ItemModel{slot: 3},
+		ItemModel{slot: 4},
 	}
 	result := minFreeSlot(items)
 	if result != 5 {
@@ -50,10 +52,10 @@ func TestMinFreeSlot3(t *testing.T) {
 // TestMinFreeSlot5 tests minFreeSlot with existing slots -7, 1, 2, 3
 func TestMinFreeSlot5(t *testing.T) {
 	items := []Model{
-		{slot: -7},
-		{slot: 1},
-		{slot: 2},
-		{slot: 3},
+		ItemModel{slot: -7},
+		ItemModel{slot: 1},
+		ItemModel{slot: 2},
+		ItemModel{slot: 3},
 	}
 	result := minFreeSlot(items)
 	if result != 4 {

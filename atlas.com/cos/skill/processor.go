@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func ByCharacterAndIdModelProvider(db *gorm.DB) func(characterId uint32, skillId uint32) model.Provider[Model] {
+func byCharacterAndIdModelProvider(db *gorm.DB) func(characterId uint32, skillId uint32) model.Provider[Model] {
 	return func(characterId uint32, skillId uint32) model.Provider[Model] {
 		return database.ModelProvider[Model, entity](db)(getById(characterId, skillId), transform)
 	}
@@ -19,7 +19,7 @@ func ByCharacterAndIdModelProvider(db *gorm.DB) func(characterId uint32, skillId
 // GetSkill retrieves the identified skill for the given character.
 func GetSkill(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32, skillId uint32) (Model, error) {
 	return func(characterId uint32, skillId uint32) (Model, error) {
-		return ByCharacterAndIdModelProvider(db)(characterId, skillId)()
+		return byCharacterAndIdModelProvider(db)(characterId, skillId)()
 	}
 }
 
@@ -50,7 +50,7 @@ func UpdateSkill(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, ski
 	}
 }
 
-func ByCharacterModelProvider(db *gorm.DB) func(characterId uint32) model.SliceProvider[Model] {
+func byCharacterModelProvider(db *gorm.DB) func(characterId uint32) model.SliceProvider[Model] {
 	return func(characterId uint32) model.SliceProvider[Model] {
 		return database.ModelSliceProvider[Model, entity](db)(getForCharacter(characterId), transform)
 	}
@@ -59,7 +59,7 @@ func ByCharacterModelProvider(db *gorm.DB) func(characterId uint32) model.SliceP
 // GetSkills retrieves the skills for a given character. Returns an error if one occurred.
 func GetSkills(_ logrus.FieldLogger, db *gorm.DB) func(characterId uint32) ([]Model, error) {
 	return func(characterId uint32) ([]Model, error) {
-		return ByCharacterModelProvider(db)(characterId)()
+		return byCharacterModelProvider(db)(characterId)()
 	}
 }
 

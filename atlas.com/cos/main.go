@@ -4,9 +4,8 @@ import (
 	"atlas-cos/character"
 	"atlas-cos/database"
 	"atlas-cos/drop"
-	"atlas-cos/equipment"
 	"atlas-cos/inventory"
-	"atlas-cos/item"
+	"atlas-cos/inventory/item"
 	"atlas-cos/kafka"
 	"atlas-cos/location"
 	"atlas-cos/logger"
@@ -44,7 +43,7 @@ func main() {
 		}
 	}(tc)
 
-	db := database.Connect(l, database.SetMigrations(character.Migration, equipment.Migration, item.Migration, location.Migration, skill.Migration, inventory.Migration))
+	db := database.Connect(l, database.SetMigrations(character.Migration, location.Migration, skill.Migration, inventory.Migration, item.Migration))
 
 	kafka.CreateConsumers(l, ctx, wg,
 		character.AdjustHealthCommandConsumer(db)(consumerGroupId),

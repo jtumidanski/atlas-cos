@@ -3,10 +3,9 @@ package character
 import (
 	"atlas-cos/configuration"
 	"atlas-cos/database"
-	"atlas-cos/equipment"
 	"atlas-cos/equipment/statistics"
 	"atlas-cos/inventory"
-	"atlas-cos/item"
+	"atlas-cos/inventory/item"
 	"atlas-cos/job"
 	_map "atlas-cos/map"
 	"atlas-cos/portal"
@@ -598,7 +597,7 @@ func totalStat(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(c 
 
 		//TODO apply MapleWarrior
 
-		equips, err := equipment.GetEquipmentForCharacter(l, db)(c.Id())
+		equips, err := inventory.GetEquipment(l, db)(c.Id())
 		if err != nil {
 			l.WithError(err).Errorf("Unable to retrieve equipment for character %d.", c.Id())
 		}
@@ -851,7 +850,7 @@ func GetMaximumBaseDamage(l logrus.FieldLogger, db *gorm.DB, span opentracing.Sp
 
 		wa := WeaponAttack(l, db, span)(c)
 
-		equip, err := equipment.GetEquippedItemForCharacterBySlot(l, db)(c.Id(), -11)
+		equip, err := inventory.GetEquippedItemBySlot(l, db)(c.Id(), -11)
 		if err != nil {
 			l.WithError(err).Errorf("Retrieving equipment for character %d.", c.Id())
 			return getMaximumBaseDamageNoWeapon(l, db, span)(c)
@@ -869,7 +868,7 @@ func WeaponAttack(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func
 	return func(c Model) uint16 {
 		wa := uint16(0)
 
-		equips, err := equipment.GetEquipmentForCharacter(l, db)(c.Id())
+		equips, err := inventory.GetEquipment(l, db)(c.Id())
 		if err != nil {
 			l.WithError(err).Errorf("Retrieving equipment for character %d.", c.Id())
 			return 0

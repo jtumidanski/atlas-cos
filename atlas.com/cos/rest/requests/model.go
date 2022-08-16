@@ -37,7 +37,7 @@ type DataBody[A any] struct {
 	Attributes A      `json:"attributes"`
 }
 
-func (c dataContainer[A]) MarshalJSON() ([]byte, error) {
+func (c *dataContainer[A]) MarshalJSON() ([]byte, error) {
 	t := struct {
 		Data     interface{} `json:"data"`
 		Included interface{} `json:"included"`
@@ -50,7 +50,7 @@ func (c dataContainer[A]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t)
 }
 
-func (c dataContainer[A]) UnmarshalJSON(data []byte) error {
+func (c *dataContainer[A]) UnmarshalJSON(data []byte) error {
 	d, i, err := response.UnmarshalRoot(data, response.MapperFunc(EmptyDataBody[A]), c.includedMappers...)
 	if err != nil {
 		return err

@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-func ByMemberIdModelProvider(l logrus.FieldLogger, span opentracing.Span) func(memberId uint32) model.Provider[Model] {
+func byMemberIdModelProvider(l logrus.FieldLogger, span opentracing.Span) func(memberId uint32) model.Provider[Model] {
 	return func(memberId uint32) model.Provider[Model] {
 		return requests.Provider[attributes, Model](l, span)(requestByMemberId(memberId), makeModel)
 	}
@@ -16,7 +16,7 @@ func ByMemberIdModelProvider(l logrus.FieldLogger, span opentracing.Span) func(m
 
 func ForCharacter(l logrus.FieldLogger, span opentracing.Span) func(characterId uint32) (Model, error) {
 	return func(characterId uint32) (Model, error) {
-		return ByMemberIdModelProvider(l, span)(characterId)()
+		return byMemberIdModelProvider(l, span)(characterId)()
 	}
 }
 
