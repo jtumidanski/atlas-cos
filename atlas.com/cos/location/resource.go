@@ -155,7 +155,7 @@ func handleAddSavedLocation(l logrus.FieldLogger, db *gorm.DB) func(span opentra
 				}
 
 				att := li.Data.Attributes
-				err = AddSavedLocation(l, db)(characterId, att.Type, att.MapId, att.PortalId)
+				err = AddSavedLocation(l, db, span)(characterId, att.Type)
 				if err != nil {
 					l.WithError(err).Errorf("Unable to add saved location for character %d.", characterId)
 					w.WriteHeader(http.StatusInternalServerError)

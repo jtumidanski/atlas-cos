@@ -1,7 +1,13 @@
 package attributes
 
 type LocationInputDataContainer struct {
-	Data LocationData `json:"data"`
+	Data struct {
+		Id         string `json:"id"`
+		Type       string `json:"type"`
+		Attributes struct {
+			Type string `json:"type"`
+		} `json:"attributes"`
+	} `json:"data"`
 }
 
 type LocationDataContainer struct {
