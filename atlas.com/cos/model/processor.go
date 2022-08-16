@@ -1,6 +1,37 @@
 package model
 
-import "errors"
+import (
+	"errors"
+	"math/rand"
+)
+
+type Number interface {
+	uint | uint8 | uint16 | uint32 | uint64
+}
+
+type IdProvider[M Number] func() M
+
+//goland:noinspection GoUnusedExportedFunction
+func FixedIdProvider[M Number](val M) IdProvider[M] {
+	return func() M {
+		return val
+	}
+}
+
+//goland:noinspection GoUnusedExportedFunction
+func ProviderToIdProviderAdapter[M any, N Number](provider Provider[M], transformer Transformer[M, N]) IdProvider[N] {
+	return func() N {
+		m, err := provider()
+		if err != nil {
+			return 0
+		}
+		n, err := transformer(m)
+		if err != nil {
+			return 0
+		}
+		return n
+	}
+}
 
 type Operator[M any] func(M) error
 
@@ -80,6 +111,15 @@ func ErrorSliceProvider[M any](err error) SliceProvider[M] {
 }
 
 //goland:noinspection GoUnusedExportedFunction
+func RandomPreciselyOneFilter[M any](ms []M) (M, error) {
+	var def M
+	if len(ms) == 0 {
+		return def, errors.New("empty slice")
+	}
+	return ms[rand.Intn(len(ms))], nil
+}
+
+//goland:noinspection GoUnusedExportedFunction
 func SliceProviderToProviderAdapter[M any](provider SliceProvider[M], preciselyOneFilter PreciselyOneFilter[M]) Provider[M] {
 	return func() (M, error) {
 		ps, err := provider()
@@ -114,6 +154,7 @@ func ForEach[M any](provider SliceProvider[M], operator Operator[M]) {
 	For(provider, ExecuteForEach(operator))
 }
 
+//goland:noinspection GoUnusedExportedFunction
 type Transformer[M any, N any] func(M) (N, error)
 
 //goland:noinspection GoUnusedExportedFunction
