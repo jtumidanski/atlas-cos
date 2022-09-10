@@ -16,8 +16,8 @@ func getById(characterId uint32, skillId uint32) database.EntityProvider[entity]
 }
 
 // getForCharacter retrieves all skills for the character.
-func getForCharacter(characterId uint32) database.EntitySliceProvider[entity] {
-	return func(db *gorm.DB) model.SliceProvider[entity] {
+func getForCharacter(characterId uint32) database.EntityProvider[[]entity] {
+	return func(db *gorm.DB) model.Provider[[]entity] {
 		return database.SliceQuery[entity](db, &entity{CharacterId: characterId})
 	}
 }

@@ -50,8 +50,8 @@ func UpdateSkill(l logrus.FieldLogger, db *gorm.DB) func(characterId uint32, ski
 	}
 }
 
-func byCharacterModelProvider(db *gorm.DB) func(characterId uint32) model.SliceProvider[Model] {
-	return func(characterId uint32) model.SliceProvider[Model] {
+func byCharacterModelProvider(db *gorm.DB) func(characterId uint32) model.Provider[[]Model] {
+	return func(characterId uint32) model.Provider[[]Model] {
 		return database.ModelSliceProvider[Model, entity](db)(getForCharacter(characterId), transform)
 	}
 }

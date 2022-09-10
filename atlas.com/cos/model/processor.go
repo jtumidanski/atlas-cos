@@ -33,18 +33,14 @@ func ProviderToIdProviderAdapter[M any, N Number](provider Provider[M], transfor
 	}
 }
 
-type Operator[M any] func(M) error
-
 type Provider[M any] func() (M, error)
 
-type SliceOperator[M any] func([]M) error
-
-type SliceProvider[M any] func() ([]M, error)
+type Operator[M any] func(M) error
 
 type PreciselyOneFilter[M any] func([]M) (M, error)
 
 //goland:noinspection GoUnusedExportedFunction
-func ExecuteForEach[M any](f Operator[M]) SliceOperator[M] {
+func ExecuteForEach[M any](f Operator[M]) Operator[[]M] {
 	return func(models []M) error {
 		for _, m := range models {
 			err := f(m)
@@ -59,10 +55,10 @@ func ExecuteForEach[M any](f Operator[M]) SliceOperator[M] {
 type Filter[M any] func(M) bool
 
 //goland:noinspection GoUnusedExportedFunction
-func FilteredProvider[M any](provider SliceProvider[M], filters ...Filter[M]) SliceProvider[M] {
+func FilteredProvider[M any](provider Provider[[]M], filters ...Filter[M]) Provider[[]M] {
 	models, err := provider()
 	if err != nil {
-		return ErrorSliceProvider[M](err)
+		return ErrorProvider[[]M](err)
 	}
 
 	var results []M
@@ -78,7 +74,7 @@ func FilteredProvider[M any](provider SliceProvider[M], filters ...Filter[M]) Sl
 			results = append(results, m)
 		}
 	}
-	return FixedSliceProvider(results)
+	return FixedProvider(results)
 }
 
 //goland:noinspection GoUnusedExportedFunction
@@ -89,24 +85,10 @@ func FixedProvider[M any](model M) Provider[M] {
 }
 
 //goland:noinspection GoUnusedExportedFunction
-func FixedSliceProvider[M any](models []M) SliceProvider[M] {
-	return func() ([]M, error) {
-		return models, nil
-	}
-}
-
-//goland:noinspection GoUnusedExportedFunction
 func ErrorProvider[M any](err error) Provider[M] {
 	return func() (M, error) {
 		var m M
 		return m, err
-	}
-}
-
-//goland:noinspection GoUnusedExportedFunction
-func ErrorSliceProvider[M any](err error) SliceProvider[M] {
-	return func() ([]M, error) {
-		return nil, err
 	}
 }
 
@@ -120,7 +102,7 @@ func RandomPreciselyOneFilter[M any](ms []M) (M, error) {
 }
 
 //goland:noinspection GoUnusedExportedFunction
-func SliceProviderToProviderAdapter[M any](provider SliceProvider[M], preciselyOneFilter PreciselyOneFilter[M]) Provider[M] {
+func SliceProviderToProviderAdapter[M any](provider Provider[[]M], preciselyOneFilter PreciselyOneFilter[M]) Provider[M] {
 	return func() (M, error) {
 		ps, err := provider()
 		if err != nil {
@@ -141,7 +123,7 @@ func IfPresent[M any](provider Provider[M], operator Operator[M]) {
 }
 
 //goland:noinspection GoUnusedExportedFunction
-func For[M any](provider SliceProvider[M], operator SliceOperator[M]) {
+func For[M any](provider Provider[M], operator Operator[M]) {
 	models, err := provider()
 	if err != nil {
 		return
@@ -150,7 +132,7 @@ func For[M any](provider SliceProvider[M], operator SliceOperator[M]) {
 }
 
 //goland:noinspection GoUnusedExportedFunction
-func ForEach[M any](provider SliceProvider[M], operator Operator[M]) {
+func ForEach[M any](provider Provider[[]M], operator Operator[M]) {
 	For(provider, ExecuteForEach(operator))
 }
 
@@ -171,25 +153,25 @@ func Map[M any, N any](provider Provider[M], transformer Transformer[M, N]) Prov
 }
 
 //goland:noinspection GoUnusedExportedFunction
-func SliceMap[M any, N any](provider SliceProvider[M], transformer Transformer[M, N]) SliceProvider[N] {
+func SliceMap[M any, N any](provider Provider[[]M], transformer Transformer[M, N]) Provider[[]N] {
 	models, err := provider()
 	if err != nil {
-		return ErrorSliceProvider[N](err)
+		return ErrorProvider[[]N](err)
 	}
 	var results = make([]N, 0)
 	for _, m := range models {
 		var n N
 		n, err = transformer(m)
 		if err != nil {
-			return ErrorSliceProvider[N](err)
+			return ErrorProvider[[]N](err)
 		}
 		results = append(results, n)
 	}
-	return FixedSliceProvider(results)
+	return FixedProvider(results)
 }
 
 //goland:noinspection GoUnusedExportedFunction
-func First[M any](provider SliceProvider[M], filters ...Filter[M]) (M, error) {
+func First[M any](provider Provider[[]M], filters ...Filter[M]) (M, error) {
 	var r M
 	ms, err := provider()
 	if err != nil {

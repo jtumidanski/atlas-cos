@@ -12,20 +12,20 @@ func getById(characterId uint32) database.EntityProvider[entity] {
 	}
 }
 
-func getForAccountInWorld(accountId uint32, worldId byte) database.EntitySliceProvider[entity] {
-	return func(db *gorm.DB) model.SliceProvider[entity] {
+func getForAccountInWorld(accountId uint32, worldId byte) database.EntityProvider[[]entity] {
+	return func(db *gorm.DB) model.Provider[[]entity] {
 		return database.SliceQuery[entity](db, &entity{AccountId: accountId, World: worldId})
 	}
 }
 
-func getForMapInWorld(worldId byte, mapId uint32) database.EntitySliceProvider[entity] {
-	return func(db *gorm.DB) model.SliceProvider[entity] {
+func getForMapInWorld(worldId byte, mapId uint32) database.EntityProvider[[]entity] {
+	return func(db *gorm.DB) model.Provider[[]entity] {
 		return database.SliceQuery[entity](db, &entity{World: worldId, MapId: mapId})
 	}
 }
 
-func getForName(name string) database.EntitySliceProvider[entity] {
-	return func(db *gorm.DB) model.SliceProvider[entity] {
+func getForName(name string) database.EntityProvider[[]entity] {
+	return func(db *gorm.DB) model.Provider[[]entity] {
 		return database.SliceQuery[entity](db, &entity{Name: name})
 	}
 }

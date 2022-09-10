@@ -28,8 +28,8 @@ func Provider[A any, M any](l logrus.FieldLogger, span opentracing.Span) func(r 
 }
 
 //goland:noinspection GoUnusedExportedFunction
-func SliceProvider[A any, M any](l logrus.FieldLogger, span opentracing.Span) func(r Request[A], t DataBodyTransformer[A, M], filters ...model.Filter[M]) model.SliceProvider[M] {
-	return func(r Request[A], t DataBodyTransformer[A, M], filters ...model.Filter[M]) model.SliceProvider[M] {
+func SliceProvider[A any, M any](l logrus.FieldLogger, span opentracing.Span) func(r Request[A], t DataBodyTransformer[A, M], filters ...model.Filter[M]) model.Provider[[]M] {
+	return func(r Request[A], t DataBodyTransformer[A, M], filters ...model.Filter[M]) model.Provider[[]M] {
 		return func() ([]M, error) {
 			results := make([]M, 0)
 			resp, err := r(l, span)

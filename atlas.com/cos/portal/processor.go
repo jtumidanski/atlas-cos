@@ -20,8 +20,8 @@ func GetById(l logrus.FieldLogger, span opentracing.Span) func(mapId uint32, por
 	}
 }
 
-func InMapModelProvider(l logrus.FieldLogger, span opentracing.Span) func(mapId uint32) model.SliceProvider[Model] {
-	return func(mapId uint32) model.SliceProvider[Model] {
+func InMapModelProvider(l logrus.FieldLogger, span opentracing.Span) func(mapId uint32) model.Provider[[]Model] {
+	return func(mapId uint32) model.Provider[[]Model] {
 		return requests.SliceProvider[attributes, Model](l, span)(requestInMap(mapId), makeModel)
 	}
 }

@@ -7,16 +7,16 @@ import (
 )
 
 // retrieveSavedLocations retrieves all saved locations for the character, or an error if one occurred.
-func retrieveSavedLocations(characterId uint32) database.EntitySliceProvider[entity] {
-	return func(db *gorm.DB) model.SliceProvider[entity] {
+func retrieveSavedLocations(characterId uint32) database.EntityProvider[[]entity] {
+	return func(db *gorm.DB) model.Provider[[]entity] {
 		return database.SliceQuery[entity](db, &entity{CharacterId: characterId})
 	}
 }
 
 // retrieveSavedLocationsByType retrieves all saved locations for the character for the given type, or an error if one
 // occurred.
-func retrieveSavedLocationsByType(characterId uint32, theType string) database.EntitySliceProvider[entity] {
-	return func(db *gorm.DB) model.SliceProvider[entity] {
+func retrieveSavedLocationsByType(characterId uint32, theType string) database.EntityProvider[[]entity] {
+	return func(db *gorm.DB) model.Provider[[]entity] {
 		return database.SliceQuery[entity](db, &entity{CharacterId: characterId, LocationType: theType})
 	}
 }

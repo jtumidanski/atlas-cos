@@ -12,8 +12,8 @@ func getById(id uint32) database.EntityProvider[entityInventoryItem] {
 	}
 }
 
-func getForCharacter(inventoryId uint32, itemId uint32) database.EntitySliceProvider[entityInventoryItem] {
-	return func(db *gorm.DB) model.SliceProvider[entityInventoryItem] {
+func getForCharacter(inventoryId uint32, itemId uint32) database.EntityProvider[[]entityInventoryItem] {
+	return func(db *gorm.DB) model.Provider[[]entityInventoryItem] {
 		return database.SliceQuery[entityInventoryItem](db, &entityInventoryItem{InventoryId: inventoryId, ItemId: itemId})
 	}
 }
@@ -24,8 +24,8 @@ func getBySlot(inventoryId uint32, slot int16) database.EntityProvider[entityInv
 	}
 }
 
-func getByInventory(inventoryId uint32) database.EntitySliceProvider[entityInventoryItem] {
-	return func(db *gorm.DB) model.SliceProvider[entityInventoryItem] {
+func getByInventory(inventoryId uint32) database.EntityProvider[[]entityInventoryItem] {
+	return func(db *gorm.DB) model.Provider[[]entityInventoryItem] {
 		return database.SliceQuery[entityInventoryItem](db, &entityInventoryItem{InventoryId: inventoryId})
 	}
 }
