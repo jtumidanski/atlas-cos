@@ -64,7 +64,6 @@ func main() {
 		drop.ReservationConsumer(db)(consumerGroupId),
 		character.EquipItemConsumer(db)(consumerGroupId),
 		character.UnEquipItemConsumer(db)(consumerGroupId),
-		inventory.GainEquipmentConsumer(db)(consumerGroupId),
 	)
 
 	rest.CreateService(l, db, ctx, wg, "/ms/cos", character.InitResource, inventory.InitResource, seed.InitResource, location.InitResource, skill.InitResource)

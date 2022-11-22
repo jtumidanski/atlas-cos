@@ -28,4 +28,5 @@ type attributes struct {
 	Speed         uint16 `json:"speed"`
 	Jump          uint16 `json:"jump"`
 	Slots         uint16 `json:"slots"`
+	Cash          bool   `json:"cash"`
 }

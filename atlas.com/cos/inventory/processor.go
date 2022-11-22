@@ -298,7 +298,7 @@ func Move(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(charact
 			}
 			l.Debugf("Moved item %d from slot %d to %d for character %d.", i.Id(), source, destination, characterId)
 
-			if otherItem.Id() != 0 {
+			if otherItem != nil && otherItem.Id() != 0 {
 				err = item.UpdateSlot(l, tx)(otherItem.Id(), source)
 				if err != nil {
 					l.WithError(err).Errorf("Unable to move other item %d to resulting slot %d.", otherItem.Id(), source)
@@ -341,7 +341,7 @@ func EquipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing.S
 
 		temporarySlot := int16(math.MinInt16)
 
-		existingSlot := int16(1)
+		existingSlot := e.Slot()
 		err = db.Transaction(func(tx *gorm.DB) error {
 			if equip, err := GetEquippedItemBySlot(l, tx)(characterId, slot); err == nil && equip.EquipmentId() != 0 {
 				l.Debugf("Equipment %d already exists in slot %d, that item will be moved temporarily to %d for character %d.", equip.EquipmentId(), slot, temporarySlot, characterId)
@@ -455,6 +455,7 @@ func UnequipItemForCharacter(l logrus.FieldLogger, db *gorm.DB, span opentracing
 	}
 }
 
+// Deprecated: going to do a generic GainItem call instead
 func GainEquipment(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(characterId uint32, itemId uint32, equipmentId uint32) error {
 	return func(characterId uint32, itemId uint32, equipmentId uint32) error {
 		//TODO verify inventory space

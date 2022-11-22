@@ -62,5 +62,6 @@ func makeEquipment(resp requests.DataBody[attributes]) (Model, error) {
 		speed:         attr.Speed,
 		jump:          attr.Jump,
 		slots:         attr.Slots,
+		cash:          attr.Cash,
 	}, nil
 }

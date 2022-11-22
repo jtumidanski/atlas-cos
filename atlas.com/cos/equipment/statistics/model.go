@@ -19,6 +19,7 @@ type Model struct {
 	speed         uint16
 	jump          uint16
 	slots         uint16
+	cash          bool
 }
 
 func (m Model) Strength() uint16 {

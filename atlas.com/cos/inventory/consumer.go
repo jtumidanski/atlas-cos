@@ -9,10 +9,8 @@ import (
 )
 
 const (
-	consumerNameGainItem      = "gain_item_command"
-	consumerNameGainEquipment = "gain_equipment_command"
-	topicTokenGainItem        = "TOPIC_CHARACTER_GAIN_ITEM"
-	topicTokenGainEquipment   = "TOPIC_CHARACTER_GAIN_EQUIPMENT"
+	consumerNameGainItem = "gain_item_command"
+	topicTokenGainItem   = "TOPIC_CHARACTER_GAIN_ITEM"
 )
 
 func GainItemCommandConsumer(db *gorm.DB) func(groupId string) kafka.ConsumerConfig {
@@ -30,45 +28,32 @@ type gainItemCommand struct {
 func handleGainItemCommand(db *gorm.DB) kafka.HandlerFunc[gainItemCommand] {
 	return func(l logrus.FieldLogger, span opentracing.Span, event gainItemCommand) {
 		if it, ok := GetInventoryType(event.ItemId); ok {
-			if event.Quantity > 0 {
-				err := GainItem(l, db, span)(event.CharacterId, it, event.ItemId, uint32(event.Quantity))
+			if it == TypeValueEquip {
+				eid, err := statistics.Create(l, span)(event.ItemId)
+				if err != nil {
+					l.WithError(err).Errorf("Unable to create equipment %d for character %d.", event.ItemId, event.CharacterId)
+					return
+				}
+
+				err = GainEquipment(l, db, span)(event.CharacterId, event.ItemId, eid)
 				if err != nil {
 					l.WithError(err).Errorf("Unable to give character %d item %d.", event.CharacterId, event.ItemId)
 				}
 			} else {
-				err := LoseItem(l, db, span)(event.CharacterId, it, event.ItemId, event.Quantity)
-				if err != nil {
-					l.WithError(err).Errorf("Unable to take item %d from character %d.", event.ItemId, event.CharacterId)
+				if event.Quantity > 0 {
+					err := GainItem(l, db, span)(event.CharacterId, it, event.ItemId, uint32(event.Quantity))
+					if err != nil {
+						l.WithError(err).Errorf("Unable to give character %d item %d.", event.CharacterId, event.ItemId)
+					}
+				} else {
+					err := LoseItem(l, db, span)(event.CharacterId, it, event.ItemId, event.Quantity)
+					if err != nil {
+						l.WithError(err).Errorf("Unable to take item %d from character %d.", event.ItemId, event.CharacterId)
+					}
 				}
 			}
 		} else {
 			l.Errorf("Unable to locate inventory item %d belongs in.", event.ItemId)
-		}
-	}
-}
-
-func GainEquipmentConsumer(db *gorm.DB) func(groupId string) kafka.ConsumerConfig {
-	return func(groupId string) kafka.ConsumerConfig {
-		return kafka.NewConsumerConfig[gainEquipmentCommand](consumerNameGainEquipment, topicTokenGainEquipment, groupId, handleGainEquipmentCommand(db))
-	}
-}
-
-type gainEquipmentCommand struct {
-	CharacterId uint32 `json:"characterId"`
-	ItemId      uint32 `json:"itemId"`
-}
-
-func handleGainEquipmentCommand(db *gorm.DB) kafka.HandlerFunc[gainEquipmentCommand] {
-	return func(l logrus.FieldLogger, span opentracing.Span, event gainEquipmentCommand) {
-		eid, err := statistics.Create(l, span)(event.ItemId)
-		if err != nil {
-			l.WithError(err).Errorf("Unable to create equipment %d for character %d.", event.ItemId, event.CharacterId)
-			return
-		}
-
-		err = GainEquipment(l, db, span)(event.CharacterId, event.ItemId, eid)
-		if err != nil {
-			l.WithError(err).Errorf("Unable to give character %d item %d.", event.CharacterId, event.ItemId)
 		}
 	}
 }
