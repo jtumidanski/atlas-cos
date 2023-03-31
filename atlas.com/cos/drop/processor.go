@@ -224,7 +224,7 @@ func hasItemInventorySpace(l logrus.FieldLogger) func(characterId uint32, invent
 				i := existingItems[index]
 				if i.ItemId() == itemId {
 					oldQuantity := uint32(0)
-					if val, ok := i.(*item.ItemModel); ok {
+					if val, ok := i.(item.ItemModel); ok {
 						oldQuantity = val.Quantity()
 					}
 					if oldQuantity < slotMax {

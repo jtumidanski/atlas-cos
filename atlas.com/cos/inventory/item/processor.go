@@ -114,7 +114,7 @@ func UpdateQuantity(l logrus.FieldLogger, db *gorm.DB) func(id uint32, quantity 
 		if err != nil {
 			return err
 		}
-		if val, ok := i.(*ItemModel); ok {
+		if val, ok := i.(ItemModel); ok {
 			return updateQuantity(db, val.ReferenceId(), quantity)
 		}
 		return nil

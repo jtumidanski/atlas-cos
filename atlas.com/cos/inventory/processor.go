@@ -192,7 +192,7 @@ func dropItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(wor
 		}
 
 		initialQuantity := uint32(1)
-		if val, ok := i.(*item.ItemModel); ok {
+		if val, ok := i.(item.ItemModel); ok {
 			initialQuantity = val.Quantity()
 		}
 
@@ -277,7 +277,7 @@ func Move(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(charact
 				return err
 			}
 			itemId = i.ItemId()
-			if val, ok := i.(*item.ItemModel); ok {
+			if val, ok := i.(item.ItemModel); ok {
 				quantity = val.Quantity()
 			}
 
@@ -501,7 +501,7 @@ func GainItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 					if index < len(existingItems) {
 						i := existingItems[index]
 						oldQuantity := uint32(1)
-						if val, ok := i.(*item.ItemModel); ok {
+						if val, ok := i.(item.ItemModel); ok {
 							oldQuantity = val.Quantity()
 						}
 
@@ -568,7 +568,7 @@ func LoseItem(l logrus.FieldLogger, db *gorm.DB, span opentracing.Span) func(cha
 					if index < len(existingItems) {
 						i := existingItems[index]
 						oldQuantity := uint32(1)
-						if val, ok := i.(*item.ItemModel); ok {
+						if val, ok := i.(item.ItemModel); ok {
 							oldQuantity = val.Quantity()
 						}
 						if oldQuantity > runningQuantity {
